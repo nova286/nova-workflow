@@ -48,11 +48,11 @@ Ask user to confirm before proceeding.
 
 For each task in order:
 
-### 4a. Prepare Context
+### 3a. Prepare Context
 Read files referenced in `task.files`. Read the design document
 (`phases.design.designDoc`) for architecture context.
 
-### 4b. Route by Task Type
+### 3b. Route by Task Type
 
 **`implementation` tasks** — direct implementation:
 - Write production code following existing project conventions
@@ -70,13 +70,13 @@ Read files referenced in `task.files`. Read the design document
 
 **`review` / `security` tasks** — these are handled by `/nova-verify`; skip here
 
-### 4c. Verify After Each Task
+### 3c. Verify After Each Task
 After implementing:
 1. Run type check (`npx tsc --noEmit` or project equivalent)
 2. Run tests (`npx jest --no-coverage` or project equivalent)
 3. If checks fail, fix before marking task complete
 
-### 4d. Record Result
+### 3d. Record Result
 
 After each task, update `.nova.yaml`:
 ```yaml

@@ -17,9 +17,6 @@ Check if `.nova.yaml` exists in the project root.
 
 Parse `.nova.yaml`. For each phase, determine status (pending / in-progress / done).
 
-If `.nova.yaml` does not exist, say: "Nova not initialized. Run `nova init` in
-your terminal first."
-
 ## Step 2: Show Overview
 
 ```

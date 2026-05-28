@@ -74,7 +74,7 @@ Environment: <env>
 
 ## Step 6: Output Status Bar
 
-After all work is done and `.nova.yaml` is updated, output a one-line status summary:
+After displaying the status report, output a one-line status summary:
 
 ```
 [Nova] <phase> · <completion> · next: <suggestion>

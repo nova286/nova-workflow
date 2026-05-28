@@ -1,5 +1,5 @@
 import { StateManager } from './state';
-import { validateTaskSchema, validateTaskIds, validateAcceptance } from './quality-check';
+import { validateTaskSchema, validateTaskIds, validateAcceptance, validateFiles } from './quality-check';
 
 export interface GuardFailure {
   label: string;
@@ -43,6 +43,10 @@ const TRANSITION_RULES: Record<string, GuardCheck[]> = {
     {
       label: 'All task IDs are unique kebab-case',
       check: (s) => validateTaskIds(s.phases.design?.tasks || []),
+    },
+    {
+      label: 'All tasks have valid file entries',
+      check: (s) => validateFiles(s.phases.design?.tasks || []),
     },
     {
       label: 'All tasks have acceptance criteria',

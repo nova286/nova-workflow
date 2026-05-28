@@ -55,7 +55,7 @@ describe('guardPhaseTransition', () => {
       ...baseState,
       phases: {
         ...baseState.phases,
-        design: { status: 'done', designDoc: 'docs/design.md', tasks: [{ id: 'task-1', title: 'T1', type: 'implementation', files: [], acceptance: ['done'] }] },
+        design: { status: 'done', designDoc: 'docs/design.md', tasks: [{ id: 'task-1', title: 'T1', type: 'implementation', files: [{ path: 'x.ts', action: 'create' }], acceptance: ['done'] }] },
       },
     });
     expect((await guardPhaseTransition('design', 'build')).pass).toBe(true);

@@ -1,5 +1,5 @@
 ---
-description: Nova implement phase — execute design tasks with retry and tracing
+description: Nova implement phase — when .nova.yaml exists, handles ALL implementation requests through Nova's state machine (wraps TDD + code-review)
 ---
 
 # Nova Implement Phase

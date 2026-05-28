@@ -1,5 +1,5 @@
 ---
-description: Nova propose phase — generate a feature proposal from interactive Q&A
+description: Nova propose phase — when .nova.yaml exists, handles ALL proposal/requirements requests through Nova's state machine (wraps brainstorming)
 ---
 
 # Nova Propose Phase

@@ -1,5 +1,5 @@
 ---
-description: Nova design phase — generate technical design from approved proposal
+description: Nova design phase — when .nova.yaml exists, handles ALL design requests through Nova's state machine (wraps brainstorming + writing-plans)
 ---
 
 # Nova Design Phase

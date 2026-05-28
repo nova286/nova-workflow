@@ -1,5 +1,5 @@
 ---
-description: Nova iterate — roll back to a previous phase for iteration
+description: Nova iterate — roll back to a previous phase for rework
 ---
 
 # Nova Iterate Phase

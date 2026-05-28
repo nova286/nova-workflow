@@ -1,5 +1,5 @@
 ---
-description: Nova — unified entry point. Shows progress and suggests next action.
+description: Nova — unified project command center. Shows phase progress and routes to the correct phase skill. Use this FIRST when .nova.yaml exists.
 ---
 
 # Nova

@@ -1,5 +1,5 @@
 ---
-description: Nova verify phase — run code review and security review pipeline
+description: Nova verify phase — when .nova.yaml exists, handles ALL review requests through Nova's state machine (wraps code-review + security-review)
 ---
 
 # Nova Verify Phase

@@ -1,5 +1,5 @@
 ---
-description: Nova status — display phase progress, task completion, and stuck detection
+description: Nova status — display detailed phase progress with durations
 ---
 
 # Nova Status

@@ -26,7 +26,7 @@ Check if `.nova.yaml` exists in the project root.
   * `/nova-iterate` — always allowed.
   If the phase is correct, proceed.
 
-## Step 2: Verify State
+## Step 1: Verify State
 
 Read `.nova.yaml`. Check:
 - `phases.open.status` is `done` — proposal must be complete. Reject if not.
@@ -35,7 +35,7 @@ Read `.nova.yaml`. Check:
 
 Update `phases.design.status` to `in-progress` and set `startedAt` to now.
 
-## Step 3: Load Context
+## Step 2: Load Context
 
 Read these files:
 1. The proposal file at `phases.open.proposal` (default: `docs/proposals/proposal.md`)
@@ -43,7 +43,7 @@ Read these files:
 3. `package.json` / `go.mod` / etc — dependencies and tech stack
 4. `src/` directory tree — existing code structure
 
-## Step 4: Explore Architecture Options
+## Step 3: Explore Architecture Options
 
 Use the **brainstorming skill** to explore at least 2 architectural approaches:
 
@@ -62,7 +62,7 @@ Ask brainstorming to produce for each approach:
 Present the alternatives to the user. Ask them to select one or combine ideas.
 Do not proceed until the user confirms their choice.
 
-## Step 5: Generate Design Document
+## Step 4: Generate Design Document
 
 Based on the user-selected approach, use the **writing-plans skill** to produce
 `docs/designs/design.md` with these sections:
@@ -110,7 +110,7 @@ Task guidelines:
 Known risks, failure modes, and mitigations. Include technical, integration,
 security, and performance risks.
 
-## Step 6: Validate Tasks
+## Step 5: Validate Tasks
 
 Verify each task in the YAML task list:
 1. Has all required fields: id, title, type, description, files, acceptance
@@ -121,7 +121,7 @@ Verify each task in the YAML task list:
 
 Fix any issues before proceeding.
 
-## Step 7: Update State
+## Step 6: Update State
 
 Update `.nova.yaml`:
 - `phases.design.status = 'done'`
@@ -132,7 +132,7 @@ Update `.nova.yaml`:
 Report: "Design complete. N tasks defined. Review docs/designs/design.md, then
 run `/nova-implement` to begin implementation."
 
-## Step 8: Output Status Bar
+## Step 7: Output Status Bar
 
 After all work is done and `.nova.yaml` is updated, output a one-line status summary:
 

@@ -25,7 +25,7 @@ Check if `.nova.yaml` exists in the project root.
   * `/nova-iterate` — always allowed.
   If the phase is correct, proceed.
 
-## Step 2: Verify State
+## Step 1: Verify State
 
 Read `.nova.yaml`. Check:
 - `phases.build.status` is `done` — must have completed implementation. Reject if not.
@@ -33,7 +33,7 @@ Read `.nova.yaml`. Check:
 
 Update `phases.verify.status` to `in-progress` and set `startedAt` to now.
 
-## Step 3: Gather Review Context
+## Step 2: Gather Review Context
 
 From `.nova.yaml`, collect:
 - Task list from `phases.design.tasks` (only tasks with `status: done`)
@@ -42,7 +42,7 @@ From `.nova.yaml`, collect:
 
 Read the changed files to understand what was implemented.
 
-## Step 4: Run Code Review
+## Step 3: Run Code Review
 
 Use the **ecc:code-reviewer** skill (or **code-review** skill) to review each
 implemented task's changed files. For each task, assess:
@@ -56,7 +56,7 @@ implemented task's changed files. For each task, assess:
 For each task, produce a verdict: **PASS**, **CHANGES_REQUESTED**, or **COMMENT**.
 Be specific — reference file paths and line numbers.
 
-## Step 5: Run Security Review
+## Step 4: Run Security Review
 
 Use the **ecc:security-reviewer** skill (or **security-review** skill) to audit
 each implemented task's changed files. Check for:
@@ -71,7 +71,7 @@ For each task, produce a verdict: **PASS** or **VULNERABILITY_FOUND**.
 Security findings must include severity (critical/high/medium/low) and
 remediation guidance.
 
-## Step 6: Generate Verification Report
+## Step 5: Generate Verification Report
 
 Write `docs/designs/verification-report.md`:
 
@@ -100,7 +100,7 @@ Write `docs/designs/verification-report.md`:
 ...
 ```
 
-## Step 7: Update State
+## Step 6: Update State
 
 Update `.nova.yaml`:
 - `phases.verify.status = 'done'`
@@ -110,7 +110,7 @@ Update `.nova.yaml`:
 
 Report summary to user with pass/fail counts and overall verdict.
 
-## Step 8: Output Status Bar
+## Step 7: Output Status Bar
 
 After all work is done and `.nova.yaml` is updated, output a one-line status summary:
 

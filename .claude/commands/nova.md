@@ -13,14 +13,14 @@ Check if `.nova.yaml` exists in the project root.
 - If YES: Parse it. If YAML is corrupted, report the corruption and stop.
 - If YES and valid: Proceed.
 
-## Step 2: Read State
+## Step 1: Read State
 
 Parse `.nova.yaml`. For each phase, determine status (pending / in-progress / done).
 
 If `.nova.yaml` does not exist, say: "Nova not initialized. Run `nova init` in
 your terminal first."
 
-## Step 3: Show Overview
+## Step 2: Show Overview
 
 ```
 Nova · <project-name>
@@ -33,7 +33,7 @@ archive   [pending]
 ────────────────────────────────────────
 ```
 
-## Step 4: Suggest Next Action
+## Step 3: Suggest Next Action
 
 Based on the first phase that is NOT done:
 
@@ -57,12 +57,12 @@ Also list available actions:
 - `/nova-iterate` — roll back to earlier phase
 - `/nova-status` — detailed view with durations
 
-## Step 5: Act
+## Step 4: Act
 
 Ask the user: "Run the suggested action, pick another, or do something else?"
 Act on their choice.
 
-## Step 6: Output Status Bar
+## Step 5: Output Status Bar
 
 After all work is done and `.nova.yaml` is updated, output a one-line status summary:
 

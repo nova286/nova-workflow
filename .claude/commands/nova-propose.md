@@ -25,7 +25,7 @@ Check if `.nova.yaml` exists in the project root.
   * `/nova-iterate` — always allowed.
   If the phase is correct, proceed.
 
-## Step 2: Verify State
+## Step 1: Verify State
 
 Read `.nova.yaml`. Check `phases.open.status`:
 - If `done` — ask user if they want to regenerate or move to `/nova-design`
@@ -34,7 +34,7 @@ Read `.nova.yaml`. Check `phases.open.status`:
 
 Update `phases.open.status` to `in-progress` and set `startedAt` to now.
 
-## Step 3: Gather Project Context
+## Step 2: Gather Project Context
 
 Read these files to understand what's being built:
 1. `AGENTS.md` or `CLAUDE.md` — project conventions and architecture
@@ -43,7 +43,7 @@ Read these files to understand what's being built:
 4. `src/` directory tree — existing code structure
 5. Any existing docs in `docs/`
 
-## Step 4: Explore Requirements
+## Step 3: Explore Requirements
 
 Use the **brainstorming skill** to explore the problem space:
 
@@ -60,7 +60,7 @@ Ask brainstorming to help:
 Summarize the exploration for the user. Ask them to confirm or refine before
 proceeding.
 
-## Step 5: Generate Proposal
+## Step 4: Generate Proposal
 
 Based on the confirmed requirements exploration, write `docs/proposals/proposal.md`:
 
@@ -93,7 +93,7 @@ High-level approach. How it solves the problem.
 - Constraint: description
 ```
 
-## Step 6: Update State
+## Step 5: Update State
 
 Update `.nova.yaml`:
 - `phases.open.status = 'in-progress'`
@@ -103,7 +103,7 @@ Update `.nova.yaml`:
 Report: "Proposal draft saved. Review it, then run `/nova-design` to begin the
 design phase, or `/nova-propose` to regenerate."
 
-## Step 7: Output Status Bar
+## Step 6: Output Status Bar
 
 After all work is done and `.nova.yaml` is updated, output a one-line status summary:
 

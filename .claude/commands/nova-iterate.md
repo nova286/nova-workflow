@@ -27,7 +27,7 @@ Check if `.nova.yaml` exists in the project root.
   * `/nova-iterate` — always allowed.
   If the phase is correct, proceed.
 
-## Step 2: Detect Current Phase
+## Step 1: Detect Current Phase
 
 Read `.nova.yaml`. Determine which phase is currently active:
 
@@ -41,7 +41,7 @@ Read `.nova.yaml`. Determine which phase is currently active:
 If all phases are `pending` or only `open` is active, report:
 "No active later phase to iterate from. You're already at the earliest stage."
 
-## Step 3: Present Iteration Options
+## Step 2: Present Iteration Options
 
 Based on the current phase, present valid rollback targets. For each target,
 explain what will happen:
@@ -58,7 +58,7 @@ Ask the user:
 - Why? (brief reason, recorded in history)
 - Keep or discard the work done in the current phase?
 
-## Step 4: Execute Rollback
+## Step 3: Execute Rollback
 
 ### If user chose to KEEP work:
 
@@ -80,7 +80,7 @@ Additionally revert changed files:
 - Ask user to confirm file revert list before executing
 - Revert files with `git checkout -- <file>` or equivalent
 
-## Step 5: Record Iteration
+## Step 4: Record Iteration
 
 Update `.nova.yaml` metadata.history:
 
@@ -92,7 +92,7 @@ metadata:
       change: "Iterated build to design: [user's reason]"
 ```
 
-## Step 6: Report Next Steps
+## Step 5: Report Next Steps
 
 Clear summary of what happened and what to do next:
 
@@ -104,7 +104,7 @@ Files preserved: src/**, docs/**
 Next: run /nova-design to update the design, then /nova-implement to rebuild.
 ```
 
-## Step 7: Output Status Bar
+## Step 6: Output Status Bar
 
 After all work is done and `.nova.yaml` is updated, output a one-line status summary:
 

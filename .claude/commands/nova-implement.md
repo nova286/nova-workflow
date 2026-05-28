@@ -26,7 +26,7 @@ Check if `.nova.yaml` exists in the project root.
   * `/nova-iterate` — always allowed.
   If the phase is correct, proceed.
 
-## Step 2: Verify State
+## Step 1: Verify State
 
 Read `.nova.yaml`. Check:
 - `phases.design.status` is `done` — must have a completed design. Reject if not.
@@ -35,7 +35,7 @@ Read `.nova.yaml`. Check:
 
 Update `phases.build.status` to `in-progress` and set `startedAt` to now.
 
-## Step 3: Load Task List
+## Step 2: Load Task List
 
 Read the task list from `.nova.yaml` (`phases.design.tasks`). Show the user:
 - Total task count
@@ -44,7 +44,7 @@ Read the task list from `.nova.yaml` (`phases.design.tasks`). Show the user:
 
 Ask user to confirm before proceeding.
 
-## Step 4: Execute Each Task
+## Step 3: Execute Each Task
 
 For each task in order:
 
@@ -86,18 +86,18 @@ phases.build.tasks.<taskId>:
 ```
 On failure, record the error and ask user: abort, skip, or retry.
 
-## Step 5: Final Verification
+## Step 4: Final Verification
 
 After all tasks:
 - Run full test suite
 - Run type check
 - Report summary: tasks completed/failed, tests passed, type check status
 
-## Step 6: Update State
+## Step 5: Update State
 
 Set `phases.build.status` to `done` and `phases.build.completedAt` to now.
 
-## Step 7: Output Status Bar
+## Step 6: Output Status Bar
 
 After all work is done and `.nova.yaml` is updated, output a one-line status summary:
 

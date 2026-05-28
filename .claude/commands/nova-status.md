@@ -13,7 +13,7 @@ Check if `.nova.yaml` exists in the project root.
 - If YES: Parse it. If YAML is corrupted, report the corruption and stop.
 - If YES and valid: Proceed.
 
-## Phase Mapping
+## Step 1: Phase Mapping
 
 | Internal key | Display name |
 |---|---|
@@ -23,7 +23,7 @@ Check if `.nova.yaml` exists in the project root.
 | `verify` | verify |
 | `archive` | archive |
 
-## Status Icons
+## Step 2: Status Icons
 
 | State | Icon |
 |---|---|
@@ -31,7 +31,7 @@ Check if `.nova.yaml` exists in the project root.
 | `in-progress` | 🔄 |
 | `pending` | ⬜ |
 
-## Stuck Detection
+## Step 3: Stuck Detection
 
 If a phase is `in-progress` and `startedAt` exceeds these thresholds, show a warning:
 
@@ -43,7 +43,7 @@ If a phase is `in-progress` and `startedAt` exceeds these thresholds, show a war
 | verify | 30 min |
 | archive | 15 min |
 
-## Output Format
+## Step 4: Output Format
 
 ```
 Project: <name>
@@ -62,7 +62,7 @@ Environment: <env>
 - For build/implement phase: count tasks by status and show ratio
 - Only flag phases that are genuinely stuck, not recently started
 
-## Stuck Messages
+## Step 5: Stuck Messages
 
 | Phase | Suggestion |
 |-------|------------|

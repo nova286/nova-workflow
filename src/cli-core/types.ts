@@ -7,6 +7,8 @@ export enum AgentType {
   SECURITY_REVIEWER = 'security_reviewer',
 }
 
+export type TaskStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped';
+
 export interface TaskContext {
   taskId: string;
   parentTaskId?: string;

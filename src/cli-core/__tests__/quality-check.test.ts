@@ -50,6 +50,24 @@ describe('validateTaskSchema', () => {
     expect(r.pass).toBe(false);
     expect(r.errors.length).toBe(2);
   });
+
+  test('fails when a task is missing title', () => {
+    const tasks = [
+      { id: 't1', type: 'implementation', files: [{ path: 'x.ts', action: 'create' }], acceptance: ['Works'] },
+    ];
+    const r = validateTaskSchema(tasks);
+    expect(r.pass).toBe(false);
+    expect(r.errors.some(e => e.includes('missing') && e.includes('title'))).toBe(true);
+  });
+
+  test('fails when a task is missing type', () => {
+    const tasks = [
+      { id: 't1', title: 'X', files: [{ path: 'x.ts', action: 'create' }], acceptance: ['Works'] },
+    ];
+    const r = validateTaskSchema(tasks);
+    expect(r.pass).toBe(false);
+    expect(r.errors.some(e => e.includes('missing') && e.includes('type'))).toBe(true);
+  });
 });
 
 describe('validateTaskIds', () => {
@@ -127,5 +145,14 @@ describe('validateFiles', () => {
     const r = validateFiles(tasks);
     expect(r.pass).toBe(false);
     expect(r.errors[0]).toContain('action');
+  });
+
+  test('fails when a file entry is missing path', () => {
+    const tasks = [
+      { id: 't1', files: [{ action: 'create' }] },
+    ];
+    const r = validateFiles(tasks);
+    expect(r.pass).toBe(false);
+    expect(r.errors[0]).toContain('path');
   });
 });

@@ -53,8 +53,18 @@ Every Nova skill file gets a Step 0 before the existing Step 1:
 Check if `.nova.yaml` exists in the project root.
 - If NO: "This project isn't using Nova. Run `nova init` first, or I'll
   use raw Superpowers skills directly." Let user choose.
-- If YES: Nova owns this workflow. Read state, verify phase is correct
-  for this command, then proceed.
+- If YES: Parse it. If YAML is corrupted or unreadable, say:
+    ".nova.yaml exists but is corrupted. Run `nova init --force` to
+    reinitialize, or fix the file manually." Stop — do not proceed.
+  - If YES and valid: Nova owns this workflow. Verify phase is correct
+    for this command:
+    * `/nova-propose` — reject if past propose (design/build/verify done
+      or in-progress). Suggest `/nova-iterate` to roll back first.
+    * `/nova-design` — reject if propose not done, or if build/verify done.
+    * `/nova-implement` — reject if design not done.
+    * `/nova-verify` — reject if build not done.
+    * `/nova-iterate` — always allowed.
+    If the phase is correct, proceed.
 ```
 
 ### 1.2 Skill Description Convention
@@ -163,6 +173,17 @@ Read `.nova.yaml`. Check phase status:
 
 Phase transitions validate not just binary conditions, but the quality of artifacts being handed off.
 
+### 4.0 Task Data Shape (Important Distinction)
+
+Tasks exist in two different shapes in `.nova.yaml`, used at different lifecycle stages:
+
+```
+phases.design.tasks    → Array<TaskDefinition>      (design output, validated at design→build gate)
+phases.build.tasks     → Record<taskId, TaskStatus>  (build execution state, keyed by task ID)
+```
+
+Section 4 validates the **design-phase array** (`phases.design.tasks`), ensuring the task list is well-formed before build starts. Section 5 operates on the **build-phase record** (`phases.build.tasks.<taskId>`), modifying individual task execution status.
+
 ### 4.1 Validation Matrix
 
 ```
@@ -200,14 +221,36 @@ function validateAcceptance(tasks: any[]): QualityReport;
 function validateFiles(tasks: any[]): QualityReport;
 ```
 
-Extended guard rules in `src/cli-core/guard.ts`:
+All functions receive `phases.design.tasks` (the array form), not the build Record.
+
+### 4.3 Guard Interface Change
+
+The existing `guardPhaseTransition(from, to)` returns `Promise<boolean>`. To surface structured quality-check errors, the signature changes to:
+
+```typescript
+interface GuardFailure {
+  label: string;
+  errors: string[];
+}
+
+interface GuardResult {
+  pass: boolean;
+  failures: GuardFailure[];
+}
+
+async function guardPhaseTransition(from: string, to: string): Promise<GuardResult>;
+```
+
+Backward compatibility: the boolean `.pass` field preserves the old contract. Callers that only check `pass` are unaffected. New callers can inspect `.failures` for per-rule error detail.
+
+Quality checks map `QualityReport.errors` → `GuardFailure.errors`:
 
 ```typescript
 'design:build': [
   // ... existing rules ...
-  { label: 'All tasks have required fields', check: (s) => validateTaskSchema(s.phases.design?.tasks).pass },
-  { label: 'All task IDs are unique kebab-case', check: (s) => validateTaskIds(s.phases.design?.tasks).pass },
-  { label: 'All tasks have acceptance criteria', check: (s) => validateAcceptance(s.phases.design?.tasks).pass },
+  { label: 'All tasks have required fields',
+    check: (s) => { const r = validateTaskSchema(s.phases.design?.tasks);
+                    return { pass: r.pass, errors: r.errors }; }},
 ],
 ```
 
@@ -264,9 +307,10 @@ pending | in-progress | done | failed | skipped  (add "skipped")
 | 2 | Skill description rewrite | 6 skill file frontmatters | Low (1 line each) |
 | 3 | Push status bar | 6 skill files, final step | Low (~10 lines each) |
 | 4 | Context resume | 5 phase skills, Step 1 extension | Medium (read state + format) |
-| 5 | Handoff quality validation | `guard.ts` + new `quality-check.ts` | Medium (~80 lines) |
+| 5 | Handoff quality validation | `guard.ts` (signature change) + new `quality-check.ts` | Medium (~80 lines) |
 | 6 | Retry/skip skills | 2 new skill files | Medium (2 new files) |
 | 7 | TaskStatus extension | `types.ts` | Low (1 line) |
+| 8 | Edge cases & migration | Design spec (no code changes, but informs implementation) | — |
 
 **Unchanged**: StateManager, CLI commands, Pipeline/Dispatcher, adapters.
 
@@ -278,3 +322,37 @@ pending | in-progress | done | failed | skipped  (add "skipped")
 - The 5-phase workflow structure is preserved
 - Superpowers skills (brainstorming, writing-plans, TDD) continue to run at full capability — Nova wraps, never neuters
 - CLI layer (`nova init`, `nova status`, etc.) remains as fallback for non-Claude-Code environments
+
+---
+
+## 8. Edge Cases
+
+### 8.1 Corrupted State File
+
+If `.nova.yaml` exists but cannot be parsed (malformed YAML, truncated write), Context Gate (Step 0) must catch this before any operation proceeds. The skill reports the corruption and stops — no partial reads, no best-effort recovery. User fixes manually or runs `nova init --force`.
+
+### 8.2 Migration from Pre-v2.1 State Files
+
+Existing `.nova.yaml` files may lack the `skipped` task status. On first load, `StateManager` normalizes: any task status not in the current enum defaults to `failed`. No explicit migration script needed — normalization on read is sufficient.
+
+### 8.3 Cross-Phase Skill Invocation
+
+If a user runs `/nova-design` while the implement phase is already done, Step 0 must reject:
+- "Design phase is already complete and implementation has started. Use `/nova-iterate build:design` to roll back first."
+Cross-phase validation table:
+
+| Current State | User runs | Behavior |
+|---------------|-----------|----------|
+| propose done, design pending | `/nova-design` | Proceed |
+| design done, build in-progress | `/nova-design` | Reject — suggest `/nova-iterate build:design` |
+| build done | `/nova-design` | Reject — suggest `/nova-iterate` |
+| build done | `/nova-implement` | Reject — already done, suggest `/nova-verify` |
+| verify done | `/nova-implement` | Reject — suggest `/nova-iterate` |
+
+### 8.4 /nova-iterate Behavior
+
+`/nova-iterate` rolls a phase back to `pending`, clearing that phase's outputs. It has a Step 0 Context Gate (same as all Nova skills). Its Step 1 confirms: "This will discard the design doc and task list for the design phase. Continue?" No quality validation applies (iterate is destructive by design). After rollback, it outputs the status bar showing the new current phase.
+
+### 8.5 Empty Task List After Skip
+
+If all tasks are skipped, `build → verify` guard treats it as: all non-blocking tasks resolved. The guard passes. But `/nova-implement` should warn before proceeding: "All remaining tasks are skipped. Proceed to verify?"

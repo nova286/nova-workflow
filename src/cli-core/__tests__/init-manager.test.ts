@@ -63,7 +63,7 @@ describe('InitManager', () => {
 
       expect(state.version).toBe(1);
       expect(state.project).toBeTruthy();
-      expect(state.environment).toEqual(['claude-code']);
+      expect(state.environment).toContain('claude-code');
       expect(state.phases.open.status).toBe('pending');
       expect(state.phases.design.status).toBe('pending');
       expect(state.phases.build.status).toBe('pending');

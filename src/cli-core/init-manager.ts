@@ -1,10 +1,23 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { execFile } from 'child_process';
 import * as yaml from 'yaml';
 import { ui } from '../cli/ui';
 import { EnvironmentAdapter } from './types';
 import { detectProjectType } from './project-detect';
 import { ClaudeCodeAdapter } from './adapters/claude-code';
+import { CodexAdapter } from './adapters/codex';
+import { OpenClawAdapter } from './adapters/openclaw';
+import { HermesAgentAdapter } from './adapters/hermes-agent';
+import { OpenCodeAdapter } from './adapters/opencode';
+
+const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
+  'claude-code': () => new ClaudeCodeAdapter(),
+  'codex': () => new CodexAdapter(),
+  'openclaw': () => new OpenClawAdapter(),
+  'hermes-agent': () => new HermesAgentAdapter(),
+  'opencode': () => new OpenCodeAdapter(),
+};
 
 export class InitManager {
   private cwd: string;
@@ -76,12 +89,31 @@ export class InitManager {
     }
   }
 
+  private async commandExists(cmd: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      execFile('which', [cmd], (err) => resolve(!err));
+    });
+  }
+
   private async detectAIEnvironment(): Promise<string[]> {
-    return ['claude-code'];
+    const detectors: { env: string; cmd: string }[] = [
+      { env: 'claude-code', cmd: 'claude' },
+      { env: 'codex', cmd: 'codex' },
+      { env: 'openclaw', cmd: 'openclaw' },
+      { env: 'hermes-agent', cmd: 'hermes-agent' },
+      { env: 'opencode', cmd: 'opencode' },
+    ];
+    const detected: string[] = [];
+    for (const d of detectors) {
+      if (await this.commandExists(d.cmd)) detected.push(d.env);
+    }
+    return detected.length > 0 ? detected : ['claude-code'];
   }
 
   private getAdapter(env: string): EnvironmentAdapter {
-    return new ClaudeCodeAdapter();
+    const factory = ADAPTER_FACTORIES[env];
+    if (!factory) throw new Error(`Unknown environment: ${env}`);
+    return factory();
   }
 
   private async createDirs() {
@@ -129,9 +161,18 @@ export class InitManager {
   }
 
   private async cleanEnvCommands(envs: string[]) {
+    const cleanupMap: Record<string, string[]> = {
+      'claude-code': ['.claude'],
+      'codex': ['CODEX.md'],
+      'openclaw': ['.openclaw'],
+      'hermes-agent': ['HERMES.md'],
+      'opencode': ['opencode.json'],
+    };
     for (const env of envs) {
-      if (env === 'claude-code') await fs.rm(path.join(this.cwd, '.claude'), { recursive: true, force: true });
-      // 其他环境类似
+      const targets = cleanupMap[env] ?? [];
+      for (const target of targets) {
+        await fs.rm(path.join(this.cwd, target), { recursive: true, force: true });
+      }
     }
   }
 

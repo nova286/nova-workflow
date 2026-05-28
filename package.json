@@ -1,6 +1,6 @@
 {
   "name": "@nova286/nova-workflow",
-  "version": "0.2.0",
+  "version": "2.1.0",
   "description": "Nova: AI workflow orchestration — a thin shell for disciplined AI-assisted development",
   "main": "dist/cli/index.js",
   "bin": { "nova": "dist/cli/index.js" },

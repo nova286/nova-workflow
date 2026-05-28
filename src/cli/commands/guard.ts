@@ -8,11 +8,20 @@ export const guardCommand = withErrorHandling(async (from: string, to: string) =
     process.exit(1);
   }
 
-  const passed = await guardPhaseTransition(from, to);
-  if (passed) {
+  const result = await guardPhaseTransition(from, to);
+  if (result.pass) {
     ui.success(`Guard passed: ${from} → ${to}`);
   } else {
     ui.error(`Guard failed: ${from} → ${to}`);
+    for (const f of result.failures) {
+      if (f.errors.length > 0) {
+        for (const e of f.errors) {
+          ui.info(`  ✗ ${e}`);
+        }
+      } else {
+        ui.info(`  ✗ ${f.label}`);
+      }
+    }
     process.exit(1);
   }
 });

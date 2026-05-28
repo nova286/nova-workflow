@@ -23,8 +23,8 @@ export const archiveCommand = withErrorHandling(async (options: { rollback?: boo
     return;
   }
 
-  const passed = await guardPhaseTransition('verify', 'archive');
-  if (!passed) {
+  const result = await guardPhaseTransition('verify', 'archive');
+  if (!result.pass) {
     ui.error('Cannot archive. Complete the verify phase first.');
     process.exit(1);
   }

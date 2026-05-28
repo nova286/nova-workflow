@@ -29,10 +29,17 @@ Check if `.nova.yaml` exists in the project root.
 
 Read `.nova.yaml`. Check `phases.open.status`:
 - If `done` — ask user if they want to regenerate or move to `/nova-design`
-- If `in-progress` — ask if they want to continue editing or regenerate
+- If `in-progress` — generate a resume summary:
+
+  ```
+  [Nova] Resuming propose phase
+    Last active: <relative time>
+    Proposal draft in progress — continue editing?
+  ```
+
 - If `pending` — proceed
 
-Update `phases.open.status` to `in-progress` and set `startedAt` to now.
+Update `phases.open.status` to `in-progress` and set `startedAt` to now. Skip this update if already `in-progress`.
 
 ## Step 2: Gather Project Context
 

@@ -32,8 +32,16 @@ Read `.nova.yaml`. Check:
 - `phases.open.status` is `done` — proposal must be complete. Reject if not.
 - `phases.open.proposal` is not empty — must have a proposal file.
 - `phases.design.status` is NOT `done` — if done, ask user if they want to regenerate.
+- If `in-progress` — generate a resume summary:
 
-Update `phases.design.status` to `in-progress` and set `startedAt` to now.
+  ```
+  [Nova] Resuming design phase
+    Last active: <relative time>
+    Proposal: <path>
+    Design doc in progress — continue editing?
+  ```
+
+Update `phases.design.status` to `in-progress` and set `startedAt` to now. Skip this update if already `in-progress`.
 
 ## Step 2: Load Context
 

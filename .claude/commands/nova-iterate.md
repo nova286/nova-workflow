@@ -29,7 +29,15 @@ Check if `.nova.yaml` exists in the project root.
 
 ## Step 1: Detect Current Phase
 
-Read `.nova.yaml`. Determine which phase is currently active:
+Read `.nova.yaml`. Determine which phase is currently active.
+
+- If `in-progress` — show current state before rollback:
+
+  ```
+  [Nova] Iteration in progress
+    Current phase: <phase> (status)
+    Ready to roll back. Which phase should we return to?
+  ```
 
 | Phase Status | Current Phase | Can Iterate Back To |
 |---|---|---|

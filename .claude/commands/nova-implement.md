@@ -32,8 +32,20 @@ Read `.nova.yaml`. Check:
 - `phases.design.status` is `done` — must have a completed design. Reject if not.
 - `phases.design.tasks` is non-empty — must have tasks. Reject if empty.
 - `phases.build.status` is NOT `done` — if done, ask user if they want to re-run.
+- If `in-progress` — generate a resume summary before proceeding:
 
-Update `phases.build.status` to `in-progress` and set `startedAt` to now.
+  ```
+  [Nova] Resuming implement phase
+    Last active: <relative time from metadata.lastModified>
+    Completed: <list done task ids with titles>
+    Failed:    <list failed task ids with error summaries>
+    Remaining: <list pending task ids with titles>
+  Continue with <first remaining/failed task>, or skip to another?
+  ```
+
+  Ask user to confirm before proceeding.
+
+Update `phases.build.status` to `in-progress` and set `startedAt` to now. Skip this update if already `in-progress`.
 
 ## Step 2: Load Task List
 

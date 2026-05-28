@@ -30,8 +30,16 @@ Check if `.nova.yaml` exists in the project root.
 Read `.nova.yaml`. Check:
 - `phases.build.status` is `done` — must have completed implementation. Reject if not.
 - `phases.verify.status` is NOT `done` — if done, ask user if they want to re-run.
+- If `in-progress` — generate a resume summary:
 
-Update `phases.verify.status` to `in-progress` and set `startedAt` to now.
+  ```
+  [Nova] Resuming verify phase
+    Last active: <relative time>
+    Build completed with <N> tasks
+    Verification in progress — continue review?
+  ```
+
+Update `phases.verify.status` to `in-progress` and set `startedAt` to now. Skip this update if already `in-progress`.
 
 ## Step 2: Gather Review Context
 

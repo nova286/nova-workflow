@@ -6,6 +6,13 @@ description: Nova status — display phase progress, task completion, and stuck 
 
 Read `.nova.yaml` and display a structured project status report. Read-only — no state changes.
 
+## Step 0: Context Gate
+
+Check if `.nova.yaml` exists in the project root.
+- If NO: "Nova not initialized. Run `nova init` in your terminal first."
+- If YES: Parse it. If YAML is corrupted, report the corruption and stop.
+- If YES and valid: Proceed.
+
 ## Phase Mapping
 
 | Internal key | Display name |
@@ -64,3 +71,23 @@ Environment: <env>
 | build | Consider running `/nova-implement` to continue |
 | verify | Consider running `/nova-verify` or marking done |
 | archive | Run `nova archive --done` to finish |
+
+## Step 6: Output Status Bar
+
+After all work is done and `.nova.yaml` is updated, output a one-line status summary:
+
+```
+[Nova] <phase> · <completion> · next: <suggestion>
+```
+
+Read `.nova.yaml` to determine:
+- `<phase>`: the current phase name (propose / design / implement / verify / archive)
+- `<completion>`: phase status (done / in-progress / N/M done / failed)
+- `<suggestion>`: the logical next action
+
+Examples:
+[Nova] propose · done · next: /nova-design
+[Nova] design · done · 6 tasks · next: /nova-implement
+[Nova] implement · 3/6 done · next: "add rate limiting" (task-4)
+[Nova] verify · 2 issues · next: fix then /nova-verify
+[Nova] all done · next: nova archive

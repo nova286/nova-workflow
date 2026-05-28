@@ -8,7 +8,25 @@ You are executing the **design phase** of a Nova workflow. Your role is to
 orchestrate architecture exploration and produce a structured design document
 with an actionable task list.
 
-## Step 1: Verify State
+## Step 0: Context Gate
+
+Check if `.nova.yaml` exists in the project root.
+- If NO: "This project isn't using Nova. Run `nova init` first, or I'll
+  use raw Superpowers skills directly." Let user choose.
+- If YES: Parse it. If YAML is corrupted or unreadable, say:
+  ".nova.yaml exists but is corrupted. Run `nova init --force` to
+  reinitialize, or fix the file manually." Stop — do not proceed.
+- If YES and valid: Nova owns this workflow. Verify phase is correct
+  for this command:
+  * `/nova-propose` — reject if past propose (design/build/verify done
+    or in-progress). Suggest `/nova-iterate` to roll back first.
+  * `/nova-design` — reject if propose not done, or if build/verify done.
+  * `/nova-implement` — reject if design not done.
+  * `/nova-verify` — reject if build not done.
+  * `/nova-iterate` — always allowed.
+  If the phase is correct, proceed.
+
+## Step 2: Verify State
 
 Read `.nova.yaml`. Check:
 - `phases.open.status` is `done` — proposal must be complete. Reject if not.
@@ -17,7 +35,7 @@ Read `.nova.yaml`. Check:
 
 Update `phases.design.status` to `in-progress` and set `startedAt` to now.
 
-## Step 2: Load Context
+## Step 3: Load Context
 
 Read these files:
 1. The proposal file at `phases.open.proposal` (default: `docs/proposals/proposal.md`)
@@ -25,7 +43,7 @@ Read these files:
 3. `package.json` / `go.mod` / etc — dependencies and tech stack
 4. `src/` directory tree — existing code structure
 
-## Step 3: Explore Architecture Options
+## Step 4: Explore Architecture Options
 
 Use the **brainstorming skill** to explore at least 2 architectural approaches:
 
@@ -44,7 +62,7 @@ Ask brainstorming to produce for each approach:
 Present the alternatives to the user. Ask them to select one or combine ideas.
 Do not proceed until the user confirms their choice.
 
-## Step 4: Generate Design Document
+## Step 5: Generate Design Document
 
 Based on the user-selected approach, use the **writing-plans skill** to produce
 `docs/designs/design.md` with these sections:
@@ -92,7 +110,7 @@ Task guidelines:
 Known risks, failure modes, and mitigations. Include technical, integration,
 security, and performance risks.
 
-## Step 5: Validate Tasks
+## Step 6: Validate Tasks
 
 Verify each task in the YAML task list:
 1. Has all required fields: id, title, type, description, files, acceptance
@@ -103,7 +121,7 @@ Verify each task in the YAML task list:
 
 Fix any issues before proceeding.
 
-## Step 6: Update State
+## Step 7: Update State
 
 Update `.nova.yaml`:
 - `phases.design.status = 'done'`
@@ -113,6 +131,26 @@ Update `.nova.yaml`:
 
 Report: "Design complete. N tasks defined. Review docs/designs/design.md, then
 run `/nova-implement` to begin implementation."
+
+## Step 8: Output Status Bar
+
+After all work is done and `.nova.yaml` is updated, output a one-line status summary:
+
+```
+[Nova] <phase> · <completion> · next: <suggestion>
+```
+
+Read `.nova.yaml` to determine:
+- `<phase>`: the current phase name (propose / design / implement / verify / archive)
+- `<completion>`: phase status (done / in-progress / N/M done / failed)
+- `<suggestion>`: the logical next action
+
+Examples:
+[Nova] propose · done · next: /nova-design
+[Nova] design · done · 6 tasks · next: /nova-implement
+[Nova] implement · 3/6 done · next: "add rate limiting" (task-4)
+[Nova] verify · 2 issues · next: fix then /nova-verify
+[Nova] all done · next: nova archive
 
 ## Constraints
 

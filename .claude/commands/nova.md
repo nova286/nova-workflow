@@ -6,14 +6,21 @@ description: Nova — unified entry point. Shows progress and suggests next acti
 
 Read `.nova.yaml` and present a compact overview with a clear next action.
 
-## Step 1: Read State
+## Step 0: Context Gate
+
+Check if `.nova.yaml` exists in the project root.
+- If NO: "Nova not initialized. Run `nova init` in your terminal first."
+- If YES: Parse it. If YAML is corrupted, report the corruption and stop.
+- If YES and valid: Proceed.
+
+## Step 2: Read State
 
 Parse `.nova.yaml`. For each phase, determine status (pending / in-progress / done).
 
 If `.nova.yaml` does not exist, say: "Nova not initialized. Run `nova init` in
 your terminal first."
 
-## Step 2: Show Overview
+## Step 3: Show Overview
 
 ```
 Nova · <project-name>
@@ -26,7 +33,7 @@ archive   [pending]
 ────────────────────────────────────────
 ```
 
-## Step 3: Suggest Next Action
+## Step 4: Suggest Next Action
 
 Based on the first phase that is NOT done:
 
@@ -50,10 +57,30 @@ Also list available actions:
 - `/nova-iterate` — roll back to earlier phase
 - `/nova-status` — detailed view with durations
 
-## Step 4: Act
+## Step 5: Act
 
 Ask the user: "Run the suggested action, pick another, or do something else?"
 Act on their choice.
+
+## Step 6: Output Status Bar
+
+After all work is done and `.nova.yaml` is updated, output a one-line status summary:
+
+```
+[Nova] <phase> · <completion> · next: <suggestion>
+```
+
+Read `.nova.yaml` to determine:
+- `<phase>`: the current phase name (propose / design / implement / verify / archive)
+- `<completion>`: phase status (done / in-progress / N/M done / failed)
+- `<suggestion>`: the logical next action
+
+Examples:
+[Nova] propose · done · next: /nova-design
+[Nova] design · done · 6 tasks · next: /nova-implement
+[Nova] implement · 3/6 done · next: "add rate limiting" (task-4)
+[Nova] verify · 2 issues · next: fix then /nova-verify
+[Nova] all done · next: nova archive
 
 ## Constraints
 

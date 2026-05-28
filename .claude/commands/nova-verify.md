@@ -7,7 +7,25 @@ description: Nova verify phase — run code review and security review pipeline
 You are executing the **verify phase** of a Nova workflow. Your role is to
 orchestrate a verification pipeline using ECC review skills.
 
-## Step 1: Verify State
+## Step 0: Context Gate
+
+Check if `.nova.yaml` exists in the project root.
+- If NO: "This project isn't using Nova. Run `nova init` first, or I'll
+  use raw Superpowers skills directly." Let user choose.
+- If YES: Parse it. If YAML is corrupted or unreadable, say:
+  ".nova.yaml exists but is corrupted. Run `nova init --force` to
+  reinitialize, or fix the file manually." Stop — do not proceed.
+- If YES and valid: Nova owns this workflow. Verify phase is correct
+  for this command:
+  * `/nova-propose` — reject if past propose (design/build/verify done
+    or in-progress). Suggest `/nova-iterate` to roll back first.
+  * `/nova-design` — reject if propose not done, or if build/verify done.
+  * `/nova-implement` — reject if design not done.
+  * `/nova-verify` — reject if build not done.
+  * `/nova-iterate` — always allowed.
+  If the phase is correct, proceed.
+
+## Step 2: Verify State
 
 Read `.nova.yaml`. Check:
 - `phases.build.status` is `done` — must have completed implementation. Reject if not.
@@ -15,7 +33,7 @@ Read `.nova.yaml`. Check:
 
 Update `phases.verify.status` to `in-progress` and set `startedAt` to now.
 
-## Step 2: Gather Review Context
+## Step 3: Gather Review Context
 
 From `.nova.yaml`, collect:
 - Task list from `phases.design.tasks` (only tasks with `status: done`)
@@ -24,7 +42,7 @@ From `.nova.yaml`, collect:
 
 Read the changed files to understand what was implemented.
 
-## Step 3: Run Code Review
+## Step 4: Run Code Review
 
 Use the **ecc:code-reviewer** skill (or **code-review** skill) to review each
 implemented task's changed files. For each task, assess:
@@ -38,7 +56,7 @@ implemented task's changed files. For each task, assess:
 For each task, produce a verdict: **PASS**, **CHANGES_REQUESTED**, or **COMMENT**.
 Be specific — reference file paths and line numbers.
 
-## Step 4: Run Security Review
+## Step 5: Run Security Review
 
 Use the **ecc:security-reviewer** skill (or **security-review** skill) to audit
 each implemented task's changed files. Check for:
@@ -53,7 +71,7 @@ For each task, produce a verdict: **PASS** or **VULNERABILITY_FOUND**.
 Security findings must include severity (critical/high/medium/low) and
 remediation guidance.
 
-## Step 5: Generate Verification Report
+## Step 6: Generate Verification Report
 
 Write `docs/designs/verification-report.md`:
 
@@ -82,7 +100,7 @@ Write `docs/designs/verification-report.md`:
 ...
 ```
 
-## Step 6: Update State
+## Step 7: Update State
 
 Update `.nova.yaml`:
 - `phases.verify.status = 'done'`
@@ -91,6 +109,26 @@ Update `.nova.yaml`:
 - `phases.verify.pipelineResult.stages` = per-stage result summary
 
 Report summary to user with pass/fail counts and overall verdict.
+
+## Step 8: Output Status Bar
+
+After all work is done and `.nova.yaml` is updated, output a one-line status summary:
+
+```
+[Nova] <phase> · <completion> · next: <suggestion>
+```
+
+Read `.nova.yaml` to determine:
+- `<phase>`: the current phase name (propose / design / implement / verify / archive)
+- `<completion>`: phase status (done / in-progress / N/M done / failed)
+- `<suggestion>`: the logical next action
+
+Examples:
+[Nova] propose · done · next: /nova-design
+[Nova] design · done · 6 tasks · next: /nova-implement
+[Nova] implement · 3/6 done · next: "add rate limiting" (task-4)
+[Nova] verify · 2 issues · next: fix then /nova-verify
+[Nova] all done · next: nova archive
 
 ## Constraints
 

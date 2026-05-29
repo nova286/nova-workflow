@@ -20,7 +20,7 @@ All state is in \`.nova.yaml\`. Always read it first.
 1. 先读 .nova.yaml 和已有代码了解项目
 2. 问 3-4 个澄清问题
 3. 写入 docs/proposals/proposal.md
-4. 更新 .nova.yaml: phases.open.status = done
+4. 更新 .nova.yaml: phases.propose.status = done
 \`\`\`
 
 ### Phase 2: Design (设计)
@@ -37,7 +37,7 @@ All state is in \`.nova.yaml\`. Always read it first.
 1. 按 priority 排序执行
 2. 每个任务：写代码 → tsc --noEmit → npm test → 更新 task status = done
 3. 失败时问用户：abort / skip / retry
-4. 全部完成后更新 phases.build.status = done
+4. 全部完成后更新 phases.implement.status = done
 \`\`\`
 
 ### Phase 4: Verify (验证)

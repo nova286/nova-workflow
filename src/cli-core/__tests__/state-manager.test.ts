@@ -13,9 +13,9 @@ describe('StateManager', () => {
     project: 'test-project',
     environment: ['claude-code'],
     phases: {
-      open: { status: 'pending', proposal: '' },
+      propose: { status: 'pending', proposal: '' },
       design: { status: 'pending', designDoc: '', tasks: [] },
-      build: { status: 'pending', tasks: {} },
+      implement: { status: 'pending', tasks: {} },
       verify: { status: 'pending', pipelineResult: null },
       archive: { status: 'pending' },
     },
@@ -47,25 +47,25 @@ describe('StateManager', () => {
   test('update atomically modifies state', async () => {
     await writeState(baseState);
     const next = await StateManager.update((s) => {
-      s.phases.open.status = 'done';
+      s.phases.propose.status = 'done';
       return s;
     });
 
-    expect(next.phases.open.status).toBe('done');
+    expect(next.phases.propose.status).toBe('done');
     expect(next.metadata.stateVersion).toBe(1);
     expect(next.metadata.lastModified).toBeTruthy();
 
     const raw = await fs.readFile('.nova.yaml', 'utf-8');
     const disk = yaml.parse(raw);
-    expect(disk.phases.open.status).toBe('done');
+    expect(disk.phases.propose.status).toBe('done');
   });
 
   test('setPhaseField updates a single phase field', async () => {
     await writeState(baseState);
-    await StateManager.setPhaseField('build', 'status', 'in-progress');
+    await StateManager.setPhaseField('implement', 'status', 'in-progress');
 
     const state = await StateManager.load();
-    expect(state.phases.build.status).toBe('in-progress');
+    expect(state.phases.implement.status).toBe('in-progress');
   });
 
   test('getTask finds task by id', async () => {

@@ -39,7 +39,7 @@ export const archiveCommand = withErrorHandling(async (options: { rollback?: boo
   let mergedCount = 0;
 
   // 归档 proposal
-  const proposalSrc = state.phases.open?.proposal;
+  const proposalSrc = state.phases.propose?.proposal;
   if (proposalSrc) {
     const src = path.join(cwd, proposalSrc);
     try {

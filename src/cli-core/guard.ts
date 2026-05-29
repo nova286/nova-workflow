@@ -24,11 +24,11 @@ function toFailure(label: string, result: boolean | { pass: boolean; errors: str
 }
 
 const TRANSITION_RULES: Record<string, GuardCheck[]> = {
-  'open:design': [
-    { label: 'Proposal phase is done', check: (s) => s.phases.open?.status === 'done' },
-    { label: 'Proposal document exists', check: (s) => !!s.phases.open?.proposal },
+  'propose:design': [
+    { label: 'Proposal phase is done', check: (s) => s.phases.propose?.status === 'done' },
+    { label: 'Proposal document exists', check: (s) => !!s.phases.propose?.proposal },
   ],
-  'design:build': [
+  'design:implement': [
     { label: 'Design phase is done', check: (s) => s.phases.design?.status === 'done' },
     { label: 'Design document exists', check: (s) => !!s.phases.design?.designDoc },
     {
@@ -53,13 +53,13 @@ const TRANSITION_RULES: Record<string, GuardCheck[]> = {
       check: (s) => validateAcceptance(s.phases.design?.tasks || []),
     },
   ],
-  'build:verify': [
-    { label: 'Build phase is done', check: (s) => s.phases.build?.status === 'done' },
+  'implement:verify': [
+    { label: 'Implement phase is done', check: (s) => s.phases.implement?.status === 'done' },
     {
       label: 'All tasks completed or ECC review passed',
       check: (s) => {
-        if (s.phases.build?.eccReviewPassed) return true;
-        const tasks: Record<string, any> = s.phases.build?.tasks || {};
+        if (s.phases.implement?.eccReviewPassed) return true;
+        const tasks: Record<string, any> = s.phases.implement?.tasks || {};
         const entries = Object.values(tasks);
         if (entries.length === 0) return false;
         return entries.every((t: any) =>
@@ -72,16 +72,16 @@ const TRANSITION_RULES: Record<string, GuardCheck[]> = {
     { label: 'Verify phase is done', check: (s) => s.phases.verify?.status === 'done' },
   ],
   // Rollback transitions — always allowed
-  'build:design': [
-    { label: 'Build phase has started (rollback)', check: (s) => s.phases.build?.status !== 'pending' },
+  'implement:design': [
+    { label: 'Implement phase has started (rollback)', check: (s) => s.phases.implement?.status !== 'pending' },
   ],
-  'verify:build': [
+  'verify:implement': [
     { label: 'Verify phase has started (rollback)', check: (s) => s.phases.verify?.status !== 'pending' },
   ],
   'verify:design': [
     { label: 'Verify phase has started (rollback to design)', check: (s) => s.phases.verify?.status !== 'pending' },
   ],
-  'design:open': [
+  'design:propose': [
     { label: 'Design phase has started (rollback)', check: (s) => s.phases.design?.status !== 'pending' },
   ],
 };

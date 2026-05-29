@@ -55,7 +55,7 @@ You are executing the **propose phase** of a Nova workflow. Your role is to
 orchestrate requirements exploration and produce a structured proposal document.
 
 ## Step 1: Verify State
-Read \`.nova.yaml\`. Check \`phases.open.status\`. If pending, update to
+Read \`.nova.yaml\`. Check \`phases.propose.status\`. If pending, update to
 \`in-progress\` and set \`startedAt\`.
 
 ## Step 2: Gather Context
@@ -73,8 +73,8 @@ User Stories (prioritized), Scope & Deliverables (in/out), Success Criteria
 (measurable), Risks & Constraints.
 
 ## Step 5: Update State
-Set \`phases.open.status = 'in-progress'\`,
-\`phases.open.proposal = 'docs/proposals/proposal.md'\`.
+Set \`phases.propose.status = 'in-progress'\`,
+\`phases.propose.proposal = 'docs/proposals/proposal.md'\`.
 
 ## Constraints
 - Read any file for context. Write only to \`docs/proposals/\` and \`.nova.yaml\`.
@@ -92,11 +92,11 @@ orchestrate architecture exploration and produce a design document with an
 actionable task list.
 
 ## Step 1: Verify State
-Read \`.nova.yaml\`. Require \`phases.open.status: done\` with a non-empty proposal.
+Read \`.nova.yaml\`. Require \`phases.propose.status: done\` with a non-empty proposal.
 Update \`phases.design.status\` to \`in-progress\` and set \`startedAt\`.
 
 ## Step 2: Load Context
-Read the proposal (\`phases.open.proposal\`), \`AGENTS.md\`, \`package.json\`, \`src/\`.
+Read the proposal (\`phases.propose.proposal\`), \`AGENTS.md\`, \`package.json\`, \`src/\`.
 
 ## Step 3: Explore Architecture Options
 Use the **brainstorming skill** to explore at least 2 architectural approaches.
@@ -131,7 +131,7 @@ execute each task from the design phase, routing by task type.
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Require \`phases.design.status: done\` with non-empty tasks.
-Update \`phases.build.status\` to \`in-progress\` and set \`startedAt\`.
+Update \`phases.implement.status\` to \`in-progress\` and set \`startedAt\`.
 
 ## Step 2: Load Task List
 Show task summary (id, title, type, priority). Ask user to confirm before
@@ -158,7 +158,7 @@ On failure, ask user: abort, skip, or retry.
 Run full test suite and type check. Report summary.
 
 ## Step 5: Update State
-Set \`phases.build.status = 'done'\`.
+Set \`phases.implement.status = 'done'\`.
 
 ## Constraints
 - Follow existing project conventions. Never leave TODOs or stubs.
@@ -175,7 +175,7 @@ You are executing the **verify phase** of a Nova workflow. Your role is to
 orchestrate a verification pipeline using ECC review skills.
 
 ## Step 1: Verify State
-Read \`.nova.yaml\`. Require \`phases.build.status: done\`.
+Read \`.nova.yaml\`. Require \`phases.implement.status: done\`.
 Update \`phases.verify.status\` to \`in-progress\` and set \`startedAt\`.
 
 ## Step 2: Gather Context

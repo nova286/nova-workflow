@@ -130,9 +130,9 @@ export class InitManager {
       projectType,
       environment: envs,
       phases: {
-        open: { status: 'pending', proposal: '' },
+        propose: { status: 'pending', proposal: '' },
         design: { status: 'pending', designDoc: '', tasks: [] },
-        build: { status: 'pending', tasks: {} },
+        implement: { status: 'pending', tasks: {} },
         verify: { status: 'pending', pipelineResult: null },
         archive: { status: 'pending' }
       },

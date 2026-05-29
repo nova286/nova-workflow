@@ -1,0 +1,15 @@
+{
+  "status": "success",
+  "stages": [
+    {
+      "stageId": "code-review",
+      "status": "success",
+      "summary": "9 files reviewed, all PASS"
+    },
+    {
+      "stageId": "security-review",
+      "status": "success",
+      "summary": "1 HIGH found and fixed (exec->execFile), 1 MEDIUM noted"
+    }
+  ]
+}

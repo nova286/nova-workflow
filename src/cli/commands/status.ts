@@ -2,12 +2,12 @@ import { ui } from '../ui';
 import { StateManager } from '../../cli-core/state';
 import { withErrorHandling } from '../error-handler';
 
-const PHASE_ORDER = ['open', 'design', 'build', 'verify', 'archive'] as const;
+const PHASE_ORDER = ['propose', 'design', 'implement', 'verify', 'archive'] as const;
 
 const PHASE_LABEL: Record<string, string> = {
-  open: 'propose',
+  propose: 'propose',
   design: 'design',
-  build: 'implement',
+  implement: 'implement',
   verify: 'verify',
   archive: 'archive',
 };
@@ -20,17 +20,17 @@ const STATUS_ICON: Record<string, string> = {
 
 // 超时阈值（毫秒）
 const STUCK_THRESHOLDS: Record<string, number> = {
-  open: 30 * 60 * 1000,     // 30 min
+  propose: 30 * 60 * 1000,     // 30 min
   design: 60 * 60 * 1000,    // 1 hour
-  build: 120 * 60 * 1000,    // 2 hours
+  implement: 120 * 60 * 1000,    // 2 hours
   verify: 30 * 60 * 1000,    // 30 min
   archive: 15 * 60 * 1000,   // 15 min
 };
 
 const STUCK_MESSAGE: Record<string, string> = {
-  open: 'Proposal has been in progress for a while. Consider running "nova propose --done" or "--rollback".',
+  propose: 'Proposal has been in progress for a while. Consider running "nova propose --done" or "--rollback".',
   design: 'Design has been in progress for a while. Consider running "nova design --done" or "--rollback".',
-  build: 'Implementation has been in progress for a while. Check task status and consider "--rollback" if stuck.',
+  implement: 'Implementation has been in progress for a while. Check task status and consider "--rollback" if stuck.',
   verify: 'Verification has been in progress for a while. Consider running "nova verify --rollback" if needed.',
   archive: 'Archive has been in progress. Run "nova archive --done" to finish or "--rollback" to reset.',
 };
@@ -55,7 +55,7 @@ export const statusCommand = withErrorHandling(async () => {
     const duration = StateManager.getPhaseDuration(data);
     if (duration) extra.push(duration);
 
-    if (phase === 'build' && data.tasks) {
+    if (phase === 'implement' && data.tasks) {
       const entries = Object.entries(data.tasks) as [string, any][];
       const done = entries.filter(([, t]) => t.status === 'done').length;
       extra.push(`tasks: ${done}/${entries.length} done`);

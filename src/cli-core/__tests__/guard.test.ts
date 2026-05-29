@@ -15,7 +15,7 @@ describe('guardPhaseTransition', () => {
     phases: {
       open: { status: 'pending', proposal: '' },
       design: { status: 'pending', designDoc: '', tasks: [] },
-      build: { status: 'pending', tasks: {} },
+      implement: { status: 'pending', tasks: {} },
       verify: { status: 'pending', pipelineResult: null },
       archive: { status: 'pending' },
     },
@@ -40,14 +40,14 @@ describe('guardPhaseTransition', () => {
   test('open-to-design passes when open is done with proposal', async () => {
     await writeState({
       ...baseState,
-      phases: { ...baseState.phases, open: { status: 'done', proposal: 'docs/prop.md' } },
+      phases: { ...baseState.phases, propose: { status: 'done', proposal: 'docs/prop.md' } },
     });
-    expect((await guardPhaseTransition('open', 'design')).pass).toBe(true);
+    expect((await guardPhaseTransition('propose', 'design')).pass).toBe(true);
   });
 
   test('open-to-design fails when open is pending', async () => {
     await writeState(baseState);
-    expect((await guardPhaseTransition('open', 'design')).pass).toBe(false);
+    expect((await guardPhaseTransition('propose', 'design')).pass).toBe(false);
   });
 
   test('design-to-build passes when design is done with tasks', async () => {
@@ -58,7 +58,7 @@ describe('guardPhaseTransition', () => {
         design: { status: 'done', designDoc: 'docs/design.md', tasks: [{ id: 'task-1', title: 'T1', type: 'implementation', files: [{ path: 'x.ts', action: 'create' }], acceptance: ['done'] }] },
       },
     });
-    expect((await guardPhaseTransition('design', 'build')).pass).toBe(true);
+    expect((await guardPhaseTransition('design', 'implement')).pass).toBe(true);
   });
 
   test('design-to-build fails when tasks are empty', async () => {
@@ -69,7 +69,7 @@ describe('guardPhaseTransition', () => {
         design: { status: 'done', designDoc: 'docs/design.md', tasks: [] },
       },
     });
-    expect((await guardPhaseTransition('design', 'build')).pass).toBe(false);
+    expect((await guardPhaseTransition('design', 'implement')).pass).toBe(false);
   });
 
   test('build-to-verify passes when build is done with completed tasks', async () => {
@@ -77,10 +77,10 @@ describe('guardPhaseTransition', () => {
       ...baseState,
       phases: {
         ...baseState.phases,
-        build: { status: 'done', tasks: { 'task-1': { status: 'done' } } },
+        implement: { status: 'done', tasks: { 'task-1': { status: 'done' } } },
       },
     });
-    expect((await guardPhaseTransition('build', 'verify')).pass).toBe(true);
+    expect((await guardPhaseTransition('implement', 'verify')).pass).toBe(true);
   });
 
   test('build-to-verify passes when eccReviewPassed is true', async () => {
@@ -88,14 +88,14 @@ describe('guardPhaseTransition', () => {
       ...baseState,
       phases: {
         ...baseState.phases,
-        build: {
+        implement: {
           status: 'done',
           tasks: { 'task-1': { status: 'failed' } },
           eccReviewPassed: true,
         },
       },
     });
-    expect((await guardPhaseTransition('build', 'verify')).pass).toBe(true);
+    expect((await guardPhaseTransition('implement', 'verify')).pass).toBe(true);
   });
 
   test('verify-to-archive passes when verify is done', async () => {
@@ -127,7 +127,7 @@ describe('guardPhaseTransition', () => {
         },
       },
     });
-    const result = await guardPhaseTransition('design', 'build');
+    const result = await guardPhaseTransition('design', 'implement');
     expect(result.pass).toBe(false);
     expect(result.failures.length).toBeGreaterThan(0);
     const labels = result.failures.map(f => f.label);
@@ -139,7 +139,7 @@ describe('guardPhaseTransition', () => {
       ...baseState,
       phases: {
         ...baseState.phases,
-        build: {
+        implement: {
           status: 'done',
           tasks: {
             'task-1': { status: 'done' },
@@ -148,6 +148,6 @@ describe('guardPhaseTransition', () => {
         },
       },
     });
-    expect((await guardPhaseTransition('build', 'verify')).pass).toBe(true);
+    expect((await guardPhaseTransition('implement', 'verify')).pass).toBe(true);
   });
 });

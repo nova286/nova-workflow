@@ -1,17 +1,30 @@
 {
   "name": "@nova286/nova-workflow",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Nova: AI workflow orchestration — a thin shell for disciplined AI-assisted development",
   "main": "dist/cli/index.js",
-  "bin": { "nova": "dist/cli/index.js" },
+  "bin": {
+    "nova": "dist/cli/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/cli/index.ts",
     "test": "jest",
     "prepublishOnly": "npm run build && npm test"
   },
-  "files": ["dist/", "templates/", "README.md"],
-  "keywords": ["nova", "ai-workflow", "orchestration", "claude-code", "skill-based", "process-automation"],
+  "files": [
+    "dist/",
+    "templates/",
+    "README.md"
+  ],
+  "keywords": [
+    "nova",
+    "ai-workflow",
+    "orchestration",
+    "claude-code",
+    "skill-based",
+    "process-automation"
+  ],
   "license": "MIT",
   "dependencies": {
     "commander": "^11.0.0",

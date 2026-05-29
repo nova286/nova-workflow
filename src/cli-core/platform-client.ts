@@ -201,7 +201,7 @@ export class HermesAgentClient extends PlatformClient {
 export class OpenCodeClient extends PlatformClient {
   async sendPrompt(prompt: string, options?: SendPromptOptions): Promise<PlatformResponse> {
     const t0 = Date.now();
-    const args = ['-p', prompt];
+    const args = ['run', prompt];
     if (options?.model) args.push('--model', options.model);
 
     console.error(`[nova] spawning opencode (prompt: ${prompt.length} chars)...`);

@@ -131,7 +131,7 @@ describe('PlatformClient implementations', () => {
   });
 
   describe('OpenCodeClient', () => {
-    test('calls opencode with -p flag (not stdin)', async () => {
+    test('calls opencode with run subcommand (not stdin)', async () => {
       const child = createMockChild(0, 'opencode response');
       (child_process.spawn as jest.Mock).mockReturnValue(child);
 
@@ -140,7 +140,7 @@ describe('PlatformClient implementations', () => {
 
       expect(child_process.spawn).toHaveBeenCalledWith(
         'opencode',
-        ['-p', 'test prompt'],
+        ['run', 'test prompt'],
         { stdio: ['pipe', 'pipe', 'pipe'] }
       );
       expect(child.stdin.write).not.toHaveBeenCalled();

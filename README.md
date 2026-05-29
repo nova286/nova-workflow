@@ -78,6 +78,22 @@ Then, inside Claude Code:
 
 ---
 
+## Dependencies
+
+Nova works with **any Claude Code setup** — no external skills required.
+However, installing these skill packs significantly improves output quality:
+
+| Skill Pack | Used In | Impact |
+|------------|---------|--------|
+| Superpowers (brainstorming, writing-plans, TDD) | propose, design, implement | Structured exploration, planning, test-first dev |
+| ECC (code-reviewer, security-reviewer) | verify | Dedicated review agents with domain expertise |
+
+Without these, Nova falls back to Claude's built-in capabilities — still functional,
+but less specialized. Think of it as: **Nova is the conductor, skills are the orchestra.**
+A conductor can work with any musicians, but a well-rehearsed orchestra plays better.
+
+---
+
 ## The Five Phases
 
 ```
@@ -85,6 +101,8 @@ propose ──→ design ──→ implement ──→ verify ──→ archive
    │            │           │           │           │
    │    brainstorming    TDD skill    ECC review    CLI
    │   writing-plans   direct impl   pipeline     command
+   │            │           │           │
+   │         (optional)  (optional)  (optional)
    │
    └── /nova-iterate ←── can roll back from any phase
 ```
@@ -127,6 +145,10 @@ And you can always iterate back — real development is not a waterfall.
 Nova does not write a single line of content. It does not come with its own prompt
 templates. It sequences **your** skills — Superpowers for methodology, ECC for
 quality — through a disciplined workflow. Each skill runs at full capability.
+
+**Skills are optional enhancements, not hard dependencies.** Nova works with vanilla
+Claude Code. But if you have Superpowers or ECC installed, Nova automatically
+leverages them for better results — no configuration needed.
 
 ### 2. Structured Handoff, Not Natural Language
 

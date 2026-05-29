@@ -131,7 +131,7 @@ export class InitManager {
       environment: envs,
       phases: {
         open: { status: 'pending', proposal: '' },
-        design: { status: 'pending', designDoc: '', tasks: '' },
+        design: { status: 'pending', designDoc: '', tasks: [] },
         build: { status: 'pending', tasks: {} },
         verify: { status: 'pending', pipelineResult: null },
         archive: { status: 'pending' }

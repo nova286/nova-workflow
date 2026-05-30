@@ -5,7 +5,7 @@ import { execFile } from 'child_process';
 import * as yaml from 'yaml';
 import inquirer from 'inquirer';
 import { ui } from '../cli/ui';
-import { EnvironmentAdapter, AdapterSetupOptions } from './types';
+import { EnvironmentAdapter, AdapterSetupOptions, McpServers } from './types';
 import { detectProjectType } from './project-detect';
 import { ClaudeCodeAdapter } from './adapters/claude-code';
 import { CodexAdapter } from './adapters/codex';
@@ -41,6 +41,7 @@ export class InitManager {
 
     const envs = await this.detectAIEnvironment();
     const envAdapters = envs.map(e => this.getAdapter(e));
+    const mcpServers = await this.detectMcpServers();
 
     const skillsDir = this.options.skillsDir ?? await this.promptSkillsDir(envs);
     this.resolvedSkillsDir = skillsDir;
@@ -48,7 +49,7 @@ export class InitManager {
 
     this.steps = [
       { name: 'Create directory structure', run: () => this.createDirs(), rollback: () => this.removeDirs() },
-      { name: 'Generate .nova.yaml', run: () => this.generateConfig(envs), rollback: () => this.removeFile('.nova.yaml') },
+      { name: 'Generate .nova.yaml', run: () => this.generateConfig(envs, mcpServers), rollback: () => this.removeFile('.nova.yaml') },
       { name: 'Install ECC skills', run: () => this.installEcc(), rollback: () => this.removeDir('.nova/ecc') },
       { name: 'Generate environment commands', run: async () => {
         for (const adapter of envAdapters) await adapter.setup(this.cwd, adapterOptions);
@@ -132,6 +133,31 @@ export class InitManager {
     return detected.length > 0 ? detected : ['claude-code'];
   }
 
+  private async detectMcpServers(): Promise<McpServers> {
+    const mcpServers: McpServers = {};
+    const settingsPaths = [
+      path.join(os.homedir(), '.claude', 'settings.json'),
+      path.join(this.cwd, '.claude', 'settings.json'),
+    ];
+    for (const settingsPath of settingsPaths) {
+      try {
+        const raw = await fs.readFile(settingsPath, 'utf-8');
+        const settings = JSON.parse(raw);
+        const servers = settings.mcpServers ?? {};
+        for (const [name, config] of Object.entries(servers)) {
+          const lower = name.toLowerCase();
+          if (!mcpServers.figma && (lower.includes('figma'))) {
+            mcpServers.figma = { configured: true, serverName: name };
+          }
+          if (!mcpServers.mobile && (lower.includes('mobile') || lower.includes('simulator') || lower.includes('maestro'))) {
+            mcpServers.mobile = { configured: true, serverName: name };
+          }
+        }
+      } catch {}
+    }
+    return mcpServers;
+  }
+
   private getAdapter(env: string): EnvironmentAdapter {
     const factory = ADAPTER_FACTORIES[env];
     if (!factory) throw new Error(`Unknown environment: ${env}`);
@@ -144,7 +170,7 @@ export class InitManager {
   }
   private async removeDirs() { /* 不回滚用户目录 */ }
 
-  private async generateConfig(envs: string[]) {
+  private async generateConfig(envs: string[], mcpServers: McpServers) {
     const projectType = await this.detectProjectType();
     const config = {
       version: 1,
@@ -157,6 +183,7 @@ export class InitManager {
         superpowers: { mode: 'compatible' },
         ecc: { mode: 'compatible' },
       },
+      mcpServers,
       artifacts: {
         openspecChange: '',
         proposal: '',

@@ -102,6 +102,61 @@ describe('InitManager', () => {
     });
   });
 
+  describe('MCP server detection', () => {
+    test('detects figma and mobile MCP from project settings', async () => {
+      const claudeDir = path.join(testDir, '.claude');
+      await fs.mkdir(claudeDir, { recursive: true });
+      await fs.writeFile(
+        path.join(claudeDir, 'settings.json'),
+        JSON.stringify({
+          mcpServers: {
+            'figma-mcp': { command: 'npx', args: ['figma-mcp'] },
+            'mobile-mcp': { command: 'npx', args: ['mobile-mcp'] },
+          },
+        }),
+        'utf-8'
+      );
+
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      await mgr.run();
+
+      const raw = await fs.readFile('.nova.yaml', 'utf-8');
+      const state = yaml.parse(raw);
+      expect(state.mcpServers.figma).toEqual({ configured: true, serverName: 'figma-mcp' });
+      expect(state.mcpServers.mobile).toEqual({ configured: true, serverName: 'mobile-mcp' });
+    });
+
+    test('detects simulator-based mobile MCP', async () => {
+      const claudeDir = path.join(testDir, '.claude');
+      await fs.mkdir(claudeDir, { recursive: true });
+      await fs.writeFile(
+        path.join(claudeDir, 'settings.json'),
+        JSON.stringify({
+          mcpServers: {
+            'ios-simulator': { command: 'npx', args: ['sim-mcp'] },
+          },
+        }),
+        'utf-8'
+      );
+
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      await mgr.run();
+
+      const raw = await fs.readFile('.nova.yaml', 'utf-8');
+      const state = yaml.parse(raw);
+      expect(state.mcpServers.mobile).toEqual({ configured: true, serverName: 'ios-simulator' });
+    });
+
+    test('mcpServers is empty when no settings file exists', async () => {
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      await mgr.run();
+
+      const raw = await fs.readFile('.nova.yaml', 'utf-8');
+      const state = yaml.parse(raw);
+      expect(state.mcpServers).toEqual({});
+    });
+  });
+
   describe('environment command generation', () => {
     test('generates all Nova skill dirs with SKILL.md in project', async () => {
       const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });

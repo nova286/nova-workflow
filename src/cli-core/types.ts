@@ -70,6 +70,17 @@ export interface TaskContext {
   iteration?: { round: number; reason?: string; previousTraceId?: string };
 }
 
+export interface McpServerConfig {
+  configured: boolean;
+  serverName: string;
+  platform?: string;
+}
+
+export interface McpServers {
+  figma?: McpServerConfig;
+  mobile?: McpServerConfig;
+}
+
 export interface NovaState {
   version: number;
   project: string;
@@ -77,6 +88,7 @@ export interface NovaState {
   currentPhase: string;
   activeChange?: string;
   integrations?: MethodologyIntegrations;
+  mcpServers?: McpServers;
   artifacts?: WorkflowArtifacts;
   phases: Record<string, any>;
   metadata: { stateVersion: number; lastModified: string; history: any[] };

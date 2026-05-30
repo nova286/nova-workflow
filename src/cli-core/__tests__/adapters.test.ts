@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { ClaudeCodeAdapter } from '../adapters/claude-code';
 import { CodexAdapter } from '../adapters/codex';
 import { OpenClawAdapter } from '../adapters/openclaw';
 import { HermesAgentAdapter } from '../adapters/hermes-agent';
@@ -109,6 +110,36 @@ describe('Environment Adapters', () => {
       const raw = await fs.readFile(path.join(testDir, 'opencode.json'), 'utf-8');
       const config = JSON.parse(raw);
       expect(config.model).toBe('claude-sonnet-4-6');
+    });
+  });
+
+  describe('ClaudeCodeAdapter MCP injection', () => {
+    test('injects Figma step into nova-design when figma MCP configured', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project', mcpServers: { figma: { configured: true, serverName: 'figma-mcp' } } });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('Figma MCP detected');
+      expect(content).toContain('Design Tokens');
+    });
+
+    test('injects Mobile step into nova-verify when mobile MCP configured', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project', mcpServers: { mobile: { configured: true, serverName: 'mobile-mcp' } } });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('Mobile MCP detected');
+      expect(content).toContain('UI Verification');
+    });
+
+    test('no MCP steps when no MCP configured', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
+      const verify = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
+      expect(design).not.toContain('Figma MCP detected');
+      expect(verify).not.toContain('Mobile MCP detected');
     });
   });
 });

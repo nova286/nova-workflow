@@ -124,6 +124,7 @@ export interface ErrorDetail { message: string; code?: string; }
 // 环境适配器接口
 export interface AdapterSetupOptions {
   skillsDir?: 'project' | 'user';
+  mcpServers?: McpServers;
 }
 
 export interface EnvironmentAdapter {

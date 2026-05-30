@@ -45,7 +45,7 @@ export class InitManager {
 
     const skillsDir = this.options.skillsDir ?? await this.promptSkillsDir(envs);
     this.resolvedSkillsDir = skillsDir;
-    const adapterOptions: AdapterSetupOptions = { skillsDir };
+    const adapterOptions: AdapterSetupOptions = { skillsDir, mcpServers };
 
     this.steps = [
       { name: 'Create directory structure', run: () => this.createDirs(), rollback: () => this.removeDirs() },

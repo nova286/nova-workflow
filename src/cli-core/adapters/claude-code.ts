@@ -2,10 +2,43 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
-import { EnvironmentAdapter, AdapterSetupOptions } from '../types';
+import { EnvironmentAdapter, AdapterSetupOptions, McpServers } from '../types';
 
-const SKILL_TEMPLATES: Record<string, string> = {
-  'nova.md': `---
+const FIGMA_STEP = `
+## Step 3.5: Read Figma Design (Figma MCP detected)
+
+1. Use Figma MCP to get file metadata and pages
+2. For each relevant frame/component:
+   - Extract color tokens (fills, strokes → RGBA)
+   - Extract typography (font family, size, weight, line height)
+   - Extract spacing (auto-layout padding, item spacing)
+   - Extract component properties and variants
+3. Generate \`## Design Tokens\` section in \`docs/designs/design.md\`:
+   - Color palette table
+   - Typography scale table
+   - Spacing system table
+   - Component inventory with props
+4. Reference Figma node IDs for traceability
+`;
+
+const MOBILE_STEP = `
+## Step 5.5: UI Verification (Mobile MCP detected)
+
+1. Build and launch app in simulator via Mobile MCP
+2. For each key user flow:
+   - Navigate to screen
+   - Take screenshot
+   - Query accessibility tree (element labels, states)
+   - Compare against design tokens from design phase
+3. Generate \`## UI Verification\` section in verification report:
+   - Screenshot gallery with captions
+   - Element state audit (missing labels, wrong states)
+   - Design token compliance check
+4. Flag discrepancies as UI findings
+`;
+
+const SKILL_TEMPLATES: Record<string, (mcp?: McpServers) => string> = {
+  'nova.md': () => `---
 description: Nova — unified entry point. Shows progress and suggests next action.
 ---
 
@@ -47,7 +80,7 @@ Ask: "Run the suggested action, pick another, or do something else?"
 Read-only unless the user explicitly confirms an action.
 `,
 
-  'nova-propose.md': `---
+  'nova-propose.md': () => `---
 description: Nova propose phase — specify an OpenSpec-compatible change contract
 ---
 
@@ -85,7 +118,7 @@ Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
 - Do not modify source code — the implement phase handles that.
 `,
 
-  'nova-design.md': `---
+  'nova-design.md': (mcp) => `---
 description: Nova design phase — plan spec-bound work from an approved change
 ---
 
@@ -106,6 +139,7 @@ Read the proposal/spec delta (\`artifacts.proposal\`, \`artifacts.openspecChange
 Use the **brainstorming skill** to explore at least 2 architectural approaches.
 For each: architecture pattern, tech stack rationale, component structure, data
 flow, key trade-offs. Present alternatives to the user for selection.
+${mcp?.figma ? FIGMA_STEP : ''}
 
 ## Step 4: Generate Design Document
 Based on the user-selected approach, use the **writing-plans skill** to produce
@@ -125,7 +159,7 @@ Set \`phases.design.status = 'done'\`, \`designDoc\`, \`tasks\` from parsed YAML
 - Tasks must be concrete: specific file paths, verifiable acceptance criteria.
 `,
 
-  'nova-implement.md': `---
+  'nova-implement.md': () => `---
 description: Nova implement phase — execute spec-bound tasks with evidence
 ---
 
@@ -175,7 +209,7 @@ Set \`phases.implement.status = 'done'\`.
 - Run checks after EACH task, not just at the end.
 `,
 
-  'nova-verify.md': `---
+  'nova-verify.md': (mcp) => `---
 description: Nova verify phase — run spec conformance, code, and security review
 ---
 
@@ -205,6 +239,7 @@ Verdict: PASS / CHANGES_REQUESTED / COMMENT.
 Use the **ecc:security-reviewer** skill to audit each task's changed files:
 injection risks, secret exposure, insecure dependencies, input validation.
 Verdict: PASS / VULNERABILITY_FOUND. Include severity and remediation.
+${mcp?.mobile ? MOBILE_STEP : ''}
 
 ## Step 6: Generate Report
 Write \`docs/reports/verification-report.md\` with summary, spec-conformance results, per-task results,
@@ -219,7 +254,7 @@ Set \`artifacts.verificationReport = 'docs/reports/verification-report.md'\`.
 - Security findings must include severity and remediation.
 `,
 
-  'nova-iterate.md': `---
+  'nova-iterate.md': () => `---
 description: Nova iterate — roll back to a previous phase for iteration
 ---
 
@@ -253,7 +288,7 @@ Summarize what changed and which command to run next.
 - Always record the iteration reason.
 `,
 
-  'nova-status.md': `---
+  'nova-status.md': () => `---
 description: Nova status — display phase progress, task completion, and stuck detection
 ---
 
@@ -278,21 +313,20 @@ export class ClaudeCodeAdapter implements EnvironmentAdapter {
   name = 'claude-code';
   async setup(cwd: string, options?: AdapterSetupOptions) {
     if (options?.skillsDir === 'user') {
-      await this.writeToSharedSkills();
+      await this.writeToSharedSkills(options?.mcpServers);
     } else {
-      await this.writeToProjectSkills(cwd);
+      await this.writeToProjectSkills(cwd, options?.mcpServers);
     }
   }
 
-  private async writeToSharedSkills() {
+  private async writeToSharedSkills(mcpServers?: McpServers) {
     const agentsSkillsDir = path.join(os.homedir(), '.agents', 'skills');
     const claudeSkillsDir = path.join(os.homedir(), '.claude', 'skills');
-    for (const [filename, content] of Object.entries(SKILL_TEMPLATES)) {
+    for (const [filename, templateFn] of Object.entries(SKILL_TEMPLATES)) {
       const skillName = filename.replace('.md', '');
       const skillDir = path.join(agentsSkillsDir, skillName);
       await fs.mkdir(skillDir, { recursive: true });
-      await this.writeSkillFile(path.join(skillDir, 'SKILL.md'), content);
-      // Create symlink in ~/.claude/skills/ for Claude Code discovery
+      await this.writeSkillFile(path.join(skillDir, 'SKILL.md'), templateFn(mcpServers));
       const linkPath = path.join(claudeSkillsDir, skillName);
       try { await fs.access(linkPath); continue; } catch {}
       try {
@@ -301,13 +335,13 @@ export class ClaudeCodeAdapter implements EnvironmentAdapter {
     }
   }
 
-  private async writeToProjectSkills(cwd: string) {
+  private async writeToProjectSkills(cwd: string, mcpServers?: McpServers) {
     const skillsDir = path.join(cwd, '.claude', 'skills');
-    for (const [filename, content] of Object.entries(SKILL_TEMPLATES)) {
+    for (const [filename, templateFn] of Object.entries(SKILL_TEMPLATES)) {
       const skillName = filename.replace('.md', '');
       const skillDir = path.join(skillsDir, skillName);
       await fs.mkdir(skillDir, { recursive: true });
-      await this.writeSkillFile(path.join(skillDir, 'SKILL.md'), content);
+      await this.writeSkillFile(path.join(skillDir, 'SKILL.md'), templateFn(mcpServers));
     }
   }
 

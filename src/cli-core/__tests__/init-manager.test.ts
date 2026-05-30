@@ -253,7 +253,7 @@ describe('InitManager', () => {
   });
 
   describe('document templates', () => {
-    test('copies proposal and design templates to docs/', async () => {
+    test('copies proposal, design, and verification-report templates to docs/', async () => {
       const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
       await mgr.run();
 
@@ -262,6 +262,9 @@ describe('InitManager', () => {
       ).resolves.toBeUndefined();
       await expect(
         fs.access(path.join(testDir, 'docs', 'design.md'))
+      ).resolves.toBeUndefined();
+      await expect(
+        fs.access(path.join(testDir, 'docs', 'verification-report.md'))
       ).resolves.toBeUndefined();
     });
   });

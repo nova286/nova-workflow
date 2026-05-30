@@ -36,6 +36,10 @@ tasks:
     estimatedComplexity: 3
 ```
 
+## Design Tokens
+
+<!-- Auto-populated by Figma MCP if available. Colors, typography, spacing, components. -->
+
 ## Risks & Mitigations
 
 <!-- Known risks, what could go wrong, and how to handle it -->

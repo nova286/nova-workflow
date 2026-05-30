@@ -29,12 +29,12 @@ const MOBILE_STEP = `
    - Navigate to screen
    - Take screenshot
    - Query accessibility tree (element labels, states)
-   - Compare against design tokens from design phase
-3. Generate \`## UI Verification\` section in verification report:
+   - Compare against design tokens from \`docs/designs/design.md\`
+3. Fill \`## UI Verification\` section in \`docs/reports/verification-report.md\`:
    - Screenshot gallery with captions
    - Element state audit (missing labels, wrong states)
    - Design token compliance check
-4. Flag discrepancies as UI findings
+4. Flag discrepancies as UI findings with severity
 `;
 
 const SKILL_TEMPLATES: Record<string, (mcp?: McpServers) => string> = {

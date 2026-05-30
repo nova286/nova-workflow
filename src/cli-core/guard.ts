@@ -1,5 +1,11 @@
 import { StateManager } from './state';
-import { validateTaskSchema, validateTaskIds, validateAcceptance, validateFiles } from './quality-check';
+import {
+  validateTaskSchema,
+  validateTaskIds,
+  validateAcceptance,
+  validateFiles,
+  validateSpecBoundExecution,
+} from './quality-check';
 
 export interface GuardFailure {
   label: string;
@@ -51,6 +57,10 @@ const TRANSITION_RULES: Record<string, GuardCheck[]> = {
     {
       label: 'All tasks have acceptance criteria',
       check: (s) => validateAcceptance(s.phases.design?.tasks || []),
+    },
+    {
+      label: 'Implementation tasks are spec-bound',
+      check: (s) => validateSpecBoundExecution(s.phases.design?.tasks || []),
     },
   ],
   'implement:verify': [

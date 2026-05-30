@@ -19,6 +19,19 @@ describe("ContextGenerator", () => {
       project: "test",
       projectType: "node",
       environment: ["generic"],
+      activeChange: "add-login",
+      integrations: {
+        openspec: { mode: "compatible" },
+        superpowers: { mode: "native" },
+        ecc: { mode: "compatible" },
+      },
+      artifacts: {
+        openspecChange: ".openspec/changes/add-login",
+        proposal: ".openspec/changes/add-login/proposal.md",
+        specDelta: ".openspec/changes/add-login/specs/auth/spec.md",
+        implementationPlan: "docs/superpowers/plans/add-login.md",
+        verificationReport: "",
+      },
       phases: {
         design: {
           status: "done",
@@ -41,7 +54,16 @@ describe("ContextGenerator", () => {
       title: "Implement login",
       description: "Create login endpoint",
       type: "implementation",
+      method: "tdd",
+      specRefs: ["auth.requirements.valid-credential-login"],
+      acceptanceRefs: ["auth.acceptance.valid-login-returns-token"],
       files: [{ path: "src/login.ts", action: "create" }],
+      verification: {
+        commands: ["npm test -- login", "npx tsc --noEmit"],
+      },
+      evidence: {
+        required: ["failing-test-before-implementation", "spec-ref-covered"],
+      },
       expectedArtifacts: [
         { type: "code", description: "Login module", pathHint: "src/login.ts" },
       ],
@@ -61,6 +83,15 @@ describe("ContextGenerator", () => {
     expect(context.guardConditions.blocking).toBe(true);
     expect(context.metadata.priority).toBe("high");
     expect(context.metadata.estimatedComplexity).toBe(7);
+    expect(context.change.activeChange).toBe("add-login");
+    expect(context.change.artifacts.openspecChange).toBe(".openspec/changes/add-login");
+    expect(context.methodology.openspec.mode).toBe("compatible");
+    expect(context.methodology.superpowers.mode).toBe("native");
+    expect(context.implementation.method).toBe("tdd");
+    expect(context.implementation.specRefs).toEqual(["auth.requirements.valid-credential-login"]);
+    expect(context.implementation.acceptanceRefs).toEqual(["auth.acceptance.valid-login-returns-token"]);
+    expect(context.verification.commands).toEqual(["npm test -- login", "npx tsc --noEmit"]);
+    expect(context.evidence.required).toEqual(["failing-test-before-implementation", "spec-ref-covered"]);
     // 环境信息应被检测
     expect(context.input.environment.language).toBe("TypeScript");
     expect(context.input.environment.framework).toBe("Express.js");

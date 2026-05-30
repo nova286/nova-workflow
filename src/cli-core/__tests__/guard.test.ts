@@ -55,7 +55,23 @@ describe('guardPhaseTransition', () => {
       ...baseState,
       phases: {
         ...baseState.phases,
-        design: { status: 'done', designDoc: 'docs/design.md', tasks: [{ id: 'task-1', title: 'T1', type: 'implementation', files: [{ path: 'x.ts', action: 'create' }], acceptance: ['done'] }] },
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [
+            {
+              id: 'task-1',
+              title: 'T1',
+              type: 'implementation',
+              method: 'tdd',
+              specRefs: ['workflow.requirements.task-1'],
+              acceptanceRefs: ['workflow.acceptance.task-1'],
+              verification: { commands: ['npm test -- task-1'] },
+              files: [{ path: 'x.ts', action: 'create' }],
+              acceptance: ['done'],
+            },
+          ],
+        },
       },
     });
     expect((await guardPhaseTransition('design', 'implement')).pass).toBe(true);
@@ -70,6 +86,33 @@ describe('guardPhaseTransition', () => {
       },
     });
     expect((await guardPhaseTransition('design', 'implement')).pass).toBe(false);
+  });
+
+  test('design-to-build fails when implementation task lacks spec-bound execution metadata', async () => {
+    await writeState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [
+            {
+              id: 'task-1',
+              title: 'T1',
+              type: 'implementation',
+              files: [{ path: 'x.ts', action: 'create' }],
+              acceptance: ['done'],
+            },
+          ],
+        },
+      },
+    });
+
+    const result = await guardPhaseTransition('design', 'implement');
+
+    expect(result.pass).toBe(false);
+    expect(result.failures.map(f => f.label)).toContain('Implementation tasks are spec-bound');
   });
 
   test('build-to-verify passes when build is done with completed tasks', async () => {

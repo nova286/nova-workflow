@@ -14,36 +14,40 @@
 ## What is Nova?
 
 Nova adds **process discipline** to AI-assisted development without restricting
-what your AI can do. It sequences your existing skills through a structured
-5-phase workflow — think of it as a state machine that sits between you and
-your AI tools, ensuring nothing gets skipped and everything gets recorded.
+what your AI can do. It sequences specification, planning, implementation, and
+review through a structured workflow — think of it as a state machine that sits
+between you and your AI tools, ensuring nothing gets skipped and everything gets
+recorded.
 
 ### The Core Insight
 
 AI coding tools are powerful but undisciplined. Developers jump straight to
-implementation, skip design, forget to review. Nova fixes this not by
-**restricting** your AI skills (the old way), but by **orchestrating** them:
+implementation, lose the original requirement, and review too late. Nova fixes
+this not by **restricting** your AI skills, but by **orchestrating** three roles:
+OpenSpec-compatible specs define the contract, Superpowers-compatible methods
+drive planning and TDD, and ECC-compatible review judges quality.
 
 | Old Way (V1) | New Way (V2) |
 |---|---|
-| "You are forbidden to write code" (HTML comment) | "Your goal in this phase is to produce a design doc" |
-| Replace real skills with thin 25-line templates | Call real skills (brainstorming, writing-plans, TDD...) in sequence |
-| 5 stub platform adapters nobody uses | 1 adapter for Claude Code — the one you actually use |
-| Remember slash commands for each phase | Just say "start designing" — or type `/nova` |
+| "You are forbidden to write code" (HTML comment) | "This task must satisfy these spec refs and acceptance refs" |
+| Proposal/design docs as loose markdown | OpenSpec-compatible change artifacts as the requirement contract |
+| TDD/review as optional vibes | Superpowers/ECC-compatible gates recorded as evidence |
+| Remember slash commands for each phase | Just say "continue" — or type `/nova` |
 
 ### How It Feels to Use
 
 ```
 You: "帮我设计一下用户登录模块"
-Nova: → Reads .nova.yaml, checks guards → Calls brainstorming → Calls writing-plans
-      → Generates design.md + 6 tasks → Updates state → "Design complete."
+Nova: → Creates an OpenSpec-compatible change → explores requirements
+      → records spec refs and acceptance criteria → "Change specified."
 
 You: "继续实现"
-Nova: → Routes each task by type → implementation tasks run TDD → tests pass after each
-      → Records traceId per task → "4/6 done. Continue?"
+Nova: → Reads the next task's spec refs → runs the Superpowers-compatible method
+      → records tests, changed files, traceId, and evidence → "4/6 done."
 
 You: "审查一下代码"
-Nova: → Parallel pipeline: code-review + security-review → Report with file:line references
+Nova: → ECC-compatible code review + security review + spec conformance review
+      → Report with file:line references and pass/fix verdicts
 ```
 
 **No slash commands needed.** Nova understands phase context from `.nova.yaml` and
@@ -78,19 +82,30 @@ Then, inside Claude Code:
 
 ---
 
-## Dependencies
+## Methodology Integrations
 
-Nova works with **any Claude Code setup** — no external skills required.
-However, installing these skill packs significantly improves output quality:
+Nova does **not** require OpenSpec, Superpowers, or ECC to be installed. It does
+require their workflow model: specification contract, disciplined execution, and
+independent review. Each integration can run in one of three modes:
 
-| Skill Pack | Used In | Impact |
-|------------|---------|--------|
-| Superpowers (brainstorming, writing-plans, TDD) | propose, design, implement | Structured exploration, planning, test-first dev |
-| ECC (code-reviewer, security-reviewer) | verify | Dedicated review agents with domain expertise |
+| Mode | Meaning |
+|------|---------|
+| `native` | The real tool or skill pack is available and Nova should use it |
+| `compatible` | Nova writes compatible artifacts and uses built-in prompts/checklists |
+| `disabled` | The user explicitly opted out |
 
-Without these, Nova falls back to Claude's built-in capabilities — still functional,
-but less specialized. Think of it as: **Nova is the conductor, skills are the orchestra.**
-A conductor can work with any musicians, but a well-rehearsed orchestra plays better.
+Default `nova init` starts in compatible mode:
+
+```yaml
+integrations:
+  openspec: { mode: compatible }
+  superpowers: { mode: compatible }
+  ecc: { mode: compatible }
+```
+
+If native integrations are present, Nova can use them for a stronger experience.
+The product promise stays the same: open the box and it works; add the three
+methodologies and it gets sharper.
 
 ---
 
@@ -99,10 +114,12 @@ A conductor can work with any musicians, but a well-rehearsed orchestra plays be
 ```
 propose ──→ design ──→ implement ──→ verify ──→ archive
    │            │           │           │           │
-   │    brainstorming    TDD skill    ECC review    CLI
-   │   writing-plans   direct impl   pipeline     command
-   │            │           │           │
-   │         (optional)  (optional)  (optional)
+   │            │           │           │           │
+   │            │           │           │           └─ archive OpenSpec-compatible change
+   │            │           │           └─ ECC-compatible code/security/spec review
+   │            │           └─ spec-bound execution with tests and evidence
+   │            └─ Superpowers-compatible planning from the spec contract
+   └─ OpenSpec-compatible change proposal and spec delta
    │
    └── /nova-iterate ←── can roll back from any phase
 ```
@@ -120,10 +137,10 @@ And you can always iterate back — real development is not a waterfall.
 | Command | What it does |
 |---------|-------------|
 | `/nova` | **One entry point.** Shows progress, suggests next action. |
-| `/nova-propose` | Explore requirements via brainstorming → proposal.md |
-| `/nova-design` | Explore architecture via brainstorming + writing-plans → design.md + YAML tasks |
-| `/nova-implement` | Execute tasks with type routing (implementation / TDD / testing) |
-| `/nova-verify` | Parallel pipeline: code review + security review via ECC skills |
+| `/nova-propose` | Specify an OpenSpec-compatible change contract |
+| `/nova-design` | Build a Superpowers-compatible plan and task graph from the spec |
+| `/nova-implement` | Execute spec-bound tasks with method, tests, and evidence |
+| `/nova-verify` | Run ECC-compatible code, security, and spec-conformance review |
 | `/nova-iterate` | Roll back to a previous phase for iteration |
 
 ### CLI Commands (in terminal)
@@ -142,13 +159,13 @@ And you can always iterate back — real development is not a waterfall.
 
 ### 1. Orchestrate, Don't Replace
 
-Nova does not write a single line of content. It does not come with its own prompt
-templates. It sequences **your** skills — Superpowers for methodology, ECC for
-quality — through a disciplined workflow. Each skill runs at full capability.
+Nova does not replace the methodologies. It coordinates them. OpenSpec-compatible
+artifacts own "what must be true", Superpowers-compatible plans own "how to work",
+and ECC-compatible reviews own "whether this is acceptable".
 
-**Skills are optional enhancements, not hard dependencies.** Nova works with vanilla
-Claude Code. But if you have Superpowers or ECC installed, Nova automatically
-leverages them for better results — no configuration needed.
+**Methodologies are semantic dependencies, not install-time dependencies.** Nova
+works in compatible mode without external tools. Native OpenSpec, Superpowers,
+and ECC installations make the same workflow more capable.
 
 ### 2. Structured Handoff, Not Natural Language
 
@@ -160,9 +177,24 @@ break down. Nova solves this with `TaskContext` — a structured JSON contract:
   "taskId": "build-login",
   "title": "Implement login endpoint",
   "taskType": "implementation",
+  "change": {
+    "activeChange": "add-login",
+    "artifacts": {
+      "openspecChange": ".openspec/changes/add-login",
+      "implementationPlan": "docs/superpowers/plans/add-login.md"
+    }
+  },
+  "implementation": {
+    "method": "tdd",
+    "specRefs": ["auth.requirements.valid-credential-login"],
+    "acceptanceRefs": ["auth.acceptance.valid-login-returns-token"]
+  },
   "input": {
     "files": [{ "path": "src/login.ts", "action": "create" }],
     "environment": { "language": "TypeScript", "framework": "Express.js" }
+  },
+  "verification": {
+    "commands": ["npm test -- login", "npx tsc --noEmit"]
   },
   "acceptanceCriteria": ["Returns JWT on success"],
   "guardConditions": { "requireReview": true, "requireTests": true }
@@ -170,14 +202,15 @@ break down. Nova solves this with `TaskContext` — a structured JSON contract:
 ```
 
 No ambiguity. No "I think the designer meant...". The implement phase knows exactly
-what to build, which files to touch, and what "done" looks like.
+which spec contract it is satisfying, which files to touch, how to prove it, and
+what "done" looks like.
 
 ### 3. State Machine, Not Wishful Thinking
 
 ```
-open ──[proposal done]──→ design ──[tasks ready]──→ build
-build ──[all tasks done]──→ verify ──[review passed]──→ archive
-build ←──[iterate]── design    verify ←──[iterate]── build
+propose ──[change specified]──→ design ──[plan ready]──→ implement
+implement ──[evidence recorded]──→ verify ──[reviews passed]──→ archive
+implement ←──[iterate]── design    verify ←──[iterate]── implement
 ```
 
 Forward transitions are **gated** — the guard system enforces preconditions.
@@ -191,10 +224,10 @@ of truth — atomic writes, mutex-guarded, crash-safe.
 
 ### 5. Convention, Not Coercion
 
-Role separation comes from **phase structure**, not from fake security boundaries.
-The design phase says "your goal is a design doc" — that's enough. No HTML comments
-pretending to be access control. No skill neutering. Just clear goals and a state
-machine that keeps you honest.
+Role separation comes from **artifact ownership**, not from fake security
+boundaries. Specs own requirements, plans own execution, reviews own judgment.
+No HTML comments pretending to be access control. No skill neutering. Just clear
+goals and a state machine that keeps you honest.
 
 ---
 
@@ -224,16 +257,38 @@ src/
 
 ## State File
 
-Everything Nova knows lives in `.nova.yaml`:
+Runtime state and artifact references live in `.nova.yaml`. Detailed
+requirements, plans, and reports live in the referenced files:
 
 ```yaml
-version: 2
+version: 1
 project: my-app
 environment: [claude-code]
+activeChange: add-login
+integrations:
+  openspec: { mode: compatible }
+  superpowers: { mode: compatible }
+  ecc: { mode: compatible }
+artifacts:
+  openspecChange: .openspec/changes/add-login
+  proposal: .openspec/changes/add-login/proposal.md
+  specDelta: .openspec/changes/add-login/specs/auth/spec.md
+  implementationPlan: docs/superpowers/plans/add-login.md
+  verificationReport: docs/reports/add-login-verification.md
 phases:
-  open:    { status: done, proposal: docs/proposals/proposal.md }
+  propose: { status: done, proposal: docs/proposals/proposal.md }
   design:  { status: done, designDoc: docs/designs/design.md, tasks: [...] }
-  build:   { status: in-progress, tasks: { task-1: { status: done, traceId: nova-xxx } } }
+  implement:
+    status: in-progress
+    tasks:
+      implement-login:
+        status: done
+        specRefs: [auth.requirements.valid-credential-login]
+        acceptanceRefs: [auth.acceptance.valid-login-returns-token]
+        evidence:
+          tests: [npm test -- login]
+          filesChanged: [src/auth/login.ts]
+          traceIds: [nova-xxx]
   verify:  { status: pending }
   archive: { status: pending }
 metadata:
@@ -241,7 +296,7 @@ metadata:
   lastModified: "2026-05-28T12:00:00.000Z"
   history:
     - { version: 8, change: "Task login-impl completed" }
-    - { version: 10, change: "Iterated build→design: component split needs rethinking" }
+    - { version: 10, change: "Iterated implement→design: component split needs rethinking" }
 ```
 
 ---

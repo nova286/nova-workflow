@@ -27,6 +27,28 @@ const baseContext: TaskContext = {
     environment: { language: '', framework: '', buildTool: '', testFramework: '' },
   },
   output: { expectedArtifacts: [], constraints: { mustPassTests: true } },
+  change: {
+    activeChange: '',
+    artifacts: {
+      openspecChange: '',
+      proposal: '',
+      specDelta: '',
+      implementationPlan: '',
+      verificationReport: '',
+    },
+  },
+  methodology: {
+    openspec: { mode: 'compatible' },
+    superpowers: { mode: 'compatible' },
+    ecc: { mode: 'compatible' },
+  },
+  implementation: {
+    method: 'implementation',
+    specRefs: [],
+    acceptanceRefs: [],
+  },
+  verification: { commands: [] },
+  evidence: { required: [] },
   acceptanceCriteria: [],
   guardConditions: { requireReview: true, requireTests: true, blocking: false },
   metadata: {

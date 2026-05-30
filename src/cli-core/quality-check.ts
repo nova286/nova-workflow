@@ -66,3 +66,28 @@ export function validateFiles(tasks: any[]): QualityReport {
   }
   return { pass: errors.length === 0, errors };
 }
+
+export function validateSpecBoundExecution(tasks: any[]): QualityReport {
+  const errors: string[] = [];
+  const methods = new Set(['tdd', 'implementation', 'refactor', 'docs', 'migration']);
+
+  for (const task of tasks) {
+    if (task.type !== 'implementation' && task.type !== 'testing') continue;
+
+    const id: string = task.id || '<missing-id>';
+    if (!methods.has(task.method)) {
+      errors.push(`${id}: method must be one of ${Array.from(methods).join(', ')}`);
+    }
+    if (!Array.isArray(task.specRefs) || task.specRefs.length === 0) {
+      errors.push(`${id}: specRefs is empty or missing`);
+    }
+    if (!Array.isArray(task.acceptanceRefs) || task.acceptanceRefs.length === 0) {
+      errors.push(`${id}: acceptanceRefs is empty or missing`);
+    }
+    if (!Array.isArray(task.verification?.commands) || task.verification.commands.length === 0) {
+      errors.push(`${id}: verification.commands is empty or missing`);
+    }
+  }
+
+  return { pass: errors.length === 0, errors };
+}

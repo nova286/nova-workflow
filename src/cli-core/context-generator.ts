@@ -1,5 +1,5 @@
 import { StateManager } from './state';
-import { TaskContext } from './types';
+import { ImplementationMethod, MethodologyIntegrations, TaskContext, WorkflowArtifacts } from './types';
 
 const PROJECT_TYPE_ENV: Record<
   string,
@@ -27,6 +27,33 @@ const TYPE_MAP: Record<string, TaskContext['taskType']> = {
   security: 'security',
 };
 
+const DEFAULT_INTEGRATIONS: MethodologyIntegrations = {
+  openspec: { mode: 'compatible' },
+  superpowers: { mode: 'compatible' },
+  ecc: { mode: 'compatible' },
+};
+
+const DEFAULT_ARTIFACTS: WorkflowArtifacts = {
+  openspecChange: '',
+  proposal: '',
+  specDelta: '',
+  implementationPlan: '',
+  verificationReport: '',
+};
+
+function normalizeMethod(method: unknown, taskType: TaskContext['taskType']): ImplementationMethod {
+  if (
+    method === 'tdd' ||
+    method === 'implementation' ||
+    method === 'refactor' ||
+    method === 'docs' ||
+    method === 'migration'
+  ) {
+    return method;
+  }
+  return taskType === 'testing' ? 'tdd' : 'implementation';
+}
+
 export class ContextGenerator {
   static async generateFromTask(task: any): Promise<TaskContext> {
     const state = await StateManager.load();
@@ -37,16 +64,17 @@ export class ContextGenerator {
       buildTool: '',
       testFramework: '',
     };
+    const taskType = TYPE_MAP[task.type] || 'other';
 
     return {
       taskId: task.id,
       parentTaskId: task.parentId,
       title: task.title,
       description: task.description,
-      taskType: TYPE_MAP[task.type] || 'other',
+      taskType,
       designContext: {
         designDocRef: state.phases.design?.designDoc || '',
-        relevantSpecs: [],
+        relevantSpecs: task.specRefs || [],
         architectureNotes: '',
       },
       input: {
@@ -66,6 +94,25 @@ export class ContextGenerator {
           validation: a.validation,
         })),
         constraints: task.constraints || { mustPassTests: true },
+      },
+      change: {
+        activeChange: (state as any).activeChange || '',
+        artifacts: { ...DEFAULT_ARTIFACTS, ...((state as any).artifacts || {}) },
+      },
+      methodology: { ...DEFAULT_INTEGRATIONS, ...((state as any).integrations || {}) },
+      implementation: {
+        method: normalizeMethod(task.method, taskType),
+        specRefs: task.specRefs || [],
+        acceptanceRefs: task.acceptanceRefs || [],
+      },
+      verification: {
+        commands: task.verification?.commands || [],
+      },
+      evidence: {
+        required: task.evidence?.required || [],
+        tests: task.evidence?.tests,
+        filesChanged: task.evidence?.filesChanged,
+        traceIds: task.evidence?.traceIds,
       },
       acceptanceCriteria: task.acceptance || [],
       guardConditions: {

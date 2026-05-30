@@ -1,9 +1,11 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as os from 'os';
 import { execFile } from 'child_process';
 import * as yaml from 'yaml';
+import inquirer from 'inquirer';
 import { ui } from '../cli/ui';
-import { EnvironmentAdapter } from './types';
+import { EnvironmentAdapter, AdapterSetupOptions } from './types';
 import { detectProjectType } from './project-detect';
 import { ClaudeCodeAdapter } from './adapters/claude-code';
 import { CodexAdapter } from './adapters/codex';
@@ -21,11 +23,12 @@ const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
 
 export class InitManager {
   private cwd: string;
-  private options: { eccPath?: string; force?: boolean };
+  private options: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user' };
   private backupDir?: string;
+  private resolvedSkillsDir?: 'project' | 'user';
   private steps: Array<{ name: string; run: () => Promise<void>; rollback: () => Promise<void> }> = [];
 
-  constructor(cwd: string, opts: { eccPath?: string; force?: boolean }) {
+  constructor(cwd: string, opts: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user' }) {
     this.cwd = cwd;
     this.options = opts;
   }
@@ -39,12 +42,16 @@ export class InitManager {
     const envs = await this.detectAIEnvironment();
     const envAdapters = envs.map(e => this.getAdapter(e));
 
+    const skillsDir = this.options.skillsDir ?? await this.promptSkillsDir(envs);
+    this.resolvedSkillsDir = skillsDir;
+    const adapterOptions: AdapterSetupOptions = { skillsDir };
+
     this.steps = [
       { name: 'Create directory structure', run: () => this.createDirs(), rollback: () => this.removeDirs() },
       { name: 'Generate .nova.yaml', run: () => this.generateConfig(envs), rollback: () => this.removeFile('.nova.yaml') },
       { name: 'Install ECC skills', run: () => this.installEcc(), rollback: () => this.removeDir('.nova/ecc') },
       { name: 'Generate environment commands', run: async () => {
-        for (const adapter of envAdapters) await adapter.setup(this.cwd);
+        for (const adapter of envAdapters) await adapter.setup(this.cwd, adapterOptions);
       }, rollback: () => this.cleanEnvCommands(envs) },
       { name: 'Generate templates', run: () => this.generateTemplates(), rollback: () => this.removeDir('docs') }
     ];
@@ -65,6 +72,21 @@ export class InitManager {
 
   private async isInitialized() {
     try { await fs.access(path.join(this.cwd, '.nova.yaml')); return true; } catch { return false; }
+  }
+
+  private async promptSkillsDir(envs: string[]): Promise<'project' | 'user'> {
+    if (!envs.includes('claude-code')) return 'project';
+    const { skillsDir } = await inquirer.prompt([{
+      type: 'list',
+      name: 'skillsDir',
+      message: 'Where to install Nova skills?',
+      choices: [
+        { name: 'User (~/.agents/skills/) — shared across all AI tools', value: 'user' },
+        { name: 'Project (.claude/skills/) — project-specific', value: 'project' },
+      ],
+      default: 'user',
+    }]);
+    return skillsDir;
   }
 
   private async backup() {
@@ -117,7 +139,7 @@ export class InitManager {
   }
 
   private async createDirs() {
-    const dirs = ['docs/designs', 'docs/proposals', 'docs/reports', '.nova/contexts'];
+    const dirs = ['docs/designs', 'docs/proposals', 'docs/reports', '.nova/contexts', '.openspec/changes'];
     for (const d of dirs) await fs.mkdir(path.join(this.cwd, d), { recursive: true });
   }
   private async removeDirs() { /* 不回滚用户目录 */ }
@@ -129,6 +151,19 @@ export class InitManager {
       project: path.basename(this.cwd),
       projectType,
       environment: envs,
+      activeChange: '',
+      integrations: {
+        openspec: { mode: 'compatible' },
+        superpowers: { mode: 'compatible' },
+        ecc: { mode: 'compatible' },
+      },
+      artifacts: {
+        openspecChange: '',
+        proposal: '',
+        specDelta: '',
+        implementationPlan: '',
+        verificationReport: '',
+      },
       phases: {
         propose: { status: 'pending', proposal: '' },
         design: { status: 'pending', designDoc: '', tasks: [] },
@@ -162,7 +197,7 @@ export class InitManager {
 
   private async cleanEnvCommands(envs: string[]) {
     const cleanupMap: Record<string, string[]> = {
-      'claude-code': ['.claude'],
+      'claude-code': ['.agents/skills'],
       'codex': ['CODEX.md'],
       'openclaw': ['.openclaw'],
       'hermes-agent': ['HERMES.md'],
@@ -171,7 +206,10 @@ export class InitManager {
     for (const env of envs) {
       const targets = cleanupMap[env] ?? [];
       for (const target of targets) {
-        await fs.rm(path.join(this.cwd, target), { recursive: true, force: true });
+        const baseDir = (env === 'claude-code' && this.resolvedSkillsDir === 'user')
+          ? os.homedir()
+          : this.cwd;
+        await fs.rm(path.join(baseDir, target), { recursive: true, force: true });
       }
     }
   }

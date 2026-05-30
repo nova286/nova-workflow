@@ -1,6 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { EnvironmentAdapter } from '../types';
+import * as os from 'os';
+import * as crypto from 'crypto';
+import { EnvironmentAdapter, AdapterSetupOptions } from '../types';
 
 const SKILL_TEMPLATES: Record<string, string> = {
   'nova.md': `---
@@ -46,13 +48,14 @@ Read-only unless the user explicitly confirms an action.
 `,
 
   'nova-propose.md': `---
-description: Nova propose phase — generate a feature proposal from interactive Q&A
+description: Nova propose phase — specify an OpenSpec-compatible change contract
 ---
 
 # Nova Propose Phase
 
 You are executing the **propose phase** of a Nova workflow. Your role is to
-orchestrate requirements exploration and produce a structured proposal document.
+orchestrate requirements exploration and produce an OpenSpec-compatible change
+contract. Native OpenSpec is optional; if unavailable, write compatible artifacts.
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Check \`phases.propose.status\`. If pending, update to
@@ -68,13 +71,14 @@ explore alternatives, identify risks, define success criteria. Summarize for the
 user and ask them to confirm before proceeding.
 
 ## Step 4: Generate Proposal
-Write \`docs/proposals/proposal.md\` with: Problem Statement, Proposed Solution,
-User Stories (prioritized), Scope & Deliverables (in/out), Success Criteria
-(measurable), Risks & Constraints.
+Write \`.openspec/changes/<change-id>/proposal.md\`, compatible spec files under
+\`.openspec/changes/<change-id>/specs/\`, and \`docs/proposals/proposal.md\` as
+a summary. Include requirement ids and acceptance ids for later task references.
 
 ## Step 5: Update State
-Set \`phases.propose.status = 'in-progress'\`,
-\`phases.propose.proposal = 'docs/proposals/proposal.md'\`.
+Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
+\`artifacts.specDelta\`, \`phases.propose.status\`, and
+\`phases.propose.proposal\`.
 
 ## Constraints
 - Read any file for context. Write only to \`docs/proposals/\` and \`.nova.yaml\`.
@@ -82,21 +86,21 @@ Set \`phases.propose.status = 'in-progress'\`,
 `,
 
   'nova-design.md': `---
-description: Nova design phase — generate technical design from approved proposal
+description: Nova design phase — plan spec-bound work from an approved change
 ---
 
 # Nova Design Phase
 
-You are executing the **design phase** of a Nova workflow. Your role is to
-orchestrate architecture exploration and produce a design document with an
-actionable task list.
+You are executing the **design phase** of a Nova workflow. Your role is to turn
+the OpenSpec-compatible change into a Superpowers-compatible plan and task graph.
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Require \`phases.propose.status: done\` with a non-empty proposal.
 Update \`phases.design.status\` to \`in-progress\` and set \`startedAt\`.
 
 ## Step 2: Load Context
-Read the proposal (\`phases.propose.proposal\`), \`AGENTS.md\`, \`package.json\`, \`src/\`.
+Read the proposal/spec delta (\`artifacts.proposal\`, \`artifacts.openspecChange\`),
+\`AGENTS.md\`, \`package.json\`, \`src/\`.
 
 ## Step 3: Explore Architecture Options
 Use the **brainstorming skill** to explore at least 2 architectural approaches.
@@ -105,8 +109,9 @@ flow, key trade-offs. Present alternatives to the user for selection.
 
 ## Step 4: Generate Design Document
 Based on the user-selected approach, use the **writing-plans skill** to produce
-\`docs/designs/design.md\` with: Architecture Overview, Tech Stack, Component
-Breakdown, Data Flow, Implementation Plan (YAML task list), Risks & Mitigations.
+\`docs/designs/design.md\` and \`docs/superpowers/plans/<change-id>.md\`.
+Tasks must include \`method\`, \`specRefs\`, \`acceptanceRefs\`, and
+\`verification.commands\`.
 
 ## Step 5: Validate Tasks
 Verify each task has all required fields (id, title, type, description, files,
@@ -121,37 +126,42 @@ Set \`phases.design.status = 'done'\`, \`designDoc\`, \`tasks\` from parsed YAML
 `,
 
   'nova-implement.md': `---
-description: Nova implement phase — execute design tasks with retry and tracing
+description: Nova implement phase — execute spec-bound tasks with evidence
 ---
 
 # Nova Implement Phase
 
 You are executing the **implement phase** of a Nova workflow. Your role is to
-execute each task from the design phase, routing by task type.
+execute each task as a spec-bound unit of work: resolve spec refs, apply the
+task method, verify the result, and record evidence for review.
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Require \`phases.design.status: done\` with non-empty tasks.
 Update \`phases.implement.status\` to \`in-progress\` and set \`startedAt\`.
 
 ## Step 2: Load Task List
-Show task summary (id, title, type, priority). Ask user to confirm before
+Show task summary (id, title, method, specRefs, priority). Ask user to confirm before
 proceeding.
 
 ## Step 3: Execute Each Task
 For each task in priority order:
 
-### Route by Task Type
-- **implementation** — write production code following project conventions
-- **testing** — use the **test-driven-development skill**
-- **design** — update design documents (noted for user review)
+### Route by Method
+- **tdd** — use the **test-driven-development skill** when available
+- **implementation** — write scoped production code with tests or no-test rationale
+- **refactor** — preserve referenced spec behavior and run regression checks
+- **docs** — update docs/specs and validate references
+- **migration** — require dry-run, rollback notes, and compatibility evidence
 
 ### Verify After Each Task
-1. Run type check (\`npx tsc --noEmit\`)
-2. Run tests (\`npx jest --no-coverage\`)
-3. Fix before marking complete
+1. Run \`task.verification.commands\` if present
+2. Run type check (\`npx tsc --noEmit\`)
+3. Run tests (\`npm test\` or project equivalent)
+4. Confirm specRefs and acceptanceRefs have evidence before marking complete
 
 ### Record Result
-Update \`.nova.yaml\` with task status (done/failed) and timestamp.
+Update \`.nova.yaml\` with task status, specRefs, acceptanceRefs, tests,
+filesChanged, traceIds, and timestamp.
 On failure, ask user: abort, skip, or retry.
 
 ## Step 4: Final Verification
@@ -166,38 +176,43 @@ Set \`phases.implement.status = 'done'\`.
 `,
 
   'nova-verify.md': `---
-description: Nova verify phase — run code review and security review pipeline
+description: Nova verify phase — run spec conformance, code, and security review
 ---
 
 # Nova Verify Phase
 
 You are executing the **verify phase** of a Nova workflow. Your role is to
-orchestrate a verification pipeline using ECC review skills.
+orchestrate an ECC-compatible verification pipeline.
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Require \`phases.implement.status: done\`.
 Update \`phases.verify.status\` to \`in-progress\` and set \`startedAt\`.
 
 ## Step 2: Gather Context
-Load completed tasks from \`phases.design.tasks\`. Read changed files and the
-design document.
+Load completed tasks from \`phases.design.tasks\`. Read changed files, task
+evidence, the design document, and \`artifacts.openspecChange\`.
 
-## Step 3: Run Code Review
+## Step 3: Run Spec-Conformance Review
+Compare task evidence against \`specRefs\` and \`acceptanceRefs\`. Verdict:
+PASS / CHANGES_REQUESTED / BLOCKED.
+
+## Step 4: Run Code Review
 Use the **ecc:code-reviewer** skill to review each task's changed files:
 correctness, conventions, error handling, test coverage, type safety.
 Verdict: PASS / CHANGES_REQUESTED / COMMENT.
 
-## Step 4: Run Security Review
+## Step 5: Run Security Review
 Use the **ecc:security-reviewer** skill to audit each task's changed files:
 injection risks, secret exposure, insecure dependencies, input validation.
 Verdict: PASS / VULNERABILITY_FOUND. Include severity and remediation.
 
-## Step 5: Generate Report
-Write \`docs/designs/verification-report.md\` with summary, per-task results,
+## Step 6: Generate Report
+Write \`docs/reports/verification-report.md\` with summary, spec-conformance results, per-task results,
 overall assessment (PASS / NEEDS_FIXES / BLOCKED), and recommendations.
 
-## Step 6: Update State
+## Step 7: Update State
 Set \`phases.verify.status = 'done'\`, \`pipelineResult\` with stage results.
+Set \`artifacts.verificationReport = 'docs/reports/verification-report.md'\`.
 
 ## Constraints
 - Be specific — reference file paths and line numbers.
@@ -261,16 +276,48 @@ missing artifacts.
 
 export class ClaudeCodeAdapter implements EnvironmentAdapter {
   name = 'claude-code';
-  async setup(cwd: string) {
-    const dir = path.join(cwd, '.claude', 'commands');
-    await fs.mkdir(dir, { recursive: true });
-    for (const [filename, content] of Object.entries(SKILL_TEMPLATES)) {
-      await this.writeCommand(dir, filename, content);
+  async setup(cwd: string, options?: AdapterSetupOptions) {
+    if (options?.skillsDir === 'user') {
+      await this.writeToSharedSkills();
+    } else {
+      await this.writeToProjectSkills(cwd);
     }
   }
-  private async writeCommand(dir: string, file: string, content: string) {
-    const filePath = path.join(dir, file);
-    try { await fs.access(filePath); return; } catch {}
+
+  private async writeToSharedSkills() {
+    const agentsSkillsDir = path.join(os.homedir(), '.agents', 'skills');
+    const claudeSkillsDir = path.join(os.homedir(), '.claude', 'skills');
+    for (const [filename, content] of Object.entries(SKILL_TEMPLATES)) {
+      const skillName = filename.replace('.md', '');
+      const skillDir = path.join(agentsSkillsDir, skillName);
+      await fs.mkdir(skillDir, { recursive: true });
+      await this.writeSkillFile(path.join(skillDir, 'SKILL.md'), content);
+      // Create symlink in ~/.claude/skills/ for Claude Code discovery
+      const linkPath = path.join(claudeSkillsDir, skillName);
+      try { await fs.access(linkPath); continue; } catch {}
+      try {
+        await fs.symlink(skillDir, linkPath);
+      } catch {}
+    }
+  }
+
+  private async writeToProjectSkills(cwd: string) {
+    const skillsDir = path.join(cwd, '.claude', 'skills');
+    for (const [filename, content] of Object.entries(SKILL_TEMPLATES)) {
+      const skillName = filename.replace('.md', '');
+      const skillDir = path.join(skillsDir, skillName);
+      await fs.mkdir(skillDir, { recursive: true });
+      await this.writeSkillFile(path.join(skillDir, 'SKILL.md'), content);
+    }
+  }
+
+  private async writeSkillFile(filePath: string, content: string) {
+    const newHash = crypto.createHash('md5').update(content).digest('hex');
+    try {
+      const existing = await fs.readFile(filePath, 'utf-8');
+      const oldHash = crypto.createHash('md5').update(existing).digest('hex');
+      if (oldHash === newHash) return;
+    } catch {}
     await fs.writeFile(filePath, content);
   }
 }

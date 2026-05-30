@@ -30,7 +30,7 @@ describe('InitManager', () => {
     test('force re-init proceeds and creates new state', async () => {
       await fs.writeFile('.nova.yaml', 'version: 1\nproject: old\n', 'utf-8');
 
-      const mgr = new InitManager(testDir, { force: true });
+      const mgr = new InitManager(testDir, { force: true, skillsDir: 'project' });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -41,10 +41,10 @@ describe('InitManager', () => {
 
   describe('directory creation', () => {
     test('creates all required directories', async () => {
-      const mgr = new InitManager(testDir, { force: false });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
       await mgr.run();
 
-      const dirs = ['docs/designs', 'docs/proposals', 'docs/reports', '.nova/contexts'];
+      const dirs = ['docs/designs', 'docs/proposals', 'docs/reports', '.nova/contexts', '.openspec/changes'];
       for (const d of dirs) {
         await expect(
           fs.access(path.join(testDir, d))
@@ -55,7 +55,7 @@ describe('InitManager', () => {
 
   describe('.nova.yaml generation', () => {
     test('generates valid .nova.yaml with correct structure', async () => {
-      const mgr = new InitManager(testDir, { force: false });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -69,6 +69,19 @@ describe('InitManager', () => {
       expect(state.phases.implement.status).toBe('pending');
       expect(state.phases.verify.status).toBe('pending');
       expect(state.phases.archive.status).toBe('pending');
+      expect(state.activeChange).toBe('');
+      expect(state.integrations).toEqual({
+        openspec: { mode: 'compatible' },
+        superpowers: { mode: 'compatible' },
+        ecc: { mode: 'compatible' },
+      });
+      expect(state.artifacts).toEqual({
+        openspecChange: '',
+        proposal: '',
+        specDelta: '',
+        implementationPlan: '',
+        verificationReport: '',
+      });
       expect(state.metadata.stateVersion).toBe(0);
       expect(state.metadata.lastModified).toBeTruthy();
     });
@@ -80,7 +93,7 @@ describe('InitManager', () => {
         'utf-8'
       );
 
-      const mgr = new InitManager(testDir, { force: false });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -90,23 +103,68 @@ describe('InitManager', () => {
   });
 
   describe('environment command generation', () => {
-    test('generates all 6 Claude Code command files', async () => {
-      const mgr = new InitManager(testDir, { force: false });
+    test('generates all Nova skill dirs with SKILL.md in project', async () => {
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
       await mgr.run();
 
-      const commandsDir = path.join(testDir, '.claude', 'commands');
-      const files = await fs.readdir(commandsDir);
+      const skillsDir = path.join(testDir, '.claude', 'skills');
+      const dirs = await fs.readdir(skillsDir);
+      const novaDirs = dirs.filter(d => d.startsWith('nova'));
 
-      expect(files).toContain('nova-propose.md');
-      expect(files).toContain('nova-design.md');
-      expect(files).toContain('nova-implement.md');
-      expect(files).toContain('nova-verify.md');
-      expect(files).toContain('nova-iterate.md');
-      expect(files).toContain('nova-status.md');
+      expect(novaDirs).toContain('nova');
+      expect(novaDirs).toContain('nova-propose');
+      expect(novaDirs).toContain('nova-design');
+      expect(novaDirs).toContain('nova-implement');
+      expect(novaDirs).toContain('nova-verify');
+      expect(novaDirs).toContain('nova-iterate');
+      expect(novaDirs).toContain('nova-status');
 
-      for (const f of files) {
-        const content = await fs.readFile(path.join(commandsDir, f), 'utf-8');
+      for (const d of novaDirs) {
+        const content = await fs.readFile(path.join(skillsDir, d, 'SKILL.md'), 'utf-8');
         expect(content).toContain('description:');
+      }
+    });
+
+    test('generates Nova skills in ~/.agents/skills/ with symlinks when skillsDir=user', async () => {
+      const agentsSkillsDir = path.join(os.homedir(), '.agents', 'skills');
+      const claudeSkillsDir = path.join(os.homedir(), '.claude', 'skills');
+      const existingDirs = new Set<string>();
+      const existingLinks = new Set<string>();
+      try {
+        for (const f of await fs.readdir(agentsSkillsDir)) {
+          if (f.startsWith('nova')) existingDirs.add(f);
+        }
+      } catch {}
+      try {
+        for (const f of await fs.readdir(claudeSkillsDir)) {
+          if (f.startsWith('nova')) existingLinks.add(f);
+        }
+      } catch {}
+
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'user' });
+      await mgr.run();
+
+      // Verify SKILL.md exists in each nova dir
+      const dirs = await fs.readdir(agentsSkillsDir);
+      const novaDirs = dirs.filter(d => d.startsWith('nova'));
+      expect(novaDirs.length).toBeGreaterThanOrEqual(7);
+
+      for (const d of novaDirs) {
+        const content = await fs.readFile(path.join(agentsSkillsDir, d, 'SKILL.md'), 'utf-8');
+        expect(content).toContain('description:');
+      }
+
+      // Cleanup: remove dirs and symlinks we created
+      for (const d of novaDirs) {
+        if (!existingDirs.has(d)) {
+          await fs.rm(path.join(agentsSkillsDir, d), { recursive: true, force: true });
+        }
+      }
+      const links = (await fs.readdir(claudeSkillsDir)).filter(f => f.startsWith('nova'));
+      for (const l of links) {
+        if (!existingLinks.has(l)) {
+          await fs.unlink(path.join(claudeSkillsDir, l));
+        }
       }
     });
   });
@@ -116,7 +174,7 @@ describe('InitManager', () => {
       const eccDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ecc-src-'));
       await fs.writeFile(path.join(eccDir, 'test-skill.md'), '# Test', 'utf-8');
 
-      const mgr = new InitManager(testDir, { eccPath: eccDir });
+      const mgr = new InitManager(testDir, { eccPath: eccDir, skillsDir: 'project' });
       await mgr.run();
 
       const destFile = path.join(testDir, '.nova', 'ecc', 'test-skill.md');
@@ -127,7 +185,7 @@ describe('InitManager', () => {
     });
 
     test('creates empty .nova/ecc without --with-ecc', async () => {
-      const mgr = new InitManager(testDir, { force: false });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
       await mgr.run();
 
       await expect(
@@ -141,7 +199,7 @@ describe('InitManager', () => {
 
   describe('document templates', () => {
     test('copies proposal and design templates to docs/', async () => {
-      const mgr = new InitManager(testDir, { force: false });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
       await mgr.run();
 
       await expect(

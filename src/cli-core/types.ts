@@ -8,6 +8,22 @@ export enum AgentType {
 }
 
 export type TaskStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped';
+export type IntegrationMode = 'native' | 'compatible' | 'disabled';
+export type ImplementationMethod = 'tdd' | 'implementation' | 'refactor' | 'docs' | 'migration';
+
+export interface MethodologyIntegrations {
+  openspec: { mode: IntegrationMode };
+  superpowers: { mode: IntegrationMode };
+  ecc: { mode: IntegrationMode };
+}
+
+export interface WorkflowArtifacts {
+  openspecChange: string;
+  proposal: string;
+  specDelta: string;
+  implementationPlan: string;
+  verificationReport: string;
+}
 
 export interface TaskContext {
   taskId: string;
@@ -29,6 +45,25 @@ export interface TaskContext {
     expectedArtifacts: { type: string; description: string; pathHint?: string; validation?: any }[];
     constraints: { maxFilesChanged?: number; mustPassTests: boolean; codeStyle?: string };
   };
+  change: {
+    activeChange: string;
+    artifacts: WorkflowArtifacts;
+  };
+  methodology: MethodologyIntegrations;
+  implementation: {
+    method: ImplementationMethod;
+    specRefs: string[];
+    acceptanceRefs: string[];
+  };
+  verification: {
+    commands: string[];
+  };
+  evidence: {
+    required: string[];
+    tests?: string[];
+    filesChanged?: string[];
+    traceIds?: string[];
+  };
   acceptanceCriteria: string[];
   guardConditions: { requireReview: boolean; requireTests: boolean; blocking: boolean };
   metadata: { createdBy: string; createdAt: string; priority: string; estimatedComplexity: number };
@@ -40,6 +75,9 @@ export interface NovaState {
   project: string;
   environment: string[];
   currentPhase: string;
+  activeChange?: string;
+  integrations?: MethodologyIntegrations;
+  artifacts?: WorkflowArtifacts;
   phases: Record<string, any>;
   metadata: { stateVersion: number; lastModified: string; history: any[] };
 }
@@ -72,9 +110,13 @@ export interface DispatchResult {
 export interface ErrorDetail { message: string; code?: string; }
 
 // 环境适配器接口
+export interface AdapterSetupOptions {
+  skillsDir?: 'project' | 'user';
+}
+
 export interface EnvironmentAdapter {
   name: string;
-  setup(cwd: string): Promise<void>;
+  setup(cwd: string, options?: AdapterSetupOptions): Promise<void>;
 }
 
 // Pipeline types

@@ -167,6 +167,44 @@ Show each phase with status icon and key artifacts.
 ## Step 3: Detect Issues
 Flag: stuck phases, failed tasks, missing artifacts.
 `,
+
+  'nova-detect.md': () => `---
+description: Nova detect — check installation status of tools and provide install instructions
+---
+
+# Nova Detect
+
+Check which Nova-enhancing tools are installed and provide setup guidance.
+
+## Step 1: Detect Tools
+
+For each tool, run the detection check:
+
+- **CodeGraph**: test -d .codegraph || which codegraph
+- **OpenSpec**: test -d .openspec
+- **Superpowers**: test -d ~/.agents/skills/brainstorming
+- **ECC**: ls ~/.agents/skills/ | grep -q "^ecc:"
+- **Figma MCP**: grep -qi figma ~/.claude/settings.json
+- **Mobile MCP**: grep -qi "mobile\|simulator" ~/.claude/settings.json
+
+## Step 2: Report Results
+
+Display a summary table with status and install command for each tool.
+
+## Step 3: Provide Install Instructions
+
+For missing tools, show install commands:
+
+- CodeGraph: npm install -g codegraph && codegraph init -i
+- Superpowers: git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
+- ECC: git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
+- Figma MCP: Add mcpServers entry to ~/.claude/settings.json
+- Mobile MCP: Add mcpServers entry to ~/.claude/settings.json
+
+## Step 4: Offer Auto-Install
+
+Ask user which missing tools to install. Only install with confirmation.
+`,
 };
 
 export class PiCodingAgentAdapter implements EnvironmentAdapter {

@@ -198,7 +198,7 @@ For missing tools, show install commands:
 - CodeGraph: npm install -g codegraph && codegraph init -i
 - OpenSpec: npm install -g @fission-ai/openspec@latest && openspec init
 - Superpowers: git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
-- ECC: git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
+- ECC (Everything Claude Code): git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
 - Figma MCP: Add mcpServers entry to ~/.claude/settings.json
 - Mobile MCP: Add mcpServers entry to ~/.claude/settings.json
 

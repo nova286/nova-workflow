@@ -216,8 +216,8 @@ export class InitManager {
     if (this.options.eccPath) {
       await fs.cp(this.options.eccPath, dest, { recursive: true });
     } else {
-      ui.info('No --with-ecc path provided. Skipping ECC skill installation.');
-      ui.info('ECC skills are expected to be available in your AI environment.');
+      ui.info('No --with-ecc path provided. Skipping ECC (Everything Claude Code) skill installation.');
+      ui.info('ECC (Everything Claude Code) skills are expected to be available in your AI environment.');
     }
   }
 

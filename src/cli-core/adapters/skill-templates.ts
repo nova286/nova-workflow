@@ -43,5 +43,5 @@ export const SKILL_DESCRIPTIONS: Record<string, string> = {
   'nova-verify.md': 'Nova verify phase — run spec conformance, code, and security review',
   'nova-iterate.md': 'Nova iterate — roll back to a previous phase for iteration',
   'nova-status.md': 'Nova status — display phase progress, task completion, and stuck detection',
-  'nova-detect.md': 'Nova detect — check installation status of CodeGraph, OpenSpec, Figma-mcp, Superpowers, ECC, mobile-mcp and provide install instructions',
+  'nova-detect.md': 'Nova detect — check installation status of CodeGraph, OpenSpec, Figma-mcp, Superpowers, ECC (Everything Claude Code), mobile-mcp and provide install instructions',
 };

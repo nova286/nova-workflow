@@ -66,7 +66,7 @@ const TRANSITION_RULES: Record<string, GuardCheck[]> = {
   'implement:verify': [
     { label: 'Implement phase is done', check: (s) => s.phases.implement?.status === 'done' },
     {
-      label: 'All tasks completed or ECC review passed',
+      label: 'All tasks completed or ECC (Everything Claude Code) review passed',
       check: (s) => {
         if (s.phases.implement?.eccReviewPassed) return true;
         const tasks: Record<string, any> = s.phases.implement?.tasks || {};

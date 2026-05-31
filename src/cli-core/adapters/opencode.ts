@@ -6,7 +6,7 @@ const OPENCODE_INSTRUCTIONS = `# Nova Workflow
 
 This project uses Nova — an AI-assisted development workflow with 5 phases.
 Nova orchestrates OpenSpec-compatible specs, Superpowers-compatible execution,
-and ECC-compatible review. All state is in \`.nova.yaml\`. Always read it first.
+and ECC (Everything Claude Code) compatible review. All state is in \`.nova.yaml\`. Always read it first.
 
 ## How to Use
 

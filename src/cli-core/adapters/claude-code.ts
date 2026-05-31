@@ -184,7 +184,7 @@ description: Nova verify phase — run spec conformance, code, and security revi
 # Nova Verify Phase
 
 You are executing the **verify phase** of a Nova workflow. Your role is to
-orchestrate an ECC-compatible verification pipeline.
+orchestrate an ECC (Everything Claude Code) compatible verification pipeline.
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Require \`phases.implement.status: done\`.
@@ -307,7 +307,7 @@ test -d .openspec && echo "INSTALLED" || echo "NOT_FOUND"
 test -d ~/.agents/skills/brainstorming && echo "INSTALLED" || echo "NOT_FOUND"
 \`\`\`
 
-### ECC (Engineering Competence Center)
+### ECC (Everything Claude Code)
 \`\`\`bash
 # Check: ~/.agents/skills/ecc:* or ~/.claude/skills/ecc:* exists
 ls ~/.agents/skills/ 2>/dev/null | grep -q "^ecc:" && echo "INSTALLED" || echo "NOT_FOUND"
@@ -379,9 +379,9 @@ for skill in ~/.agents/skills/*/; do
 done
 \`\`\`
 
-### ECC
+### ECC (Everything Claude Code)
 \`\`\`bash
-# Install ECC skills to ~/.agents/skills/
+# Install ECC (Everything Claude Code) skills to ~/.agents/skills/
 # Source: https://github.com/nicholasgriffintn/ecc
 git clone https://github.com/nicholasgriffintn/ecc /tmp/ecc
 cp -r /tmp/ecc/skills/* ~/.agents/skills/

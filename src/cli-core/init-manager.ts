@@ -12,6 +12,7 @@ import { CodexAdapter } from './adapters/codex';
 import { OpenClawAdapter } from './adapters/openclaw';
 import { HermesAgentAdapter } from './adapters/hermes-agent';
 import { OpenCodeAdapter } from './adapters/opencode';
+import { PiCodingAgentAdapter } from './adapters/pi-coding-agent';
 
 const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
   'claude-code': () => new ClaudeCodeAdapter(),
@@ -19,6 +20,7 @@ const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
   'openclaw': () => new OpenClawAdapter(),
   'hermes-agent': () => new HermesAgentAdapter(),
   'opencode': () => new OpenCodeAdapter(),
+  'pi-coding-agent': () => new PiCodingAgentAdapter(),
 };
 
 export class InitManager {
@@ -125,6 +127,7 @@ export class InitManager {
       { env: 'openclaw', cmd: 'openclaw' },
       { env: 'hermes-agent', cmd: 'hermes-agent' },
       { env: 'opencode', cmd: 'opencode' },
+      { env: 'pi-coding-agent', cmd: 'pi' },
     ];
     const detected: string[] = [];
     for (const d of detectors) {

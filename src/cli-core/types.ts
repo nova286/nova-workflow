@@ -5,6 +5,7 @@ export enum AgentType {
   TDD_GUIDE = 'tdd_guide',
   CODE_REVIEWER = 'code_reviewer',
   SECURITY_REVIEWER = 'security_reviewer',
+  PI_CODING_AGENT = 'pi_coding_agent',
 }
 
 export type TaskStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped';

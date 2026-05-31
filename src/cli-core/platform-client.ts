@@ -234,6 +234,47 @@ export class OpenCodeClient extends PlatformClient {
   }
 }
 
+export class PiCodingAgentClient extends PlatformClient {
+  async sendPrompt(prompt: string, options?: SendPromptOptions): Promise<PlatformResponse> {
+    const t0 = Date.now();
+    const args = ['-p', prompt, '--mode', 'json'];
+    if (options?.model) args.push('--model', options.model);
+
+    console.error(`[nova] spawning pi (prompt: ${prompt.length} chars, via -p)...`);
+
+    return new Promise((resolve, reject) => {
+      const child = spawn('pi', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+      console.error(`[nova] pi pid=${child.pid} spawned in ${Date.now() - t0}ms`);
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
+      child.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
+
+      child.on('close', (code) => {
+        const elapsed = Date.now() - t0;
+        console.error(`[nova] pi exited code=${code}, ${stdout.length} chars, ${elapsed}ms`);
+        if (code === 0) {
+          try {
+            const json = JSON.parse(stdout);
+            resolve({ content: json.content ?? json.text ?? stdout.trim() });
+          } catch {
+            resolve({ content: stdout.trim() });
+          }
+        } else {
+          reject(new Error(`Pi CLI exit ${code}: ${stderr}`));
+        }
+      });
+
+      child.on('error', (err) => {
+        console.error(`[nova] pi spawn error: ${err.message}`);
+        reject(err);
+      });
+    });
+  }
+}
+
 // --- Factory ---
 
 const CLIENT_FACTORIES: Record<string, () => PlatformClient> = {
@@ -242,6 +283,7 @@ const CLIENT_FACTORIES: Record<string, () => PlatformClient> = {
   'openclaw': () => new OpenClawClient(),
   'hermes-agent': () => new HermesAgentClient(),
   'opencode': () => new OpenCodeClient(),
+  'pi-coding-agent': () => new PiCodingAgentClient(),
 };
 
 export async function resolvePlatformClient(cwd?: string): Promise<PlatformClient> {

@@ -25,13 +25,13 @@ AI coding tools are powerful but undisciplined. Developers jump straight to
 implementation, lose the original requirement, and review too late. Nova fixes
 this not by **restricting** your AI skills, but by **orchestrating** three roles:
 OpenSpec-compatible specs define the contract, Superpowers-compatible methods
-drive planning and TDD, and ECC-compatible review judges quality.
+drive planning and TDD, and ECC (Everything Claude Code) compatible review judges quality.
 
 | Old Way (V1) | New Way (V2) |
 |---|---|
 | "You are forbidden to write code" (HTML comment) | "This task must satisfy these spec refs and acceptance refs" |
 | Proposal/design docs as loose markdown | OpenSpec-compatible change artifacts as the requirement contract |
-| TDD/review as optional vibes | Superpowers/ECC-compatible gates recorded as evidence |
+| TDD/review as optional vibes | Superpowers/ECC (Everything Claude Code) compatible gates recorded as evidence |
 | Remember slash commands for each phase | Just say "continue" — or type `/nova` |
 
 ### How It Feels to Use
@@ -46,7 +46,7 @@ Nova: → Reads the next task's spec refs → runs the Superpowers-compatible me
       → records tests, changed files, traceId, and evidence → "4/6 done."
 
 You: "审查一下代码"
-Nova: → ECC-compatible code review + security review + spec conformance review
+Nova: → ECC (Everything Claude Code) compatible code review + security review + spec conformance review
       → Report with file:line references and pass/fix verdicts
 ```
 
@@ -84,7 +84,7 @@ Then, inside Claude Code:
 
 ## Methodology Integrations
 
-Nova does **not** require OpenSpec, Superpowers, or ECC to be installed. It does
+Nova does **not** require OpenSpec, Superpowers, or ECC (Everything Claude Code) to be installed. It does
 require their workflow model: specification contract, disciplined execution, and
 independent review. Each integration can run in one of three modes:
 
@@ -116,7 +116,7 @@ propose ──→ design ──→ implement ──→ verify ──→ archive
    │            │           │           │           │
    │            │           │           │           │
    │            │           │           │           └─ archive OpenSpec-compatible change
-   │            │           │           └─ ECC-compatible code/security/spec review
+   │            │           │           └─ ECC (Everything Claude Code) compatible code/security/spec review
    │            │           └─ spec-bound execution with tests and evidence
    │            └─ Superpowers-compatible planning from the spec contract
    └─ OpenSpec-compatible change proposal and spec delta
@@ -140,7 +140,7 @@ And you can always iterate back — real development is not a waterfall.
 | `/nova-propose` | Specify an OpenSpec-compatible change contract |
 | `/nova-design` | Build a Superpowers-compatible plan and task graph from the spec |
 | `/nova-implement` | Execute spec-bound tasks with method, tests, and evidence |
-| `/nova-verify` | Run ECC-compatible code, security, and spec-conformance review |
+| `/nova-verify` | Run ECC (Everything Claude Code) compatible code, security, and spec-conformance review |
 | `/nova-iterate` | Roll back to a previous phase for iteration |
 
 ### CLI Commands (in terminal)
@@ -161,11 +161,11 @@ And you can always iterate back — real development is not a waterfall.
 
 Nova does not replace the methodologies. It coordinates them. OpenSpec-compatible
 artifacts own "what must be true", Superpowers-compatible plans own "how to work",
-and ECC-compatible reviews own "whether this is acceptable".
+and ECC (Everything Claude Code) compatible reviews own "whether this is acceptable".
 
 **Methodologies are semantic dependencies, not install-time dependencies.** Nova
 works in compatible mode without external tools. Native OpenSpec, Superpowers,
-and ECC installations make the same workflow more capable.
+and ECC (Everything Claude Code) installations make the same workflow more capable.
 
 ### 2. Structured Handoff, Not Natural Language
 
@@ -313,7 +313,7 @@ Tests:       41 passed
 ✓ context-generator — task → TaskContext mapping / 11 languages
 ✓ pipeline          — success / fail / dependsOn / continue
 ✓ project-detect    — 11 project type detection
-✓ init-manager      — fresh init / force re-init / dir creation / ECC install / templates
+✓ init-manager      — fresh init / force re-init / dir creation / ECC (Everything Claude Code) install / templates
 ```
 
 ---

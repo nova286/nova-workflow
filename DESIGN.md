@@ -30,7 +30,7 @@ We keep the *Proposal → Design → Build → Verify → Archive* flow but rede
 
 1. **Proposal (Open)** – `/nova-propose` skill; outputs `proposal.md`.
 2. **Design** – `/nova-design` skill; produces `design.md` and YAML task list.
-3. **Build** – `/nova-implement` skill; for each task, ECC Coder implements with retry & tracing.
+3. **Build** – `/nova-implement` skill; for each task, ECC (Everything Claude Code) Coder implements with retry & tracing.
 4. **Verify** – `/nova-verify` skill; assembles a multi-agent verification pipeline (code review + security review).
 5. **Archive** – CLI command `nova archive`; merges delta specs and cleans up.
 
@@ -52,7 +52,7 @@ Nova is built for Claude Code. AI-powered phases run as Claude Code slash comman
 The `ClaudeCodeAdapter` generates command files under `.claude/commands/`.
 
 ### 2.5 Task Handoff Mechanism
-The handoff is the heart of the design. Superpowers converts task requirements into a standardized `TaskContext` JSON (compliant with a predefined schema). The Dispatcher then invokes the appropriate ECC agent using this context. This structured handoff eliminates natural-language ambiguity and enables input validation and output schema verification.
+The handoff is the heart of the design. Superpowers converts task requirements into a standardized `TaskContext` JSON (compliant with a predefined schema). The Dispatcher then invokes the appropriate ECC (Everything Claude Code) agent using this context. This structured handoff eliminates natural-language ambiguity and enables input validation and output schema verification.
 
 ### 2.6 State Management
 A single YAML state file `.nova.yaml` stores project metadata, environment configuration, phase status, task execution traces, etc. The StateManager provides atomic updates (write-to-temp + rename) and uses an in-process mutex for concurrency safety. Backup and rollback are supported.
@@ -71,12 +71,12 @@ A single YAML state file `.nova.yaml` stores project metadata, environment confi
 1. Guard checks preconditions (design phase complete).
 2. Load task list; iterate over tasks.
 3. `ContextGenerator` parses design docs and task lists, generates standard `TaskContext` JSON.
-4. `Dispatcher` selects the ECC agent (e.g., `coder`) based on task type, invokes with context.
+4. `Dispatcher` selects the ECC (Everything Claude Code) agent (e.g., `coder`) based on task type, invokes with context.
 5. Collect execution results, update state file (task status, traceId).
 6. After all tasks, set phase status to `done`.
 
 ### 3.3 Verification Pipeline
-1. Guard checks build completion; if ECC code review is pending, trigger it automatically.
+1. Guard checks build completion; if ECC (Everything Claude Code) code review is pending, trigger it automatically.
 2. `PipelineOrchestrator` defines the verification pipeline: may include parallel stages (e.g., code review + security review).
 3. Aggregate results, generate verification report, update state.
 

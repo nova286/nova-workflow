@@ -1,6 +1,6 @@
 # Nova — AI Workflow Orchestration Framework
 
-Nova is a CLI tool that orchestrates AI-assisted software development through a structured five-phase workflow: propose → design → implement → verify → archive. It works with any Claude Code setup, and optionally integrates three AI methodologies (OpenSpec, Superpowers, ECC) for enhanced capabilities.
+Nova is a CLI tool that orchestrates AI-assisted software development through a structured five-phase workflow: propose → design → implement → verify → archive. It works with any Claude Code setup, and optionally integrates three AI methodologies (OpenSpec, Superpowers, ECC — Everything Claude Code) for enhanced capabilities.
 
 > **THE AI Workflow is All You Need**
 
@@ -46,7 +46,7 @@ src/
 | `/nova-propose` | AI generates proposal.md — orchestrates brainstorming |
 | `/nova-design` | AI generates design.md + YAML task list — orchestrates brainstorming + writing-plans |
 | `/nova-implement` | Execute tasks via task-type routing with retry & tracing |
-| `/nova-verify` | Run code review + security review via ECC skills |
+| `/nova-verify` | Run code review + security review via ECC (Everything Claude Code) skills |
 | `/nova-iterate` | Roll back to a previous phase for iteration |
 
 ### CLI Commands (run in terminal)

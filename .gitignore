@@ -8,16 +8,11 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Nova runtime state (personal, not part of the repo)
-.nova.yaml
-.nova/
-
-# Claude Code local settings (machine-specific)
-.claude/settings.local.json
+# All dot-directories and dot-files at project root
+/.*
+!.gitignore
 
 # Generated user content (templates are in templates/docs/)
 docs/proposals/
 docs/designs/
 docs/reports/
-.agents
-.codegraph

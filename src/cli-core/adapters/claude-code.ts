@@ -356,10 +356,15 @@ cd <project-dir> && codegraph init -i
 
 ### OpenSpec
 \`\`\`bash
-# OpenSpec is part of Nova — .openspec/ created by nova init
-# If .openspec/ is missing in an existing project, create it manually:
-mkdir -p .openspec/changes
-# Or re-run: nova init (will not overwrite existing .nova.yaml)
+# Check: openspec command available and .openspec/ exists
+which openspec 2>/dev/null && echo "CLI_AVAILABLE" || echo "CLI_NOT_FOUND"
+test -d .openspec && echo "INITIALIZED" || echo "NOT_INITIALIZED"
+\`\`\`
+
+Install:
+\`\`\`bash
+npm install -g @fission-ai/openspec@latest
+cd <project-dir> && openspec init
 \`\`\`
 
 ### Superpowers

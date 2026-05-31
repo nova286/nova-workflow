@@ -181,7 +181,7 @@ Check which Nova-enhancing tools are installed and provide setup guidance.
 For each tool, run the detection check:
 
 - **CodeGraph**: test -d .codegraph || which codegraph
-- **OpenSpec**: test -d .openspec/changes
+- **OpenSpec**: which openspec && test -d .openspec
 - **Superpowers**: test -d ~/.agents/skills/brainstorming
 - **ECC**: ls ~/.agents/skills/ | grep -q "^ecc:"
 - **Figma MCP**: grep -qi figma ~/.claude/settings.json
@@ -196,7 +196,7 @@ Display a summary table with status and install command for each tool.
 For missing tools, show install commands:
 
 - CodeGraph: npm install -g codegraph && codegraph init -i
-- OpenSpec: mkdir -p .openspec/changes (part of Nova, not a separate tool)
+- OpenSpec: npm install -g @fission-ai/openspec@latest && openspec init
 - Superpowers: git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
 - ECC: git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
 - Figma MCP: Add mcpServers entry to ~/.claude/settings.json

@@ -3,8 +3,9 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import { EnvironmentAdapter, AdapterSetupOptions, McpServers } from '../types';
+import { FIGMA_STEP, MOBILE_STEP, SkillTemplateFn } from './skill-templates';
 
-const PI_SKILL_TEMPLATES: Record<string, (mcp?: McpServers) => string> = {
+const PI_SKILL_TEMPLATES: Record<string, SkillTemplateFn> = {
   'nova.md': () => `---
 description: Nova — unified entry point for Pi. Shows progress and suggests next action.
 ---
@@ -74,7 +75,7 @@ Read proposal, AGENTS.md, package.json, src/.
 
 ## Step 3: Explore Architecture
 Explore at least 2 architectural approaches. Present alternatives.
-${mcp?.figma ? '\n## Step 3.5: Read Figma Design (Figma MCP detected)\nUse Figma MCP to extract design tokens: colors, typography, spacing, components.\nWrite Design Tokens section to docs/designs/design.md.\n' : ''}
+${mcp?.figma ? FIGMA_STEP : ''}
 
 ## Step 4: Generate Design
 Write \`docs/designs/design.md\` with architecture, tech stack, components, data flow, and task list in YAML.
@@ -123,7 +124,7 @@ Review changed files for correctness, conventions, error handling, test coverage
 
 ## Step 4: Security Review
 Audit for injection risks, secret exposure, insecure dependencies.
-${mcp?.mobile ? '\n## Step 4.5: UI Verification (Mobile MCP detected)\nLaunch app in simulator. Screenshot key screens. Query accessibility tree.\nWrite UI Verification section to docs/reports/verification-report.md.\n' : ''}
+${mcp?.mobile ? MOBILE_STEP : ''}
 
 ## Step 5: Generate Report
 Write docs/reports/verification-report.md.

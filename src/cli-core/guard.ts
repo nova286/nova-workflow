@@ -5,6 +5,7 @@ import {
   validateAcceptance,
   validateFiles,
   validateSpecBoundExecution,
+  validateTaskGranularity,
 } from './quality-check';
 
 export interface GuardFailure {
@@ -15,6 +16,7 @@ export interface GuardFailure {
 export interface GuardResult {
   pass: boolean;
   failures: GuardFailure[];
+  warnings?: string[];
 }
 
 interface GuardCheck {
@@ -112,5 +114,35 @@ export async function guardPhaseTransition(from: string, to: string): Promise<Gu
     if (failure) failures.push(failure);
   }
 
-  return { pass: failures.length === 0, failures };
+  // Non-blocking granularity check for design→implement
+  let warnings: string[] | undefined;
+  if (key === 'design:implement') {
+    const tasks = state.phases.design?.tasks || [];
+    const granResult = validateTaskGranularity(tasks);
+    if (granResult.warnings && granResult.warnings.length > 0) {
+      warnings = granResult.warnings;
+    }
+  }
+
+  return { pass: failures.length === 0, failures, warnings };
+}
+
+/**
+ * Check if a phase can be re-entered from 'done' status.
+ * Returns { allowed: true } if the phase is not 'done'.
+ * Returns { allowed: false, message } if the phase is 'done' and re-entry needs confirmation.
+ */
+export async function canReEnterPhase(phase: string): Promise<{ allowed: boolean; message?: string }> {
+  const state = await StateManager.load();
+  const phaseData = state.phases[phase];
+
+  if (!phaseData || phaseData.status !== 'done') {
+    return { allowed: true };
+  }
+
+  const completedAt = phaseData.completedAt || 'unknown time';
+  return {
+    allowed: false,
+    message: `Phase '${phase}' is already done (completed at ${completedAt}). Re-entering will reset it to in-progress. Use 'nova iterate ${phase}' or confirm re-entry.`,
+  };
 }

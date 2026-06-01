@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import * as yaml from 'yaml';
-import { guardPhaseTransition } from '../guard';
+import { guardPhaseTransition, canReEnterPhase } from '../guard';
 
 describe('guardPhaseTransition', () => {
   let testDir: string;
@@ -192,5 +192,67 @@ describe('guardPhaseTransition', () => {
       },
     });
     expect((await guardPhaseTransition('implement', 'verify')).pass).toBe(true);
+  });
+});
+
+describe('canReEnterPhase', () => {
+  let testDir: string;
+  let originalCwd: string;
+
+  beforeEach(async () => {
+    testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-reenter-'));
+    originalCwd = process.cwd();
+    process.chdir(testDir);
+  });
+
+  afterEach(async () => {
+    process.chdir(originalCwd);
+    await fs.rm(testDir, { recursive: true, force: true });
+  });
+
+  async function writeState(state: any) {
+    await fs.writeFile('.nova.yaml', yaml.stringify(state), 'utf-8');
+  }
+
+  test('allows re-entry when phase is not done', async () => {
+    await writeState({
+      version: 1,
+      project: 'test',
+      environment: [],
+      phases: {
+        implement: { status: 'in-progress', tasks: {} },
+      },
+      metadata: { stateVersion: 0, lastModified: '' },
+    });
+    const result = await canReEnterPhase('implement');
+    expect(result.allowed).toBe(true);
+  });
+
+  test('blocks re-entry when phase is done', async () => {
+    await writeState({
+      version: 1,
+      project: 'test',
+      environment: [],
+      phases: {
+        implement: { status: 'done', completedAt: '2026-06-01T10:00:00.000Z', tasks: {} },
+      },
+      metadata: { stateVersion: 0, lastModified: '' },
+    });
+    const result = await canReEnterPhase('implement');
+    expect(result.allowed).toBe(false);
+    expect(result.message).toContain('already done');
+    expect(result.message).toContain('2026-06-01');
+  });
+
+  test('allows re-entry when phase does not exist', async () => {
+    await writeState({
+      version: 1,
+      project: 'test',
+      environment: [],
+      phases: {},
+      metadata: { stateVersion: 0, lastModified: '' },
+    });
+    const result = await canReEnterPhase('nonexistent');
+    expect(result.allowed).toBe(true);
   });
 });

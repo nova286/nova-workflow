@@ -3,7 +3,8 @@ import {
   validateTaskIds,
   validateAcceptance,
   validateFiles,
-  QualityReport,
+  validateSpecBoundExecution,
+  validateTaskGranularity,
 } from '../quality-check';
 
 describe('validateTaskSchema', () => {
@@ -154,5 +155,113 @@ describe('validateFiles', () => {
     const r = validateFiles(tasks);
     expect(r.pass).toBe(false);
     expect(r.errors[0]).toContain('path');
+  });
+});
+
+describe('validateSpecBoundExecution', () => {
+  test('passes when implementation tasks have all required fields', () => {
+    const tasks = [
+      {
+        id: 't1', title: 'T', type: 'implementation', method: 'tdd',
+        specRefs: ['s1'], acceptanceRefs: ['a1'],
+        verification: { commands: ['npm test'] },
+        files: [{ path: 'x.ts', action: 'create' }], acceptance: ['ok'],
+      },
+    ];
+    expect(validateSpecBoundExecution(tasks).pass).toBe(true);
+  });
+
+  test('fails when method is missing', () => {
+    const tasks = [
+      {
+        id: 't1', title: 'T', type: 'implementation',
+        specRefs: ['s1'], acceptanceRefs: ['a1'],
+        verification: { commands: ['npm test'] },
+        files: [{ path: 'x.ts', action: 'create' }], acceptance: ['ok'],
+      },
+    ];
+    const r = validateSpecBoundExecution(tasks);
+    expect(r.pass).toBe(false);
+    expect(r.errors[0]).toContain('method');
+  });
+
+  test('fails when specRefs is missing', () => {
+    const tasks = [
+      {
+        id: 't1', title: 'T', type: 'implementation', method: 'tdd',
+        acceptanceRefs: ['a1'], verification: { commands: ['npm test'] },
+        files: [{ path: 'x.ts', action: 'create' }], acceptance: ['ok'],
+      },
+    ];
+    const r = validateSpecBoundExecution(tasks);
+    expect(r.pass).toBe(false);
+    expect(r.errors[0]).toContain('specRefs');
+  });
+
+  test('skips non-implementation tasks', () => {
+    const tasks = [
+      { id: 't1', title: 'T', type: 'design', files: [], acceptance: ['ok'] },
+    ];
+    expect(validateSpecBoundExecution(tasks).pass).toBe(true);
+  });
+});
+
+describe('validateTaskGranularity', () => {
+  test('always passes (warnings only)', () => {
+    const tasks = [
+      {
+        id: 't1', type: 'implementation',
+        files: Array.from({ length: 15 }, (_, i) => ({ path: `src/f${i}.ts`, action: 'create' })),
+      },
+    ];
+    const r = validateTaskGranularity(tasks);
+    expect(r.pass).toBe(true);
+  });
+
+  test('warns when single task has too many files', () => {
+    const tasks = [
+      {
+        id: 't1', type: 'implementation',
+        files: Array.from({ length: 12 }, (_, i) => ({ path: `src/f${i}.ts`, action: 'create' })),
+      },
+    ];
+    const r = validateTaskGranularity(tasks);
+    expect(r.warnings!.length).toBeGreaterThan(0);
+    expect(r.warnings![0]).toContain('12 files');
+  });
+
+  test('warns when single task spans multiple top-level directories', () => {
+    const tasks = [
+      {
+        id: 't1', type: 'implementation',
+        files: [
+          { path: 'ios/App.swift', action: 'create' },
+          { path: 'android/Main.kt', action: 'create' },
+          { path: 'shared/core.ts', action: 'create' },
+          { path: 'web/index.html', action: 'create' },
+        ],
+      },
+    ];
+    const r = validateTaskGranularity(tasks);
+    expect(r.warnings!.some(w => w.includes('top-level directories'))).toBe(true);
+  });
+
+  test('no warnings when tasks are well-split', () => {
+    const tasks = [
+      {
+        id: 'setup-shared', type: 'implementation',
+        files: [{ path: 'shared/core.ts', action: 'create' }],
+      },
+      {
+        id: 'implement-ios', type: 'implementation',
+        files: [{ path: 'ios/App.swift', action: 'create' }],
+      },
+      {
+        id: 'implement-android', type: 'implementation',
+        files: [{ path: 'android/Main.kt', action: 'create' }],
+      },
+    ];
+    const r = validateTaskGranularity(tasks);
+    expect(r.warnings!.length).toBe(0);
   });
 });

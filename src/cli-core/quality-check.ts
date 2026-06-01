@@ -1,6 +1,7 @@
 export interface QualityReport {
   pass: boolean;
   errors: string[];
+  warnings?: string[];
 }
 
 const REQUIRED_FIELDS = ['id', 'title', 'type', 'files', 'acceptance'];
@@ -90,4 +91,30 @@ export function validateSpecBoundExecution(tasks: any[]): QualityReport {
   }
 
   return { pass: errors.length === 0, errors };
+}
+
+const MAX_FILES_PER_TASK = 10;
+
+export function validateTaskGranularity(tasks: any[]): QualityReport {
+  const warnings: string[] = [];
+  const implTasks = tasks.filter(t => t.type === 'implementation');
+
+  for (const task of implTasks) {
+    const id: string = task.id || '<missing-id>';
+    const files: any[] = task.files || [];
+
+    if (files.length > MAX_FILES_PER_TASK) {
+      warnings.push(`${id}: has ${files.length} files (recommended ≤${MAX_FILES_PER_TASK}). Consider splitting into smaller tasks.`);
+    }
+  }
+
+  if (implTasks.length === 1 && implTasks[0]?.files?.length > 3) {
+    const paths = implTasks[0].files.map((f: any) => f.path || '');
+    const topDirs = new Set(paths.map((p: string) => p.split('/')[0]).filter(Boolean));
+    if (topDirs.size > 1) {
+      warnings.push(`Single implementation task spans ${topDirs.size} top-level directories (${Array.from(topDirs).join(', ')}). Consider splitting by platform or module.`);
+    }
+  }
+
+  return { pass: true, errors: [], warnings };
 }

@@ -47,6 +47,7 @@ program
 program
   .command('detect')
   .option('--json', 'Print structured JSON')
+  .option('--agent <id>', 'Active Agent id when the CLI cannot infer it')
   .action(detectCommand);
 
 program

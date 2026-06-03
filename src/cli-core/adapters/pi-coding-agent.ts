@@ -176,8 +176,9 @@ description: Nova detect — check installation status of tools and provide inst
 
 # Nova Detect
 
-Run \`nova detect\` to check required, recommended, and optional Nova-enhancing
-tools. Use \`nova detect --json\` when structured output is useful.
+Run \`nova detect --agent pi-coding-agent\` to check required, recommended, and
+optional Nova-enhancing tools from a Pi Coding Agent session. Use
+\`nova detect --agent pi-coding-agent --json\` when structured output is useful.
 
 ## What To Report
 

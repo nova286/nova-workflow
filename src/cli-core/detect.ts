@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { execFile } from 'child_process';
+import * as yaml from 'yaml';
 
 export type DetectionCategory = 'required' | 'recommended' | 'optional';
 export type DetectionStatus = 'available' | 'missing' | 'partial';
@@ -17,21 +18,47 @@ export interface ToolDetection {
 
 export interface DetectResult {
   pass: boolean;
+  agent: AgentDetection;
   tools: ToolDetection[];
 }
 
 export interface DetectOptions {
   cwd?: string;
   homeDir?: string;
+  agent?: string;
+  env?: Record<string, string | undefined>;
   commandExists?: (cmd: string) => Promise<boolean>;
 }
+
+export interface AgentDetection {
+  active: {
+    id: string | null;
+    name: string;
+    source: 'option' | 'environment' | 'unknown';
+    confidence: 'high' | 'low' | 'none';
+    summary: string;
+  };
+  configured: string[];
+  available: Array<{ id: string; name: string; available: boolean }>;
+}
+
+const AI_TOOLS = [
+  { id: 'claude-code', name: 'Claude Code', cmd: 'claude' },
+  { id: 'codex', name: 'Codex', cmd: 'codex' },
+  { id: 'openclaw', name: 'OpenClaw', cmd: 'openclaw' },
+  { id: 'hermes-agent', name: 'Hermes Agent', cmd: 'hermes-agent' },
+  { id: 'opencode', name: 'OpenCode', cmd: 'opencode' },
+  { id: 'pi-coding-agent', name: 'Pi Coding Agent', cmd: 'pi' },
+];
 
 export async function detectNovaEnvironment(options: DetectOptions = {}): Promise<DetectResult> {
   const cwd = options.cwd ?? process.cwd();
   const homeDir = options.homeDir ?? process.env.HOME ?? '';
+  const env = options.env ?? process.env;
   const commandExists = options.commandExists ?? defaultCommandExists;
 
   const tools: ToolDetection[] = [];
+  const agent = await detectAgentContext(cwd, commandExists, options.agent, env);
 
   tools.push(await detectNovaState(cwd));
   tools.push(await detectCodeGraph(cwd, commandExists));
@@ -43,8 +70,92 @@ export async function detectNovaEnvironment(options: DetectOptions = {}): Promis
 
   return {
     pass: tools.filter(t => t.category === 'required').every(t => t.status === 'available'),
+    agent,
     tools,
   };
+}
+
+async function detectAgentContext(
+  cwd: string,
+  commandExists: (cmd: string) => Promise<boolean>,
+  requestedAgent?: string,
+  env: Record<string, string | undefined> = {}
+): Promise<AgentDetection> {
+  const configured = await readConfiguredAgents(cwd);
+  const available = await Promise.all(
+    AI_TOOLS.map(async tool => ({
+      id: tool.id,
+      name: tool.name,
+      available: await commandExists(tool.cmd),
+    }))
+  );
+
+  if (requestedAgent) {
+    const known = AI_TOOLS.find(tool => tool.id === requestedAgent);
+    return {
+      active: {
+        id: requestedAgent,
+        name: known?.name ?? requestedAgent,
+        source: 'option',
+        confidence: known ? 'high' : 'low',
+        summary: known ? `Active Agent supplied by --agent: ${known.name}` : `Unknown Agent supplied by --agent: ${requestedAgent}`,
+      },
+      configured,
+      available,
+    };
+  }
+
+  const inferred = inferAgentFromEnv(env);
+  if (inferred) {
+    return {
+      active: {
+        id: inferred.id,
+        name: inferred.name,
+        source: 'environment',
+        confidence: 'high',
+        summary: `Active Agent inferred from environment: ${inferred.name}`,
+      },
+      configured,
+      available,
+    };
+  }
+
+  return {
+    active: {
+      id: null,
+      name: 'Unknown',
+      source: 'unknown',
+      confidence: 'none',
+      summary: 'Active Agent cannot be known from a plain CLI process. Run from an Agent session or pass --agent <id>.',
+    },
+    configured,
+    available,
+  };
+}
+
+async function readConfiguredAgents(cwd: string): Promise<string[]> {
+  try {
+    const raw = await fs.readFile(path.join(cwd, '.nova.yaml'), 'utf-8');
+    const state = yaml.parse(raw);
+    return Array.isArray(state?.environment)
+      ? state.environment.filter((item: unknown) => typeof item === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function inferAgentFromEnv(env: Record<string, string | undefined>) {
+  if (env.CODEX_SHELL || env.CODEX_THREAD_ID || env.CODEX_INTERNAL_ORIGINATOR_OVERRIDE) {
+    return { id: 'codex', name: 'Codex' };
+  }
+  if (env.CLAUDECODE || env.CLAUDE_CODE || env.CLAUDE_DESKTOP) {
+    return { id: 'claude-code', name: 'Claude Code' };
+  }
+  if (env.OPENCODE || env.OPENCODE_SESSION) {
+    return { id: 'opencode', name: 'OpenCode' };
+  }
+  return null;
 }
 
 async function detectNovaState(cwd: string): Promise<ToolDetection> {

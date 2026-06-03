@@ -34,19 +34,53 @@ describe('detectNovaEnvironment', () => {
   });
 
   test('passes with only .nova.yaml and reports compatible mode for missing recommended tools', async () => {
+    await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\nenvironment:\n  - codex\n', 'utf-8');
+
+    const result = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      commandExists: commandExists([]),
+      env: {},
+    });
+
+    expect(result.pass).toBe(true);
+    expect(result.agent.active.source).toBe('unknown');
+    expect(result.agent.configured).toEqual(['codex']);
+    expect(result.tools.find(t => t.id === 'nova-state')?.status).toBe('available');
+    expect(result.tools.find(t => t.id === 'openspec')?.summary).toContain('compatible mode');
+    expect(result.tools.find(t => t.id === 'superpowers')?.category).toBe('recommended');
+    expect(result.tools.find(t => t.id === 'figma-mcp')?.category).toBe('optional');
+  });
+
+  test('infers active Agent from environment markers', async () => {
     await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\n', 'utf-8');
 
     const result = await detectNovaEnvironment({
       cwd,
       homeDir,
       commandExists: commandExists([]),
+      env: { CODEX_SHELL: '1' },
     });
 
-    expect(result.pass).toBe(true);
-    expect(result.tools.find(t => t.id === 'nova-state')?.status).toBe('available');
-    expect(result.tools.find(t => t.id === 'openspec')?.summary).toContain('compatible mode');
-    expect(result.tools.find(t => t.id === 'superpowers')?.category).toBe('recommended');
-    expect(result.tools.find(t => t.id === 'figma-mcp')?.category).toBe('optional');
+    expect(result.agent.active.id).toBe('codex');
+    expect(result.agent.active.source).toBe('environment');
+    expect(result.agent.active.confidence).toBe('high');
+  });
+
+  test('uses explicit Agent option when supplied', async () => {
+    await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\n', 'utf-8');
+
+    const result = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      agent: 'claude-code',
+      commandExists: commandExists(['claude']),
+      env: {},
+    });
+
+    expect(result.agent.active.id).toBe('claude-code');
+    expect(result.agent.active.source).toBe('option');
+    expect(result.agent.available.find(agent => agent.id === 'claude-code')?.available).toBe(true);
   });
 
   test('reports partial status for tools with only CLI or project directory', async () => {

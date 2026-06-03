@@ -138,6 +138,7 @@ describe('Environment Adapters', () => {
 
       const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-detect', 'SKILL.md'), 'utf-8');
       expect(content).toContain('nova detect');
+      expect(content).toContain('--agent claude-code');
       expect(content).toContain('Recommended');
       expect(content).toContain('Optional');
       expect(content).not.toContain('which openspec');

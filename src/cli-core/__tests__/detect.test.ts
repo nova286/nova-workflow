@@ -117,7 +117,9 @@ describe('detectNovaEnvironment', () => {
     const result = await detectNovaEnvironment({
       cwd,
       homeDir,
+      agent: 'claude-code',
       commandExists: commandExists(['ecc-install']),
+      env: {},
     });
 
     expect(result.tools.find(t => t.id === 'superpowers')?.status).toBe('available');
@@ -125,5 +127,52 @@ describe('detectNovaEnvironment', () => {
     expect(result.tools.find(t => t.id === 'ecc')?.details.join('\n')).toContain('ecc-install CLI found');
     expect(result.tools.find(t => t.id === 'figma-mcp')?.status).toBe('available');
     expect(result.tools.find(t => t.id === 'mobile-mcp')?.status).toBe('available');
+  });
+
+  test('uses Codex config for Codex plugin integrations', async () => {
+    await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\n', 'utf-8');
+    await fs.mkdir(path.join(homeDir, '.codex'), { recursive: true });
+    await fs.writeFile(
+      path.join(homeDir, '.codex', 'config.toml'),
+      [
+        '[plugins."figma@openai-curated"]',
+        'enabled = true',
+        '',
+        '[plugins."build-ios-apps@openai-curated"]',
+        'enabled = true',
+        '',
+      ].join('\n'),
+      'utf-8'
+    );
+
+    const result = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      agent: 'codex',
+      commandExists: commandExists([]),
+      env: {},
+    });
+
+    expect(result.tools.find(t => t.id === 'figma-mcp')?.status).toBe('available');
+    expect(result.tools.find(t => t.id === 'mobile-mcp')?.status).toBe('available');
+    expect(result.tools.find(t => t.id === 'figma-mcp')?.details.join('\n')).toContain('Codex config');
+    expect(result.tools.find(t => t.id === 'mobile-mcp')?.details.join('\n')).toContain('Codex config');
+  });
+
+  test('uses Codex install hints when detecting for Codex', async () => {
+    await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\n', 'utf-8');
+
+    const result = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      agent: 'codex',
+      commandExists: commandExists([]),
+      env: {},
+    });
+
+    expect(result.tools.find(t => t.id === 'figma-mcp')?.install).toContain('~/.codex/config.toml');
+    expect(result.tools.find(t => t.id === 'mobile-mcp')?.install).toContain('~/.codex/config.toml');
+    expect(result.tools.find(t => t.id === 'figma-mcp')?.install).not.toContain('.claude');
+    expect(result.tools.find(t => t.id === 'mobile-mcp')?.install).not.toContain('.claude');
   });
 });

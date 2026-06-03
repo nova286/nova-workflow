@@ -63,10 +63,11 @@ export async function detectNovaEnvironment(options: DetectOptions = {}): Promis
   tools.push(await detectNovaState(cwd));
   tools.push(await detectCodeGraph(cwd, commandExists));
   tools.push(await detectOpenSpec(cwd, commandExists));
-  tools.push(await detectSuperpowers(homeDir));
-  tools.push(await detectEcc(cwd, homeDir, commandExists));
-  tools.push(await detectFigmaMcp(cwd, homeDir));
-  tools.push(await detectMobileMcp(cwd, homeDir));
+  const agentId = agent.active.id;
+  tools.push(await detectSuperpowers(homeDir, agentId));
+  tools.push(await detectEcc(cwd, homeDir, commandExists, agentId));
+  tools.push(await detectFigmaMcp(cwd, homeDir, agentId));
+  tools.push(await detectMobileMcp(cwd, homeDir, agentId));
 
   return {
     pass: tools.filter(t => t.category === 'required').every(t => t.status === 'available'),
@@ -207,26 +208,41 @@ async function detectOpenSpec(cwd: string, commandExists: (cmd: string) => Promi
   };
 }
 
-async function detectSuperpowers(homeDir: string): Promise<ToolDetection> {
-  const found = await pathExists(path.join(homeDir, '.agents', 'skills', 'brainstorming'));
+async function detectSuperpowers(homeDir: string, agentId?: string | null): Promise<ToolDetection> {
+  const agentsSkill = await pathExists(path.join(homeDir, '.agents', 'skills', 'brainstorming'));
+  const codexSkill = await pathExists(path.join(homeDir, '.codex', 'skills', 'brainstorming'));
+  const found = agentId === 'codex' ? codexSkill || agentsSkill : agentsSkill;
   return {
     id: 'superpowers',
     name: 'Superpowers',
     category: 'recommended',
     status: found ? 'available' : 'missing',
     summary: found ? 'brainstorming skill found' : 'compatible mode will be used',
-    install: 'Install Superpowers skills into ~/.agents/skills and symlink to ~/.claude/skills',
-    details: [found ? '~/.agents/skills/brainstorming found' : '~/.agents/skills/brainstorming missing'],
+    install: installHint(agentId, 'superpowers'),
+    details: agentId === 'codex'
+      ? [
+          codexSkill ? '~/.codex/skills/brainstorming found' : '~/.codex/skills/brainstorming missing',
+          agentsSkill ? '~/.agents/skills/brainstorming found' : '~/.agents/skills/brainstorming missing',
+        ]
+      : [agentsSkill ? '~/.agents/skills/brainstorming found' : '~/.agents/skills/brainstorming missing'],
   };
 }
 
-async function detectEcc(cwd: string, homeDir: string, commandExists: (cmd: string) => Promise<boolean>): Promise<ToolDetection> {
+async function detectEcc(cwd: string, homeDir: string, commandExists: (cmd: string) => Promise<boolean>, agentId?: string | null): Promise<ToolDetection> {
   const eccCli = await commandExists('ecc');
   const installCli = await commandExists('ecc-install');
   const claudePlugin = await hasClaudePlugin(cwd, homeDir, ['ecc@ecc', 'affaan-m/ecc', 'ecc-universal']);
+  const codexPlugin = await hasCodexConfig(homeDir, ['ecc@ecc', 'affaan-m/ecc', 'ecc-universal']);
   const agentsConfigureSkill = await pathExists(path.join(homeDir, '.agents', 'skills', 'configure-ecc'));
+  const codexConfigureSkill = await pathExists(path.join(homeDir, '.codex', 'skills', 'configure-ecc'));
   const claudeConfigureSkill = await pathExists(path.join(homeDir, '.claude', 'skills', 'configure-ecc'));
-  const installed = eccCli || installCli || claudePlugin || agentsConfigureSkill || claudeConfigureSkill;
+  const agentSpecificInstalled =
+    agentId === 'codex'
+      ? codexPlugin || codexConfigureSkill
+      : agentId === 'claude-code'
+      ? claudePlugin || claudeConfigureSkill
+      : claudePlugin || codexPlugin || claudeConfigureSkill || codexConfigureSkill;
+  const installed = eccCli || installCli || agentsConfigureSkill || agentSpecificInstalled;
 
   return {
     id: 'ecc',
@@ -239,39 +255,51 @@ async function detectEcc(cwd: string, homeDir: string, commandExists: (cmd: stri
       eccCli ? 'ecc CLI found' : 'ecc CLI missing',
       installCli ? 'ecc-install CLI found' : 'ecc-install CLI missing',
       claudePlugin ? 'Claude ECC plugin config found' : 'Claude ECC plugin config missing',
+      codexPlugin ? 'Codex ECC plugin config found' : 'Codex ECC plugin config missing',
       agentsConfigureSkill ? '~/.agents/skills/configure-ecc found' : '~/.agents/skills/configure-ecc missing',
+      codexConfigureSkill ? '~/.codex/skills/configure-ecc found' : '~/.codex/skills/configure-ecc missing',
       claudeConfigureSkill ? '~/.claude/skills/configure-ecc found' : '~/.claude/skills/configure-ecc missing',
     ],
   };
 }
 
-async function detectFigmaMcp(cwd: string, homeDir: string): Promise<ToolDetection> {
-  const configured = await hasMcpServer(cwd, homeDir, ['figma']);
+async function detectFigmaMcp(cwd: string, homeDir: string, agentId?: string | null): Promise<ToolDetection> {
+  const claude = await hasClaudeMcpServer(cwd, homeDir, ['figma']);
+  const codex = await hasCodexConfig(homeDir, ['figma@', 'figma-mcp', 'mcp_servers.figma']);
+  const configured = agentId === 'codex' ? codex : agentId === 'claude-code' ? claude : claude || codex;
   return {
     id: 'figma-mcp',
     name: 'Figma MCP',
     category: 'optional',
     status: configured ? 'available' : 'missing',
     summary: configured ? 'configured' : 'not configured',
-    install: 'Add a figma MCP server entry to ~/.claude/settings.json or .claude/settings.json',
-    details: [configured ? 'Figma MCP server found in Claude settings' : 'No Figma MCP server found in Claude settings'],
+    install: installHint(agentId, 'figma-mcp'),
+    details: [
+      claude ? 'Figma integration found in Claude settings' : 'Figma integration missing from Claude settings',
+      codex ? 'Figma integration found in Codex config' : 'Figma integration missing from Codex config',
+    ],
   };
 }
 
-async function detectMobileMcp(cwd: string, homeDir: string): Promise<ToolDetection> {
-  const configured = await hasMcpServer(cwd, homeDir, ['mobile', 'simulator', 'maestro']);
+async function detectMobileMcp(cwd: string, homeDir: string, agentId?: string | null): Promise<ToolDetection> {
+  const claude = await hasClaudeMcpServer(cwd, homeDir, ['mobile', 'simulator', 'maestro', 'xcodebuild']);
+  const codex = await hasCodexConfig(homeDir, ['build-ios-apps', 'mobile-mcp', 'xcodebuild', 'simulator', 'maestro']);
+  const configured = agentId === 'codex' ? codex : agentId === 'claude-code' ? claude : claude || codex;
   return {
     id: 'mobile-mcp',
     name: 'Mobile MCP',
     category: 'optional',
     status: configured ? 'available' : 'missing',
     summary: configured ? 'configured' : 'not configured',
-    install: 'Add a mobile/simulator MCP server entry to ~/.claude/settings.json or .claude/settings.json',
-    details: [configured ? 'Mobile MCP server found in Claude settings' : 'No Mobile MCP server found in Claude settings'],
+    install: installHint(agentId, 'mobile-mcp'),
+    details: [
+      claude ? 'Mobile/simulator integration found in Claude settings' : 'Mobile/simulator integration missing from Claude settings',
+      codex ? 'Mobile/simulator integration found in Codex config' : 'Mobile/simulator integration missing from Codex config',
+    ],
   };
 }
 
-async function hasMcpServer(cwd: string, homeDir: string, needles: string[]): Promise<boolean> {
+async function hasClaudeMcpServer(cwd: string, homeDir: string, needles: string[]): Promise<boolean> {
   const settingsPaths = [
     path.join(homeDir, '.claude', 'settings.json'),
     path.join(cwd, '.claude', 'settings.json'),
@@ -289,6 +317,16 @@ async function hasMcpServer(cwd: string, homeDir: string, needles: string[]): Pr
     } catch {}
   }
   return false;
+}
+
+async function hasCodexConfig(homeDir: string, needles: string[]): Promise<boolean> {
+  try {
+    const raw = await fs.readFile(path.join(homeDir, '.codex', 'config.toml'), 'utf-8');
+    const lower = raw.toLowerCase();
+    return needles.some(needle => lower.includes(needle.toLowerCase()));
+  } catch {
+    return false;
+  }
 }
 
 async function hasClaudePlugin(cwd: string, homeDir: string, needles: string[]): Promise<boolean> {
@@ -320,4 +358,25 @@ function defaultCommandExists(cmd: string): Promise<boolean> {
   return new Promise((resolve) => {
     execFile('which', [cmd], (err) => resolve(!err));
   });
+}
+
+function installHint(agentId: string | null | undefined, tool: 'superpowers' | 'figma-mcp' | 'mobile-mcp'): string {
+  const hints: Record<typeof tool, Record<string, string>> = {
+    'superpowers': {
+      codex: 'Install Superpowers skills into ~/.codex/skills, or into ~/.agents/skills if your Codex setup imports shared skills',
+      'claude-code': 'Install Superpowers skills into ~/.agents/skills and symlink to ~/.claude/skills',
+      default: 'Install Superpowers skills for your active Agent, or use compatible mode',
+    },
+    'figma-mcp': {
+      codex: 'Enable the Figma connector/plugin in Codex, or add a Figma MCP server in ~/.codex/config.toml',
+      'claude-code': 'Add a figma MCP server entry to ~/.claude/settings.json or .claude/settings.json',
+      default: 'Configure Figma in the active Agent plugin/MCP settings',
+    },
+    'mobile-mcp': {
+      codex: 'Enable the Codex iOS/mobile plugin, or add a mobile/simulator MCP server in ~/.codex/config.toml',
+      'claude-code': 'Add a mobile/simulator MCP server entry to ~/.claude/settings.json or .claude/settings.json',
+      default: 'Configure mobile/simulator support in the active Agent plugin/MCP settings',
+    },
+  };
+  return hints[tool][agentId || ''] || hints[tool].default;
 }

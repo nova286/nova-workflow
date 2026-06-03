@@ -291,152 +291,26 @@ description: Nova detect — check installation status of tools and provide inst
 
 # Nova Detect
 
-Check which Nova-enhancing tools are installed and provide setup guidance.
+Run \`nova detect\` to check required, recommended, and optional Nova-enhancing
+tools. Use \`nova detect --json\` when the user wants structured output.
 
-## Step 1: Detect Tools
+## What To Report
 
-For each tool below, run the detection check and report status:
+- **Required**: Nova project state such as \`.nova.yaml\`. Missing required items
+  block the current project until fixed.
+- **Recommended**: OpenSpec, Superpowers, and affaan-m/ECC. Missing recommended items do
+  not block Nova; compatible mode will be used.
+- **Optional**: CodeGraph, Figma MCP, and Mobile MCP. Missing optional items only
+  limit enhanced context, design, or UI verification workflows.
 
-### CodeGraph
-\`\`\`bash
-# Check: .codegraph/ directory exists in project, or codegraph command available
-test -d .codegraph && echo "INSTALLED" || echo "NOT_FOUND"
-which codegraph 2>/dev/null && echo "CLI_AVAILABLE" || echo "CLI_NOT_FOUND"
-\`\`\`
+For each missing or partial item, show the install guidance from \`nova detect\`.
+Do not imply that every tool must be installed before Nova can be used.
 
-### OpenSpec
-\`\`\`bash
-# Check: .openspec/ directory exists in project
-test -d .openspec && echo "INSTALLED" || echo "NOT_FOUND"
-\`\`\`
+## Fallback
 
-### Superpowers
-\`\`\`bash
-# Check: ~/.agents/skills/brainstorming exists
-test -d ~/.agents/skills/brainstorming && echo "INSTALLED" || echo "NOT_FOUND"
-\`\`\`
-
-### ECC (Everything Claude Code)
-\`\`\`bash
-# Check: ~/.agents/skills/ecc:* or ~/.claude/skills/ecc:* exists
-ls ~/.agents/skills/ 2>/dev/null | grep -q "^ecc:" && echo "INSTALLED" || echo "NOT_FOUND"
-\`\`\`
-
-### Figma MCP
-\`\`\`bash
-# Check: figma MCP server configured in Claude settings
-cat ~/.claude/settings.json 2>/dev/null | grep -qi figma && echo "CONFIGURED" || echo "NOT_CONFIGURED"
-cat .claude/settings.json 2>/dev/null | grep -qi figma && echo "PROJECT_CONFIGURED" || echo "PROJECT_NOT_CONFIGURED"
-\`\`\`
-
-### Mobile MCP
-\`\`\`bash
-# Check: mobile/simulator MCP server configured
-cat ~/.claude/settings.json 2>/dev/null | grep -qi "mobile\|simulator\|maestro" && echo "CONFIGURED" || echo "NOT_CONFIGURED"
-\`\`\`
-
-## Step 2: Report Results
-
-Display a summary table:
-
-\`\`\`
-Nova Environment Detection
-─────────────────────────────────────────
-Tool          Status      Install
-─────────────────────────────────────────
-CodeGraph     [status]    [command or "—"]
-OpenSpec      [status]    [command or "—"]
-Superpowers   [status]    [command or "—"]
-ECC           [status]    [command or "—"]
-Figma MCP     [status]    [command or "—"]
-Mobile MCP    [status]    [command or "—"]
-─────────────────────────────────────────
-\`\`\`
-
-## Step 3: Provide Install Instructions
-
-For each NOT_FOUND / NOT_CONFIGURED tool, show the install command:
-
-### CodeGraph
-\`\`\`bash
-npm install -g codegraph
-cd <project-dir> && codegraph init -i
-\`\`\`
-
-### OpenSpec
-\`\`\`bash
-# Check: openspec command available and .openspec/ exists
-which openspec 2>/dev/null && echo "CLI_AVAILABLE" || echo "CLI_NOT_FOUND"
-test -d .openspec && echo "INITIALIZED" || echo "NOT_INITIALIZED"
-\`\`\`
-
-Install:
-\`\`\`bash
-npm install -g @fission-ai/openspec@latest
-cd <project-dir> && openspec init
-\`\`\`
-
-### Superpowers
-\`\`\`bash
-# Install to ~/.agents/skills/ and symlink to ~/.claude/skills/
-# Source: https://github.com/nicholasgriffintn/superpowers
-git clone https://github.com/nicholasgriffintn/superpowers /tmp/superpowers
-cp -r /tmp/superpowers/skills/* ~/.agents/skills/
-for skill in ~/.agents/skills/*/; do
-  name=$(basename "$skill")
-  ln -sf "$skill" ~/.claude/skills/"$name"
-done
-\`\`\`
-
-### ECC (Everything Claude Code)
-\`\`\`bash
-# Install ECC (Everything Claude Code) skills to ~/.agents/skills/
-# Source: https://github.com/nicholasgriffintn/ecc
-git clone https://github.com/nicholasgriffintn/ecc /tmp/ecc
-cp -r /tmp/ecc/skills/* ~/.agents/skills/
-for skill in ~/.agents/skills/ecc:*/; do
-  name=$(basename "$skill")
-  ln -sf "$skill" ~/.claude/skills/"$name"
-done
-\`\`\`
-
-### Figma MCP
-\`\`\`bash
-# Add to ~/.claude/settings.json under mcpServers:
-{
-  "mcpServers": {
-    "figma-mcp": {
-      "command": "npx",
-      "args": ["-y", "figma-mcp"],
-      "env": {
-        "FIGMA_ACCESS_TOKEN": "<your-figma-token>"
-      }
-    }
-  }
-}
-\`\`\`
-
-### Mobile MCP
-\`\`\`bash
-# Add to ~/.claude/settings.json under mcpServers:
-{
-  "mcpServers": {
-    "mobile-mcp": {
-      "command": "npx",
-      "args": ["-y", "mobile-mcp"]
-    }
-  }
-}
-\`\`\`
-
-## Step 4: Offer Auto-Install
-
-Ask user: "Would you like me to install any of the missing tools? Pick which ones."
-
-Only install what the user confirms. For each selected tool:
-1. Run the install command
-2. Verify installation
-3. Report success or failure
+If the \`nova\` CLI is unavailable, explain that \`nova detect\` is the preferred
+deterministic check and ask the user to run \`npm install -g @nova286/nova-workflow\`
+or use the local project build.
 
 ## Constraints
 - Never auto-install without user confirmation

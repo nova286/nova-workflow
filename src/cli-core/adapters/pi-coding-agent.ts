@@ -176,37 +176,22 @@ description: Nova detect — check installation status of tools and provide inst
 
 # Nova Detect
 
-Check which Nova-enhancing tools are installed and provide setup guidance.
+Run \`nova detect\` to check required, recommended, and optional Nova-enhancing
+tools. Use \`nova detect --json\` when structured output is useful.
 
-## Step 1: Detect Tools
+## What To Report
 
-For each tool, run the detection check:
+- **Required**: Nova project state such as \`.nova.yaml\`; missing required items block use in the current project.
+- **Recommended**: OpenSpec, Superpowers, and affaan-m/ECC; missing items mean Nova uses compatible mode.
+- **Optional**: CodeGraph, Figma MCP, and Mobile MCP; missing items only limit enhanced workflows.
 
-- **CodeGraph**: test -d .codegraph || which codegraph
-- **OpenSpec**: which openspec && test -d .openspec
-- **Superpowers**: test -d ~/.agents/skills/brainstorming
-- **ECC**: ls ~/.agents/skills/ | grep -q "^ecc:"
-- **Figma MCP**: grep -qi figma ~/.claude/settings.json
-- **Mobile MCP**: grep -qi "mobile\|simulator" ~/.claude/settings.json
+For each missing or partial item, show the install guidance from \`nova detect\`.
+Do not imply that every tool must be installed before Nova can be used.
 
-## Step 2: Report Results
+## Fallback
 
-Display a summary table with status and install command for each tool.
-
-## Step 3: Provide Install Instructions
-
-For missing tools, show install commands:
-
-- CodeGraph: npm install -g codegraph && codegraph init -i
-- OpenSpec: npm install -g @fission-ai/openspec@latest && openspec init
-- Superpowers: git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
-- ECC (Everything Claude Code): git clone + cp to ~/.agents/skills/ + symlink to ~/.claude/skills/
-- Figma MCP: Add mcpServers entry to ~/.claude/settings.json
-- Mobile MCP: Add mcpServers entry to ~/.claude/settings.json
-
-## Step 4: Offer Auto-Install
-
-Ask user which missing tools to install. Only install with confirmation.
+If the \`nova\` CLI is unavailable, explain that \`nova detect\` is the preferred
+deterministic check and ask the user to install Nova or use the local project build.
 `,
 };
 

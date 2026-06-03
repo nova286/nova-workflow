@@ -154,6 +154,7 @@ And you can always iterate back — real development is not a waterfall.
 | `nova init` | Initialize Nova: creates `.nova.yaml`, installs skill files |
 | `nova next` | Decide the next action without running long Agent work |
 | `nova validate` | Validate `.nova.yaml`, artifacts, task shape, and evidence |
+| `nova detect` | Check required, recommended, and optional Nova-enhancing tools |
 | `nova status` | Display phase progress and task completion |
 | `nova checkpoint` | Record phase/task status and evidence from Skills |
 | `nova archive` | Clean up and finalize |

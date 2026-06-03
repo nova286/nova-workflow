@@ -132,6 +132,17 @@ describe('Environment Adapters', () => {
       expect(content).toContain('UI Verification');
     });
 
+    test('nova-detect delegates to nova detect CLI', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-detect', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('nova detect');
+      expect(content).toContain('Recommended');
+      expect(content).toContain('Optional');
+      expect(content).not.toContain('which openspec');
+    });
+
     test('no MCP steps when no MCP configured', async () => {
       const adapter = new ClaudeCodeAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });

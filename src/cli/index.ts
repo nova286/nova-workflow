@@ -7,6 +7,7 @@ import { contextCommand } from './commands/context';
 import { guardCommand } from './commands/guard';
 import { validateCommand } from './commands/validate';
 import { nextCommand } from './commands/next';
+import { detectCommand } from './commands/detect';
 import { registerCheckpointCommand } from './commands/checkpoint';
 import pkg from '../../package.json';
 
@@ -42,6 +43,11 @@ program
   .command('validate')
   .option('--json', 'Print structured JSON')
   .action(validateCommand);
+
+program
+  .command('detect')
+  .option('--json', 'Print structured JSON')
+  .action(detectCommand);
 
 program
   .command('context')

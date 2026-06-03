@@ -50,9 +50,11 @@ Nova: → ECC (Everything Claude Code) compatible code review + security review 
       → Report with file:line references and pass/fix verdicts
 ```
 
-**No slash commands needed.** Nova understands phase context from `.nova.yaml` and
-invokes the right skills automatically. If you prefer explicit control, `/nova`
-gives you a one-glance overview and suggested next action.
+Nova installs skill entrypoints and maintains a local workflow state machine.
+Long-running AI work happens inside your active Agent session; the CLI provides
+fast validation, context, guard, checkpoint, and archive commands. The default
+CLI entrypoint `nova` is equivalent to `nova next`, and `/nova` gives the same
+next-action view inside the Agent session.
 
 ---
 
@@ -66,6 +68,7 @@ npm install -g @nova286/nova-workflow
 
 ```bash
 nova init          # Initialize Nova in your project
+nova               # Show the next recommended action
 ```
 
 Then, inside Claude Code:
@@ -136,7 +139,7 @@ And you can always iterate back — real development is not a waterfall.
 
 | Command | What it does |
 |---------|-------------|
-| `/nova` | **One entry point.** Shows progress, suggests next action. |
+| `/nova` | **Agent-session entry point.** Shows progress and suggests next action. |
 | `/nova-propose` | Specify an OpenSpec-compatible change contract |
 | `/nova-design` | Build a Superpowers-compatible plan and task graph from the spec |
 | `/nova-implement` | Execute spec-bound tasks with method, tests, and evidence |
@@ -147,8 +150,12 @@ And you can always iterate back — real development is not a waterfall.
 
 | Command | What it does |
 |---------|-------------|
+| `nova` | Equivalent to `nova next`; shows the recommended next action |
 | `nova init` | Initialize Nova: creates `.nova.yaml`, installs skill files |
+| `nova next` | Decide the next action without running long Agent work |
+| `nova validate` | Validate `.nova.yaml`, artifacts, task shape, and evidence |
 | `nova status` | Display phase progress and task completion |
+| `nova checkpoint` | Record phase/task status and evidence from Skills |
 | `nova archive` | Clean up and finalize |
 | `nova context --task-id <id>` | Print structured TaskContext JSON for a task |
 | `nova guard <from> <to>` | Validate a phase transition |
@@ -167,7 +174,14 @@ and ECC (Everything Claude Code) compatible reviews own "whether this is accepta
 works in compatible mode without external tools. Native OpenSpec, Superpowers,
 and ECC (Everything Claude Code) installations make the same workflow more capable.
 
-### 2. Structured Handoff, Not Natural Language
+### 2. Skills Surface, CLI Kernel
+
+Nova deliberately keeps slow, interactive Agent work in Skills. The CLI is a
+deterministic kernel: it validates state, computes the next action, enforces
+guards, emits task context, records checkpoints, and archives evidence. This
+keeps the common path responsive while preserving a testable workflow contract.
+
+### 3. Structured Handoff, Not Natural Language
 
 The handoff between design and implementation is the moment where most AI workflows
 break down. Nova solves this with `TaskContext` — a structured JSON contract:
@@ -205,7 +219,7 @@ No ambiguity. No "I think the designer meant...". The implement phase knows exac
 which spec contract it is satisfying, which files to touch, how to prove it, and
 what "done" looks like.
 
-### 3. State Machine, Not Wishful Thinking
+### 4. State Machine, Not Wishful Thinking
 
 ```
 propose ──[change specified]──→ design ──[plan ready]──→ implement
@@ -216,13 +230,13 @@ implement ←──[iterate]── design    verify ←──[iterate]── imp
 Forward transitions are **gated** — the guard system enforces preconditions.
 Reverse transitions are **always allowed** — because iteration is real development.
 
-### 4. Every Invocation, Tracked
+### 5. Every Invocation, Tracked
 
 Every AI call generates a `traceId`. Every task records its status, output
 artifacts, and completion time. The `.nova.yaml` state file is the single source
 of truth — atomic writes, mutex-guarded, crash-safe.
 
-### 5. Convention, Not Coercion
+### 6. Convention, Not Coercion
 
 Role separation comes from **artifact ownership**, not from fake security
 boundaries. Specs own requirements, plans own execution, reviews own judgment.

@@ -149,9 +149,11 @@ describe('guardPhaseTransition', () => {
     expect((await guardPhaseTransition('verify', 'archive')).pass).toBe(true);
   });
 
-  test('unknown transition returns true', async () => {
+  test('unknown transition fails', async () => {
     await writeState(baseState);
-    expect((await guardPhaseTransition('unknown', 'transition')).pass).toBe(true);
+    const result = await guardPhaseTransition('unknown', 'transition');
+    expect(result.pass).toBe(false);
+    expect(result.failures[0].label).toContain('Unknown transition');
   });
 
   test('design-to-build fails with structured errors for bad tasks', async () => {

@@ -13,9 +13,11 @@ description: Nova — unified entry point. Shows progress and suggests next acti
 # Nova
 
 Read \`.nova.yaml\` and present a compact overview with a clear next action.
+If the \`nova\` CLI is available, prefer \`nova next\` for the deterministic
+next-action decision.
 
 ## Step 1: Read State
-Parse \`.nova.yaml\`. For each phase, determine status (pending / in-progress / done).
+Run \`nova next\` when available, or parse \`.nova.yaml\`. For each phase, determine status (pending / in-progress / done).
 If \`.nova.yaml\` does not exist, say: "Nova not initialized. Run \`nova init\` first."
 
 ## Step 2: Show Overview
@@ -39,7 +41,7 @@ Based on the first phase that is NOT done:
 - all done → "nova archive — Finalize project"
 
 Show: "Next: <suggestion>"
-Also list: /nova-propose /nova-design /nova-implement /nova-verify /nova-iterate /nova-status
+Also list: /nova-propose /nova-design /nova-implement /nova-verify /nova-iterate /nova-status and CLI helpers \`nova next\`, \`nova validate\`, \`nova checkpoint\`.
 
 ## Step 4: Act
 Ask: "Run the suggested action, pick another, or do something else?"
@@ -60,7 +62,7 @@ contract. Native OpenSpec is optional; if unavailable, write compatible artifact
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Check \`phases.propose.status\`. If pending, update to
-\`in-progress\` and set \`startedAt\`.
+\`in-progress\` with \`nova checkpoint phase propose --status in-progress\` when available.
 
 ## Step 2: Gather Context
 Read \`AGENTS.md\`, \`CLAUDE.md\`, \`README.md\`, \`package.json\`, \`src/\` to
@@ -79,7 +81,8 @@ a summary. Include requirement ids and acceptance ids for later task references.
 ## Step 5: Update State
 Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
 \`artifacts.specDelta\`, \`phases.propose.status\`, and
-\`phases.propose.proposal\`.
+\`phases.propose.proposal\`. Run \`nova validate\`, then mark completion with
+\`nova checkpoint phase propose --status done\` when validation passes.
 
 ## Constraints
 - Read any file for context. Write only to \`docs/proposals/\` and \`.nova.yaml\`.
@@ -97,7 +100,8 @@ the OpenSpec-compatible change into a Superpowers-compatible plan and task graph
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Require \`phases.propose.status: done\` with a non-empty proposal.
-Update \`phases.design.status\` to \`in-progress\` and set \`startedAt\`.
+Update \`phases.design.status\` to \`in-progress\` with
+\`nova checkpoint phase design --status in-progress\` when available.
 
 ## Step 2: Load Context
 Read the proposal/spec delta (\`artifacts.proposal\`, \`artifacts.openspecChange\`),
@@ -120,7 +124,8 @@ Verify each task has all required fields (id, title, type, description, files,
 acceptance, priority, estimatedComplexity).
 
 ## Step 6: Update State
-Set \`phases.design.status = 'done'\`, \`designDoc\`, \`tasks\` from parsed YAML.
+Set \`designDoc\` and \`tasks\` from parsed YAML. Run \`nova validate\`, then
+mark completion with \`nova checkpoint phase design --status done\`.
 
 ## Constraints
 - Design and plan only — no implementation code.
@@ -139,7 +144,8 @@ task method, verify the result, and record evidence for review.
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Require \`phases.design.status: done\` with non-empty tasks.
-Update \`phases.implement.status\` to \`in-progress\` and set \`startedAt\`.
+Update \`phases.implement.status\` to \`in-progress\` with
+\`nova checkpoint phase implement --status in-progress\` when available.
 
 ## Step 2: Load Task List
 Show task summary (id, title, method, specRefs, priority). Ask user to confirm before
@@ -162,15 +168,15 @@ For each task in priority order:
 4. Confirm specRefs and acceptanceRefs have evidence before marking complete
 
 ### Record Result
-Update \`.nova.yaml\` with task status, specRefs, acceptanceRefs, tests,
-filesChanged, traceIds, and timestamp.
+Record task status and evidence with \`nova checkpoint task <task-id> --status done --files <csv> --tests <csv> --trace-id <id>\` when available.
 On failure, ask user: abort, skip, or retry.
 
 ## Step 4: Final Verification
 Run full test suite and type check. Report summary.
 
 ## Step 5: Update State
-Set \`phases.implement.status = 'done'\`.
+Run \`nova guard implement verify\`, then set \`phases.implement.status = 'done'\`
+with \`nova checkpoint phase implement --status done\`.
 
 ## Constraints
 - Follow existing project conventions. Never leave TODOs or stubs.
@@ -188,7 +194,8 @@ orchestrate an ECC (Everything Claude Code) compatible verification pipeline.
 
 ## Step 1: Verify State
 Read \`.nova.yaml\`. Require \`phases.implement.status: done\`.
-Update \`phases.verify.status\` to \`in-progress\` and set \`startedAt\`.
+Update \`phases.verify.status\` to \`in-progress\` with
+\`nova checkpoint phase verify --status in-progress\` when available.
 
 ## Step 2: Gather Context
 Load completed tasks from \`phases.design.tasks\`. Read changed files, task
@@ -216,6 +223,8 @@ overall assessment (PASS / NEEDS_FIXES / BLOCKED), and recommendations.
 ## Step 7: Update State
 Set \`phases.verify.status = 'done'\`, \`pipelineResult\` with stage results.
 Set \`artifacts.verificationReport = 'docs/reports/verification-report.md'\`.
+Run \`nova validate\`, then mark completion with
+\`nova checkpoint phase verify --status done\`.
 
 ## Constraints
 - Be specific — reference file paths and line numbers.

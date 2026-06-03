@@ -5,13 +5,17 @@ import { archiveCommand } from './commands/archive';
 import { statusCommand } from './commands/status';
 import { contextCommand } from './commands/context';
 import { guardCommand } from './commands/guard';
+import { validateCommand } from './commands/validate';
+import { nextCommand } from './commands/next';
+import { registerCheckpointCommand } from './commands/checkpoint';
 import pkg from '../../package.json';
 
 const program = new Command();
 program
   .name('nova')
-  .description('Nova: AI workflow orchestration — init, status, archive')
-  .version(pkg.version);
+  .description('Nova: AI workflow orchestration kernel')
+  .version(pkg.version)
+  .action(() => nextCommand({}));
 
 program
   .command('init')
@@ -30,6 +34,16 @@ program
   .action(statusCommand);
 
 program
+  .command('next')
+  .option('--json', 'Print structured JSON')
+  .action(nextCommand);
+
+program
+  .command('validate')
+  .option('--json', 'Print structured JSON')
+  .action(validateCommand);
+
+program
   .command('context')
   .requiredOption('--task-id <id>', 'Task identifier')
   .action(contextCommand);
@@ -37,5 +51,7 @@ program
 program
   .command('guard <from> <to>')
   .action(guardCommand);
+
+registerCheckpointCommand(program);
 
 program.parse(process.argv);

@@ -15,7 +15,8 @@ export class StateManager {
   static async update(updateFn: (current: NovaState) => NovaState): Promise<NovaState> {
     return await this.mutex.runExclusive(async () => {
       const current = await this.loadInternal();
-      const next = updateFn(current);
+      const draft = yaml.parse(yaml.stringify(current));
+      const next = updateFn(draft);
       // 自动记录阶段时间戳
       for (const phase of Object.keys(next.phases)) {
         const before = (current.phases as any)[phase]?.status;

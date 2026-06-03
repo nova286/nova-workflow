@@ -104,7 +104,10 @@ export async function guardPhaseTransition(from: string, to: string): Promise<Gu
   const rules = TRANSITION_RULES[key];
 
   if (!rules) {
-    return { pass: true, failures: [] };
+    return {
+      pass: false,
+      failures: [{ label: `Unknown transition: ${from} → ${to}`, errors: [] }],
+    };
   }
 
   const failures: GuardFailure[] = [];

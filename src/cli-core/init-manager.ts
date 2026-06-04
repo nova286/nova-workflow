@@ -25,12 +25,12 @@ const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
 
 export class InitManager {
   private cwd: string;
-  private options: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string };
+  private options: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string; homeDir?: string };
   private backupDir?: string;
   private resolvedSkillsDir?: 'project' | 'user';
   private steps: Array<{ name: string; run: () => Promise<void>; rollback: () => Promise<void> }> = [];
 
-  constructor(cwd: string, opts: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string }) {
+  constructor(cwd: string, opts: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string; homeDir?: string }) {
     this.cwd = cwd;
     this.options = opts;
   }
@@ -47,10 +47,11 @@ export class InitManager {
 
     const skillsDir = this.options.skillsDir ?? await this.promptSkillsDir(envs);
     this.resolvedSkillsDir = skillsDir;
-    const adapterOptions: AdapterSetupOptions = { skillsDir, mcpServers };
+    const adapterOptions: AdapterSetupOptions = { skillsDir, mcpServers, homeDir: this.homeDir() };
 
     this.steps = [
       { name: 'Create directory structure', run: () => this.createDirs(), rollback: () => this.removeDirs() },
+      { name: 'Prepare shared skills directories', run: () => this.prepareSharedSkillsDirs(), rollback: () => Promise.resolve() },
       { name: 'Generate .nova.yaml', run: () => this.generateConfig(envs, mcpServers), rollback: () => this.removeFile('.nova.yaml') },
       { name: 'Install ECC skills', run: () => this.installEcc(), rollback: () => this.removeDir('.nova/ecc') },
       { name: 'Generate environment commands', run: async () => {
@@ -146,7 +147,7 @@ export class InitManager {
   private async detectMcpServers(): Promise<McpServers> {
     const mcpServers: McpServers = {};
     const settingsPaths = [
-      path.join(os.homedir(), '.claude', 'settings.json'),
+      path.join(this.homeDir(), '.claude', 'settings.json'),
       path.join(this.cwd, '.claude', 'settings.json'),
     ];
     for (const settingsPath of settingsPaths) {
@@ -179,6 +180,23 @@ export class InitManager {
     for (const d of dirs) await fs.mkdir(path.join(this.cwd, d), { recursive: true });
   }
   private async removeDirs() { /* 不回滚用户目录 */ }
+
+  private async prepareSharedSkillsDirs() {
+    const agentsSkillsDir = path.join(this.homeDir(), '.agents', 'skills');
+    const claudeSkillsDir = path.join(this.homeDir(), '.claude', 'skills');
+    await fs.mkdir(agentsSkillsDir, { recursive: true });
+    try {
+      await fs.lstat(claudeSkillsDir);
+      return;
+    } catch {}
+
+    await fs.mkdir(path.dirname(claudeSkillsDir), { recursive: true });
+    try {
+      await fs.symlink(agentsSkillsDir, claudeSkillsDir, 'dir');
+    } catch {
+      await fs.mkdir(claudeSkillsDir, { recursive: true });
+    }
+  }
 
   private async generateConfig(envs: string[], mcpServers: McpServers) {
     const projectType = await this.detectProjectType();
@@ -244,11 +262,15 @@ export class InitManager {
       const targets = cleanupMap[env] ?? [];
       for (const target of targets) {
         const baseDir = (env === 'claude-code' && this.resolvedSkillsDir === 'user')
-          ? os.homedir()
+          ? this.homeDir()
           : this.cwd;
         await fs.rm(path.join(baseDir, target), { recursive: true, force: true });
       }
     }
+  }
+
+  private homeDir() {
+    return this.options.homeDir ?? os.homedir();
   }
 
   private async removeFile(file: string) { try { await fs.unlink(path.join(this.cwd, file)); } catch {} }

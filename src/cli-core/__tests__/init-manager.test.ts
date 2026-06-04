@@ -51,6 +51,40 @@ describe('InitManager', () => {
         ).resolves.toBeUndefined();
       }
     });
+
+    test('prepares shared skills directories for any init agent', async () => {
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-init-home-'));
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex', homeDir });
+      await mgr.run();
+
+      const agentsSkillsDir = path.join(homeDir, '.agents', 'skills');
+      const claudeSkillsDir = path.join(homeDir, '.claude', 'skills');
+      const claudeSkillsStat = await fs.lstat(claudeSkillsDir);
+
+      await expect(fs.access(agentsSkillsDir)).resolves.toBeUndefined();
+      expect(claudeSkillsStat.isSymbolicLink()).toBe(true);
+      expect(await fs.readlink(claudeSkillsDir)).toBe(agentsSkillsDir);
+
+      await fs.rm(homeDir, { recursive: true, force: true });
+    });
+
+    test('does not replace an existing Claude skills directory during init', async () => {
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-init-home-'));
+      const claudeSkillsDir = path.join(homeDir, '.claude', 'skills');
+      await fs.mkdir(claudeSkillsDir, { recursive: true });
+      await fs.writeFile(path.join(claudeSkillsDir, 'custom.txt'), 'keep', 'utf-8');
+
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex', homeDir });
+      await mgr.run();
+
+      const claudeSkillsStat = await fs.lstat(claudeSkillsDir);
+      expect(claudeSkillsStat.isDirectory()).toBe(true);
+      expect(claudeSkillsStat.isSymbolicLink()).toBe(false);
+      await expect(fs.readFile(path.join(claudeSkillsDir, 'custom.txt'), 'utf-8')).resolves.toBe('keep');
+      await expect(fs.access(path.join(homeDir, '.agents', 'skills'))).resolves.toBeUndefined();
+
+      await fs.rm(homeDir, { recursive: true, force: true });
+    });
   });
 
   describe('.nova.yaml generation', () => {

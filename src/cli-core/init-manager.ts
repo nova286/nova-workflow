@@ -13,6 +13,7 @@ import { OpenClawAdapter } from './adapters/openclaw';
 import { HermesAgentAdapter } from './adapters/hermes-agent';
 import { OpenCodeAdapter } from './adapters/opencode';
 import { PiCodingAgentAdapter } from './adapters/pi-coding-agent';
+import { ToolDetection, detectNovaEnvironment } from './detect';
 
 const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
   'claude-code': () => new ClaudeCodeAdapter(),
@@ -240,10 +241,29 @@ export class InitManager {
     await fs.mkdir(dest, { recursive: true });
     if (this.options.eccPath) {
       await fs.cp(this.options.eccPath, dest, { recursive: true });
-    } else {
-      ui.info('No --with-ecc path provided. Skipping ECC (Everything Claude Code) skill installation.');
-      ui.info('ECC (Everything Claude Code) skills are expected to be available in your AI environment.');
+      return;
     }
+
+    const existingEcc = await this.detectExistingEcc();
+    if (existingEcc) {
+      ui.info(`ECC detected: ${existingEcc.summary}. Skipping local ECC copy.`);
+      return;
+    }
+
+    ui.info('No --with-ecc path provided and ECC was not detected. Skipping local ECC skill installation.');
+    ui.info('Nova will use ECC-compatible review mode until ECC is installed for your active Agent.');
+  }
+
+  private async detectExistingEcc(): Promise<ToolDetection | undefined> {
+    const result = await detectNovaEnvironment({
+      cwd: this.cwd,
+      homeDir: this.homeDir(),
+      agent: this.options.agent,
+      env: {},
+      commandExists: (cmd) => this.commandExists(cmd),
+    });
+    const ecc = result.tools.find(tool => tool.id === 'ecc');
+    return ecc?.status === 'available' ? ecc : undefined;
   }
 
   private async generateTemplates() {

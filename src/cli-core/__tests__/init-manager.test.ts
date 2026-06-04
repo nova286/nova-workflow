@@ -302,6 +302,30 @@ describe('InitManager', () => {
       const files = await fs.readdir(path.join(testDir, '.nova', 'ecc'));
       expect(files.length).toBe(0);
     });
+
+    test('reports detected ECC instead of missing when active Agent has ECC configured', async () => {
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-init-home-'));
+      await fs.mkdir(path.join(homeDir, '.codex'), { recursive: true });
+      await fs.writeFile(
+        path.join(homeDir, '.codex', 'config.toml'),
+        '[plugins."ecc@ecc"]\nenabled = true\n',
+        'utf-8'
+      );
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      try {
+        const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex', homeDir });
+        await mgr.run();
+
+        const output = logSpy.mock.calls.flat().join('\n');
+        expect(output).toContain('ECC detected');
+        expect(output).not.toContain('ECC was not detected');
+        expect(output).not.toContain('expected to be available');
+      } finally {
+        logSpy.mockRestore();
+        await fs.rm(homeDir, { recursive: true, force: true });
+      }
+    });
   });
 
   describe('document templates', () => {

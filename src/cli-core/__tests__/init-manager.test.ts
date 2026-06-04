@@ -303,7 +303,7 @@ describe('InitManager', () => {
       expect(files.length).toBe(0);
     });
 
-    test('reports detected ECC instead of missing when active Agent has ECC configured', async () => {
+    test('reports ECC in unified integration detection when active Agent has ECC configured', async () => {
       const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-init-home-'));
       await fs.mkdir(path.join(homeDir, '.codex'), { recursive: true });
       await fs.writeFile(
@@ -318,7 +318,12 @@ describe('InitManager', () => {
         await mgr.run();
 
         const output = logSpy.mock.calls.flat().join('\n');
-        expect(output).toContain('ECC detected');
+        expect(output).toContain('ECC: available');
+        expect(output).toContain('OpenSpec:');
+        expect(output).toContain('Superpowers:');
+        expect(output).toContain('CodeGraph:');
+        expect(output).toContain('Figma MCP:');
+        expect(output).toContain('Mobile MCP:');
         expect(output).not.toContain('ECC was not detected');
         expect(output).not.toContain('expected to be available');
       } finally {

@@ -29,7 +29,8 @@ export class InitManager {
   private options: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string; homeDir?: string };
   private backupDir?: string;
   private resolvedSkillsDir?: 'project' | 'user';
-  private steps: Array<{ name: string; run: () => Promise<void>; rollback: () => Promise<void> }> = [];
+  private detectedTools: ToolDetection[] = [];
+  private steps: Array<{ name: string; run: () => Promise<void>; rollback: () => Promise<void>; spinner?: boolean }> = [];
 
   constructor(cwd: string, opts: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string; homeDir?: string }) {
     this.cwd = cwd;
@@ -54,7 +55,8 @@ export class InitManager {
       { name: 'Create directory structure', run: () => this.createDirs(), rollback: () => this.removeDirs() },
       { name: 'Prepare shared skills directories', run: () => this.prepareSharedSkillsDirs(), rollback: () => Promise.resolve() },
       { name: 'Generate .nova.yaml', run: () => this.generateConfig(envs, mcpServers), rollback: () => this.removeFile('.nova.yaml') },
-      { name: 'Install ECC skills', run: () => this.installEcc(), rollback: () => this.removeDir('.nova/ecc') },
+      { name: 'Detect integrations', run: () => this.detectIntegrations(), rollback: () => Promise.resolve(), spinner: false },
+      { name: 'Prepare local skill assets', run: () => this.prepareLocalSkillAssets(), rollback: () => this.removeDir('.nova/ecc') },
       { name: 'Generate environment commands', run: async () => {
         for (const adapter of envAdapters) await adapter.setup(this.cwd, adapterOptions);
       }, rollback: () => this.cleanEnvCommands(envs) },
@@ -62,6 +64,19 @@ export class InitManager {
     ];
 
     for (const step of this.steps) {
+      if (step.spinner === false) {
+        ui.step(step.name);
+        try {
+          await step.run();
+          ui.success(step.name);
+        } catch (err) {
+          ui.error(step.name);
+          await this.rollback();
+          throw err;
+        }
+        continue;
+      }
+
       const spinner = ui.spinner(step.name);
       try {
         await step.run();
@@ -236,25 +251,7 @@ export class InitManager {
     return detectProjectType(this.cwd);
   }
 
-  private async installEcc() {
-    const dest = path.join(this.cwd, '.nova/ecc');
-    await fs.mkdir(dest, { recursive: true });
-    if (this.options.eccPath) {
-      await fs.cp(this.options.eccPath, dest, { recursive: true });
-      return;
-    }
-
-    const existingEcc = await this.detectExistingEcc();
-    if (existingEcc) {
-      ui.info(`ECC detected: ${existingEcc.summary}. Skipping local ECC copy.`);
-      return;
-    }
-
-    ui.info('No --with-ecc path provided and ECC was not detected. Skipping local ECC skill installation.');
-    ui.info('Nova will use ECC-compatible review mode until ECC is installed for your active Agent.');
-  }
-
-  private async detectExistingEcc(): Promise<ToolDetection | undefined> {
+  private async detectIntegrations() {
     const result = await detectNovaEnvironment({
       cwd: this.cwd,
       homeDir: this.homeDir(),
@@ -262,8 +259,23 @@ export class InitManager {
       env: {},
       commandExists: (cmd) => this.commandExists(cmd),
     });
-    const ecc = result.tools.find(tool => tool.id === 'ecc');
-    return ecc?.status === 'available' ? ecc : undefined;
+    this.detectedTools = result.tools;
+
+    const order = ['openspec', 'superpowers', 'ecc', 'codegraph', 'figma-mcp', 'mobile-mcp'];
+    for (const id of order) {
+      const tool = this.detectedTools.find(item => item.id === id);
+      if (!tool) continue;
+      ui.info(`  ${tool.name}: ${tool.status} - ${tool.summary}`);
+    }
+  }
+
+  private async prepareLocalSkillAssets() {
+    const dest = path.join(this.cwd, '.nova/ecc');
+    await fs.mkdir(dest, { recursive: true });
+    if (this.options.eccPath) {
+      await fs.cp(this.options.eccPath, dest, { recursive: true });
+      ui.info('Copied local ECC skills from --with-ecc.');
+    }
   }
 
   private async generateTemplates() {

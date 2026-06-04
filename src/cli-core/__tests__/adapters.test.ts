@@ -6,6 +6,7 @@ import { CodexAdapter } from '../adapters/codex';
 import { OpenClawAdapter } from '../adapters/openclaw';
 import { HermesAgentAdapter } from '../adapters/hermes-agent';
 import { OpenCodeAdapter } from '../adapters/opencode';
+import { PiCodingAgentAdapter } from '../adapters/pi-coding-agent';
 
 describe('Environment Adapters', () => {
   let testDir: string;
@@ -46,6 +47,17 @@ describe('Environment Adapters', () => {
 
       const content = await fs.readFile(path.join(testDir, 'CODEX.md'), 'utf-8');
       expect(content).toBe(existing);
+    });
+
+    test('includes Figma propose intake rules', async () => {
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir);
+
+      const content = await fs.readFile(path.join(testDir, 'CODEX.md'), 'utf-8');
+      expect(content).toContain('Figma 链接');
+      expect(content).toContain('nova detect --agent codex --json');
+      expect(content).toContain('存量页面修改还是增量新页面');
+      expect(content).toContain('切图/图片/icon 资产');
     });
   });
 
@@ -151,6 +163,18 @@ describe('Environment Adapters', () => {
       expect(content).not.toContain('which openspec');
     });
 
+    test('nova-propose handles Figma links before generating specs', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('Handle Figma Links');
+      expect(content).toContain('nova detect --agent claude-code --json');
+      expect(content).toContain('Existing page modification');
+      expect(content).toContain('Incremental new page');
+      expect(content).toContain('cut/export assets');
+    });
+
     test('no MCP steps when no MCP configured', async () => {
       const adapter = new ClaudeCodeAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
@@ -196,6 +220,20 @@ describe('Environment Adapters', () => {
       await expect(fs.access(path.join(homeDir, '.agents', 'skills', 'nova', 'SKILL.md'))).resolves.toBeUndefined();
 
       await fs.rm(homeDir, { recursive: true, force: true });
+    });
+  });
+
+  describe('PiCodingAgentAdapter', () => {
+    test('nova-propose handles Figma links before generating proposal', async () => {
+      const adapter = new PiCodingAgentAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('Handle Figma Links');
+      expect(content).toContain('nova detect --agent pi-coding-agent --json');
+      expect(content).toContain('existing page modification');
+      expect(content).toContain('incremental new page');
+      expect(content).toContain('cut/export assets');
     });
   });
 });

@@ -24,6 +24,11 @@ Always read it first.
 帮我为"{你的需求描述}"创建 OpenSpec-compatible change。
 1. 先读 .nova.yaml 和已有代码了解项目
 2. 问 3-4 个澄清问题
+   - 如果需求里有 Figma 链接，先运行 nova detect --agent codex --json 检查 Figma MCP
+   - 如果 Figma MCP 未配置，提示用户现在配置，并在用户配置后重新检测
+   - Figma MCP 可用后，必须确认这是存量页面修改还是增量新页面
+   - 存量页面要确认现有 route/screen/component；增量页面要确认新页面入口和跳转路径
+   - spec 必须记录 Figma URL、node IDs、页面模式、入口路径，以及实现阶段需要按当前项目导出的切图/图片/icon 资产
 3. 写入 .openspec/changes/<change-id>/proposal.md 和 specs
 4. 运行 nova validate
 5. 用 nova checkpoint phase propose --status done 记录完成

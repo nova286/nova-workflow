@@ -73,10 +73,38 @@ Use the **brainstorming skill** to explore the problem space: clarify the proble
 explore alternatives, identify risks, define success criteria. Summarize for the
 user and ask them to confirm before proceeding.
 
+## Step 3.5: Handle Figma Links
+If the user's request contains a Figma URL:
+
+1. Run \`nova detect --agent claude-code --json\` and check the \`figma-mcp\`
+   tool status.
+2. If Figma MCP is missing or partial:
+   - Tell the user that this request includes a Figma design, so Nova needs
+     Figma MCP to inspect frames, tokens, and exportable assets.
+   - Show the install guidance from \`nova detect\`.
+   - Ask whether they want to configure it now.
+   - If they configure it, rerun \`nova detect --agent claude-code --json\`
+     before continuing.
+   - If they decline, continue only with a documented limitation in the proposal
+     and mark Figma-derived details as blocked.
+3. When Figma MCP is available, inspect the linked file/frame enough to identify
+   the intended screen(s), reusable components, and exportable image/icon assets.
+4. Before generating the proposal, ask the user to choose:
+   - **Existing page modification**: identify the existing route/screen/component
+     being changed.
+   - **Incremental new page**: define the new route/screen and the entry point
+     users will use to navigate into it.
+5. Capture Figma file URL, node IDs, page mode, affected route/screen, entry
+   point, and required cut/export assets for the spec contract.
+
 ## Step 4: Generate Proposal
 Write \`.openspec/changes/<change-id>/proposal.md\`, compatible spec files under
 \`.openspec/changes/<change-id>/specs/\`, and \`docs/proposals/proposal.md\` as
 a summary. Include requirement ids and acceptance ids for later task references.
+When a Figma link is present, the spec MUST include Figma traceability, whether
+the work is an existing-page modification or incremental page, the navigation
+entry point for incremental pages, and requirements for exporting/using suitable
+cut assets from the current project's implementation context.
 
 ## Step 5: Update State
 Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
@@ -85,7 +113,8 @@ Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
 \`nova checkpoint phase propose --status done\` when validation passes.
 
 ## Constraints
-- Read any file for context. Write only to \`docs/proposals/\` and \`.nova.yaml\`.
+- Read any file for context. Write only to \`docs/proposals/\`,
+  \`.openspec/changes/\`, and \`.nova.yaml\`.
 - Do not modify source code — the implement phase handles that.
 `,
 

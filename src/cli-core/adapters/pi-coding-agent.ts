@@ -56,8 +56,27 @@ Read \`AGENTS.md\`, \`README.md\`, \`package.json\`, \`src/\` to understand the 
 ## Step 3: Explore Requirements
 Clarify the problem, explore alternatives, identify risks, define success criteria.
 
+## Step 3.5: Handle Figma Links
+If the request contains a Figma URL:
+
+1. Run \`nova detect --agent pi-coding-agent --json\` and check \`figma-mcp\`.
+2. If Figma MCP is missing or partial, tell the user this request needs Figma
+   MCP for frame inspection and asset export planning. Show the install guidance,
+   let the user configure it now, then rerun detection before continuing.
+3. If the user continues without Figma MCP, record the limitation in the proposal.
+4. When Figma MCP is available, inspect the linked file/frame and ask whether
+   this is an existing page modification or an incremental new page.
+5. For existing pages, identify the existing route/screen/component. For
+   incremental pages, identify the new route/screen and the navigation entry
+   point users will use to reach it.
+6. Capture Figma URL, node IDs, page mode, route/screen, entry point, and
+   required cut/export assets in the proposal/spec.
+
 ## Step 4: Generate Proposal
 Write \`docs/proposals/proposal.md\` with problem, solution, user stories, scope, success criteria.
+When a Figma link is present, include Figma traceability and cut-asset
+requirements so implementation can export and use suitable assets for the
+current project.
 
 ## Step 5: Update State
 Update \`.nova.yaml\`: proposal path. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.

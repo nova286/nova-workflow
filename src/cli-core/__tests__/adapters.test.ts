@@ -9,12 +9,19 @@ import { OpenCodeAdapter } from '../adapters/opencode';
 
 describe('Environment Adapters', () => {
   let testDir: string;
+  let originalHome: string | undefined;
 
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-adapter-'));
+    originalHome = process.env.HOME;
   });
 
   afterEach(async () => {
+    if (originalHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = originalHome;
+    }
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
@@ -152,6 +159,43 @@ describe('Environment Adapters', () => {
       const verify = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
       expect(design).not.toContain('Figma MCP detected');
       expect(verify).not.toContain('Mobile MCP detected');
+    });
+
+    test('creates shared skills directory and Claude skills symlink for user install', async () => {
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-adapter-home-'));
+      process.env.HOME = homeDir;
+
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'user', homeDir });
+
+      const agentsSkillsDir = path.join(homeDir, '.agents', 'skills');
+      const claudeSkillsDir = path.join(homeDir, '.claude', 'skills');
+      const claudeSkillsStat = await fs.lstat(claudeSkillsDir);
+
+      expect(claudeSkillsStat.isSymbolicLink()).toBe(true);
+      expect(await fs.readlink(claudeSkillsDir)).toBe(agentsSkillsDir);
+      await expect(fs.access(path.join(agentsSkillsDir, 'nova', 'SKILL.md'))).resolves.toBeUndefined();
+
+      await fs.rm(homeDir, { recursive: true, force: true });
+    });
+
+    test('does not replace an existing Claude skills directory for user install', async () => {
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-adapter-home-'));
+      process.env.HOME = homeDir;
+      const claudeSkillsDir = path.join(homeDir, '.claude', 'skills');
+      await fs.mkdir(claudeSkillsDir, { recursive: true });
+      await fs.writeFile(path.join(claudeSkillsDir, 'custom.txt'), 'keep', 'utf-8');
+
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'user', homeDir });
+
+      const claudeSkillsStat = await fs.lstat(claudeSkillsDir);
+      expect(claudeSkillsStat.isDirectory()).toBe(true);
+      expect(claudeSkillsStat.isSymbolicLink()).toBe(false);
+      await expect(fs.readFile(path.join(claudeSkillsDir, 'custom.txt'), 'utf-8')).resolves.toBe('keep');
+      await expect(fs.access(path.join(homeDir, '.agents', 'skills', 'nova', 'SKILL.md'))).resolves.toBeUndefined();
+
+      await fs.rm(homeDir, { recursive: true, force: true });
     });
   });
 });

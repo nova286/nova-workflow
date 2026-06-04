@@ -126,6 +126,7 @@ export interface ErrorDetail { message: string; code?: string; }
 export interface AdapterSetupOptions {
   skillsDir?: 'project' | 'user';
   mcpServers?: McpServers;
+  homeDir?: string;
 }
 
 export interface EnvironmentAdapter {

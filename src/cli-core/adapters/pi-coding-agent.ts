@@ -201,15 +201,16 @@ export class PiCodingAgentAdapter implements EnvironmentAdapter {
 
   async setup(cwd: string, options?: AdapterSetupOptions) {
     if (options?.skillsDir === 'user') {
-      await this.writeToSharedSkills(options?.mcpServers);
+      await this.writeToSharedSkills(options?.mcpServers, options.homeDir);
     } else {
       await this.writeToProjectSkills(cwd, options?.mcpServers);
     }
   }
 
-  private async writeToSharedSkills(mcpServers?: McpServers) {
-    const agentsSkillsDir = path.join(os.homedir(), '.agents', 'skills');
-    const claudeSkillsDir = path.join(os.homedir(), '.claude', 'skills');
+  private async writeToSharedSkills(mcpServers?: McpServers, homeDir = os.homedir()) {
+    const agentsSkillsDir = path.join(homeDir, '.agents', 'skills');
+    const claudeSkillsDir = path.join(homeDir, '.claude', 'skills');
+    await ensureSharedSkillsDirs(agentsSkillsDir, claudeSkillsDir);
     for (const [filename, templateFn] of Object.entries(PI_SKILL_TEMPLATES)) {
       const skillName = filename.replace('.md', '');
       const skillDir = path.join(agentsSkillsDir, skillName);
@@ -239,5 +240,20 @@ export class PiCodingAgentAdapter implements EnvironmentAdapter {
       if (oldHash === newHash) return;
     } catch {}
     await fs.writeFile(filePath, content);
+  }
+}
+
+async function ensureSharedSkillsDirs(agentsSkillsDir: string, claudeSkillsDir: string) {
+  await fs.mkdir(agentsSkillsDir, { recursive: true });
+  try {
+    await fs.lstat(claudeSkillsDir);
+    return;
+  } catch {}
+
+  await fs.mkdir(path.dirname(claudeSkillsDir), { recursive: true });
+  try {
+    await fs.symlink(agentsSkillsDir, claudeSkillsDir, 'dir');
+  } catch {
+    await fs.mkdir(claudeSkillsDir, { recursive: true });
   }
 }

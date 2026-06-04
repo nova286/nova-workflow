@@ -67,9 +67,15 @@ npm install -g @nova286/nova-workflow
 ## Quick Start
 
 ```bash
-nova init          # Initialize Nova in your project
-nova               # Show the next recommended action
+nova init                 # Initialize Nova in your project
+nova init --agent codex   # Or initialize only for a specific Agent
+nova                      # Show the next recommended action
 ```
+
+By default, `nova init` detects installed Agent CLIs and configures all matching
+environments. Use `--agent <id>` to make initialization deterministic for one
+Agent, such as `codex`, `claude-code`, `openclaw`, `opencode`, or
+`pi-coding-agent`.
 
 Then, inside Claude Code:
 
@@ -151,7 +157,7 @@ And you can always iterate back — real development is not a waterfall.
 | Command | What it does |
 |---------|-------------|
 | `nova` | Equivalent to `nova next`; shows the recommended next action |
-| `nova init` | Initialize Nova: creates `.nova.yaml`, installs skill files |
+| `nova init [--agent <id>]` | Initialize Nova: creates `.nova.yaml`, installs Agent files |
 | `nova next` | Decide the next action without running long Agent work |
 | `nova validate` | Validate `.nova.yaml`, artifacts, task shape, and evidence |
 | `nova detect` | Check required, recommended, and optional Nova-enhancing tools |

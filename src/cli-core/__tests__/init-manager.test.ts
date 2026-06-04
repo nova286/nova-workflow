@@ -100,6 +100,24 @@ describe('InitManager', () => {
       const state = yaml.parse(raw);
       expect(state.projectType).toBeTruthy();
     });
+
+    test('uses explicit agent option instead of auto-detecting all installed agents', async () => {
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex' });
+      await mgr.run();
+
+      const raw = await fs.readFile('.nova.yaml', 'utf-8');
+      const state = yaml.parse(raw);
+
+      expect(state.environment).toEqual(['codex']);
+      await expect(fs.access(path.join(testDir, 'CODEX.md'))).resolves.toBeUndefined();
+      await expect(fs.access(path.join(testDir, '.claude', 'skills'))).rejects.toThrow();
+    });
+
+    test('rejects unknown explicit agent option', async () => {
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'unknown-agent' });
+
+      await expect(mgr.run()).rejects.toThrow('Unknown Agent: unknown-agent');
+    });
   });
 
   describe('MCP server detection', () => {

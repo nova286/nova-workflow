@@ -25,12 +25,12 @@ const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
 
 export class InitManager {
   private cwd: string;
-  private options: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user' };
+  private options: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string };
   private backupDir?: string;
   private resolvedSkillsDir?: 'project' | 'user';
   private steps: Array<{ name: string; run: () => Promise<void>; rollback: () => Promise<void> }> = [];
 
-  constructor(cwd: string, opts: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user' }) {
+  constructor(cwd: string, opts: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string }) {
     this.cwd = cwd;
     this.options = opts;
   }
@@ -121,6 +121,13 @@ export class InitManager {
   }
 
   private async detectAIEnvironment(): Promise<string[]> {
+    if (this.options.agent) {
+      if (!ADAPTER_FACTORIES[this.options.agent]) {
+        throw new Error(`Unknown Agent: ${this.options.agent}. Supported: ${Object.keys(ADAPTER_FACTORIES).join(', ')}`);
+      }
+      return [this.options.agent];
+    }
+
     const detectors: { env: string; cmd: string }[] = [
       { env: 'claude-code', cmd: 'claude' },
       { env: 'codex', cmd: 'codex' },

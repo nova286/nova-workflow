@@ -22,6 +22,7 @@ program
   .command('init')
   .option('--with-ecc <path>', 'Path to ECC (Everything Claude Code) skills')
   .option('--force', 'Overwrite existing configuration')
+  .option('--agent <id>', 'Initialize for a specific Agent id')
   .option('--skills-dir <dir>', 'Where to install skills: "user" (default) or "project"')
   .action(initCommand);
 

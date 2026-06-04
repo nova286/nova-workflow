@@ -2,13 +2,14 @@ import { ui } from '../ui';
 import { InitManager } from '../../cli-core/init-manager';
 import { withErrorHandling } from '../error-handler';
 
-export const initCommand = withErrorHandling(async (options: { withEcc?: string; force?: boolean; skillsDir?: string }) => {
+export const initCommand = withErrorHandling(async (options: { withEcc?: string; force?: boolean; skillsDir?: string; agent?: string }) => {
   ui.step('Welcome to Nova! Initializing your project...');
   const skillsDir = options.skillsDir === 'project' ? 'project' as const : options.skillsDir === 'user' ? 'user' as const : undefined;
   const manager = new InitManager(process.cwd(), {
     eccPath: options.withEcc,
     force: options.force,
-    skillsDir
+    skillsDir,
+    agent: options.agent,
   });
   try {
     await manager.run();

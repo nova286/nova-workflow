@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { EnvironmentAdapter } from '../types';
+import { genericAgentInstructions } from './skill-templates';
 
 const CODEX_INSTRUCTIONS = `# Nova Workflow
 
@@ -94,6 +95,6 @@ export class CodexAdapter implements EnvironmentAdapter {
       await fs.access(filePath);
       return; // don't overwrite
     } catch {}
-    await fs.writeFile(filePath, CODEX_INSTRUCTIONS, 'utf-8');
+    await fs.writeFile(filePath, genericAgentInstructions('codex'), 'utf-8');
   }
 }

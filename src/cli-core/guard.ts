@@ -7,6 +7,7 @@ import {
   validateSpecBoundExecution,
   validateTaskGranularity,
 } from './quality-check';
+import { validateState } from './state-validator';
 
 export interface GuardFailure {
   label: string;
@@ -34,7 +35,20 @@ function toFailure(label: string, result: boolean | { pass: boolean; errors: str
 const TRANSITION_RULES: Record<string, GuardCheck[]> = {
   'propose:design': [
     { label: 'Proposal phase is done', check: (s) => s.phases.propose?.status === 'done' },
-    { label: 'Proposal document exists', check: (s) => !!s.phases.propose?.proposal },
+    {
+      label: 'Proposal contract is valid',
+      check: (s) => {
+        const result = validateState(s, { cwd: process.cwd() });
+        const errors = result.errors
+          .filter(error =>
+            error.path?.startsWith('phases.propose') ||
+            error.path === 'activeChange' ||
+            error.path === 'artifacts.specDelta'
+          )
+          .map(error => error.message);
+        return { pass: errors.length === 0, errors };
+      },
+    },
   ],
   'design:implement': [
     { label: 'Design phase is done', check: (s) => s.phases.design?.status === 'done' },
@@ -82,6 +96,16 @@ const TRANSITION_RULES: Record<string, GuardCheck[]> = {
   ],
   'verify:archive': [
     { label: 'Verify phase is done', check: (s) => s.phases.verify?.status === 'done' },
+    {
+      label: 'Verification evidence is valid',
+      check: (s) => {
+        const result = validateState(s, { cwd: process.cwd() });
+        const errors = result.errors
+          .filter(error => error.path?.startsWith('phases.verify') || error.path === 'artifacts.verificationReport')
+          .map(error => error.message);
+        return { pass: errors.length === 0, errors };
+      },
+    },
   ],
   // Rollback transitions — always allowed
   'implement:design': [

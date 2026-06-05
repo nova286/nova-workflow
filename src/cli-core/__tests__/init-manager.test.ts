@@ -6,10 +6,12 @@ import { InitManager } from '../init-manager';
 
 describe('InitManager', () => {
   let testDir: string;
+  let homeDir: string;
   let originalCwd: string;
 
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-init-'));
+    homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-init-home-'));
     originalCwd = process.cwd();
     process.chdir(testDir);
   });
@@ -17,12 +19,13 @@ describe('InitManager', () => {
   afterEach(async () => {
     process.chdir(originalCwd);
     await fs.rm(testDir, { recursive: true, force: true });
+    await fs.rm(homeDir, { recursive: true, force: true });
   });
 
   describe('re-init detection', () => {
     test('throws when .nova.yaml already exists without --force', async () => {
       await fs.writeFile('.nova.yaml', 'version: 1\n', 'utf-8');
-      const mgr = new InitManager(testDir, {});
+      const mgr = new InitManager(testDir, { homeDir });
 
       await expect(mgr.run()).rejects.toThrow('Nova already initialized');
     });
@@ -30,7 +33,7 @@ describe('InitManager', () => {
     test('force re-init proceeds and creates new state', async () => {
       await fs.writeFile('.nova.yaml', 'version: 1\nproject: old\n', 'utf-8');
 
-      const mgr = new InitManager(testDir, { force: true, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: true, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -41,7 +44,7 @@ describe('InitManager', () => {
 
   describe('directory creation', () => {
     test('creates all required directories', async () => {
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const dirs = ['docs/designs', 'docs/proposals', 'docs/reports', '.nova/contexts', '.openspec/changes'];
@@ -89,7 +92,7 @@ describe('InitManager', () => {
 
   describe('.nova.yaml generation', () => {
     test('generates valid .nova.yaml with correct structure', async () => {
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -127,7 +130,7 @@ describe('InitManager', () => {
         'utf-8'
       );
 
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -136,7 +139,7 @@ describe('InitManager', () => {
     });
 
     test('uses explicit agent option instead of auto-detecting all installed agents', async () => {
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex', homeDir });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -148,7 +151,7 @@ describe('InitManager', () => {
     });
 
     test('rejects unknown explicit agent option', async () => {
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'unknown-agent' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'unknown-agent', homeDir });
 
       await expect(mgr.run()).rejects.toThrow('Unknown Agent: unknown-agent');
     });
@@ -169,7 +172,7 @@ describe('InitManager', () => {
         'utf-8'
       );
 
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -191,7 +194,7 @@ describe('InitManager', () => {
         'utf-8'
       );
 
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -200,7 +203,7 @@ describe('InitManager', () => {
     });
 
     test('mcpServers is empty when no settings file exists', async () => {
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const raw = await fs.readFile('.nova.yaml', 'utf-8');
@@ -211,7 +214,7 @@ describe('InitManager', () => {
 
   describe('environment command generation', () => {
     test('generates all Nova skill dirs with SKILL.md in project', async () => {
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const skillsDir = path.join(testDir, '.claude', 'skills');
@@ -233,22 +236,9 @@ describe('InitManager', () => {
     });
 
     test('generates Nova skills in ~/.agents/skills/ with symlinks when skillsDir=user', async () => {
-      const agentsSkillsDir = path.join(os.homedir(), '.agents', 'skills');
-      const claudeSkillsDir = path.join(os.homedir(), '.claude', 'skills');
-      const existingDirs = new Set<string>();
-      const existingLinks = new Set<string>();
-      try {
-        for (const f of await fs.readdir(agentsSkillsDir)) {
-          if (f.startsWith('nova')) existingDirs.add(f);
-        }
-      } catch {}
-      try {
-        for (const f of await fs.readdir(claudeSkillsDir)) {
-          if (f.startsWith('nova')) existingLinks.add(f);
-        }
-      } catch {}
-
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'user' });
+      const agentsSkillsDir = path.join(homeDir, '.agents', 'skills');
+      const claudeSkillsDir = path.join(homeDir, '.claude', 'skills');
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'user', homeDir });
       await mgr.run();
 
       // Verify SKILL.md exists in each nova dir
@@ -260,19 +250,7 @@ describe('InitManager', () => {
         const content = await fs.readFile(path.join(agentsSkillsDir, d, 'SKILL.md'), 'utf-8');
         expect(content).toContain('description:');
       }
-
-      // Cleanup: remove dirs and symlinks we created
-      for (const d of novaDirs) {
-        if (!existingDirs.has(d)) {
-          await fs.rm(path.join(agentsSkillsDir, d), { recursive: true, force: true });
-        }
-      }
-      const links = (await fs.readdir(claudeSkillsDir)).filter(f => f.startsWith('nova'));
-      for (const l of links) {
-        if (!existingLinks.has(l)) {
-          await fs.unlink(path.join(claudeSkillsDir, l));
-        }
-      }
+      await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
     });
   });
 
@@ -281,7 +259,7 @@ describe('InitManager', () => {
       const eccDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ecc-src-'));
       await fs.writeFile(path.join(eccDir, 'test-skill.md'), '# Test', 'utf-8');
 
-      const mgr = new InitManager(testDir, { eccPath: eccDir, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { eccPath: eccDir, skillsDir: 'project', homeDir });
       await mgr.run();
 
       const destFile = path.join(testDir, '.nova', 'ecc', 'test-skill.md');
@@ -292,7 +270,7 @@ describe('InitManager', () => {
     });
 
     test('creates empty .nova/ecc without --with-ecc', async () => {
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       await expect(
@@ -335,7 +313,7 @@ describe('InitManager', () => {
 
   describe('document templates', () => {
     test('copies proposal, design, and verification-report templates to docs/', async () => {
-      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project' });
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
       await mgr.run();
 
       await expect(

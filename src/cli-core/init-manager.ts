@@ -13,7 +13,7 @@ import { OpenClawAdapter } from './adapters/openclaw';
 import { HermesAgentAdapter } from './adapters/hermes-agent';
 import { OpenCodeAdapter } from './adapters/opencode';
 import { PiCodingAgentAdapter } from './adapters/pi-coding-agent';
-import { ToolDetection, detectNovaEnvironment } from './detect';
+import { DetectResult, ToolDetection, detectNovaEnvironment, mcpServersFromDetections } from './detect';
 
 const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
   'claude-code': () => new ClaudeCodeAdapter(),
@@ -30,6 +30,7 @@ export class InitManager {
   private backupDir?: string;
   private resolvedSkillsDir?: 'project' | 'user';
   private detectedTools: ToolDetection[] = [];
+  private detectionResult?: DetectResult;
   private steps: Array<{ name: string; run: () => Promise<void>; rollback: () => Promise<void>; spinner?: boolean }> = [];
 
   constructor(cwd: string, opts: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string; homeDir?: string }) {
@@ -45,7 +46,8 @@ export class InitManager {
 
     const envs = await this.detectAIEnvironment();
     const envAdapters = envs.map(e => this.getAdapter(e));
-    const mcpServers = await this.detectMcpServers();
+    const detection = await this.detectEnvironment();
+    const mcpServers = mcpServersFromDetections(detection.tools);
 
     const skillsDir = this.options.skillsDir ?? await this.promptSkillsDir(envs);
     this.resolvedSkillsDir = skillsDir;
@@ -160,31 +162,6 @@ export class InitManager {
     return detected.length > 0 ? detected : ['claude-code'];
   }
 
-  private async detectMcpServers(): Promise<McpServers> {
-    const mcpServers: McpServers = {};
-    const settingsPaths = [
-      path.join(this.homeDir(), '.claude', 'settings.json'),
-      path.join(this.cwd, '.claude', 'settings.json'),
-    ];
-    for (const settingsPath of settingsPaths) {
-      try {
-        const raw = await fs.readFile(settingsPath, 'utf-8');
-        const settings = JSON.parse(raw);
-        const servers = settings.mcpServers ?? {};
-        for (const [name, config] of Object.entries(servers)) {
-          const lower = name.toLowerCase();
-          if (!mcpServers.figma && (lower.includes('figma'))) {
-            mcpServers.figma = { configured: true, serverName: name };
-          }
-          if (!mcpServers.mobile && (lower.includes('mobile') || lower.includes('simulator') || lower.includes('maestro'))) {
-            mcpServers.mobile = { configured: true, serverName: name };
-          }
-        }
-      } catch {}
-    }
-    return mcpServers;
-  }
-
   private getAdapter(env: string): EnvironmentAdapter {
     const factory = ADAPTER_FACTORIES[env];
     if (!factory) throw new Error(`Unknown environment: ${env}`);
@@ -252,13 +229,7 @@ export class InitManager {
   }
 
   private async detectIntegrations() {
-    const result = await detectNovaEnvironment({
-      cwd: this.cwd,
-      homeDir: this.homeDir(),
-      agent: this.options.agent,
-      env: {},
-      commandExists: (cmd) => this.commandExists(cmd),
-    });
+    const result = await this.detectEnvironment();
     this.detectedTools = result.tools;
 
     const order = ['openspec', 'superpowers', 'ecc', 'codegraph', 'figma-mcp', 'mobile-mcp'];
@@ -267,6 +238,18 @@ export class InitManager {
       if (!tool) continue;
       ui.info(`  ${tool.name}: ${tool.status} - ${tool.summary}`);
     }
+  }
+
+  private async detectEnvironment(): Promise<DetectResult> {
+    if (this.detectionResult) return this.detectionResult;
+    this.detectionResult = await detectNovaEnvironment({
+      cwd: this.cwd,
+      homeDir: this.homeDir(),
+      agent: this.options.agent,
+      env: {},
+      commandExists: (cmd) => this.commandExists(cmd),
+    });
+    return this.detectionResult;
   }
 
   private async prepareLocalSkillAssets() {

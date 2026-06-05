@@ -19,3 +19,11 @@
 ## UI Verification
 
 <!-- Auto-populated by Mobile MCP if available. Screenshots, element audit, design token compliance. -->
+
+## Evidence
+
+<!-- Commands run, files reviewed, screenshots/assets checked, trace IDs, and remaining risks. -->
+
+<!-- Before marking verify done, record artifacts:
+nova checkpoint artifacts --verification-report docs/reports/<file>.md
+-->

@@ -5,6 +5,8 @@ import {
   validateTaskIds,
   validateTaskSchema,
 } from './quality-check';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface ValidationIssue {
   code: string;
@@ -18,12 +20,61 @@ export interface ValidationResult {
   warnings: ValidationIssue[];
 }
 
+export interface ValidationOptions {
+  cwd?: string;
+  checkFiles?: boolean;
+}
+
 const PHASES = ['propose', 'design', 'implement', 'verify', 'archive'] as const;
 const PHASE_STATUS = new Set(['pending', 'in-progress', 'done', 'failed']);
 const TASK_STATUS = new Set(['pending', 'in-progress', 'done', 'failed', 'skipped']);
 
 function issue(code: string, message: string, path?: string): ValidationIssue {
   return { code, message, path };
+}
+
+function hasText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function artifactExists(filePath: unknown, cwd: string): boolean {
+  if (!hasText(filePath)) return false;
+  return fs.existsSync(path.resolve(cwd, filePath));
+}
+
+function readArtifact(filePath: unknown, cwd: string): string {
+  if (!hasText(filePath)) return '';
+  try {
+    return fs.readFileSync(path.resolve(cwd, filePath), 'utf-8');
+  } catch {
+    return '';
+  }
+}
+
+function hasFigmaUrl(text: unknown): boolean {
+  return typeof text === 'string' && /https?:\/\/(?:www\.)?figma\.com\//i.test(text);
+}
+
+function validateFigmaTraceability(state: any, proposalContent: string, errors: ValidationIssue[]) {
+  const trace = state.phases?.propose?.figma || state.figma || state.artifacts?.figmaTraceability;
+  const requiresTrace = Boolean(trace) || hasFigmaUrl(proposalContent) || hasFigmaUrl(state.phases?.propose?.proposal);
+  if (!requiresTrace) return;
+
+  if (hasText(trace?.blockedReason)) return;
+
+  const requiredFields = ['url', 'pageMode', 'routeOrScreen', 'entryPoint'];
+  for (const field of requiredFields) {
+    if (!hasText(trace?.[field])) {
+      errors.push(issue('figma.traceability.missing', `Figma traceability is missing ${field}`, `phases.propose.figma.${field}`));
+    }
+  }
+
+  if (!Array.isArray(trace?.nodeIds) || trace.nodeIds.length === 0) {
+    errors.push(issue('figma.traceability.missing', 'Figma traceability is missing nodeIds', 'phases.propose.figma.nodeIds'));
+  }
+  if (!Array.isArray(trace?.assetRequirements) || trace.assetRequirements.length === 0) {
+    errors.push(issue('figma.traceability.missing', 'Figma traceability is missing assetRequirements', 'phases.propose.figma.assetRequirements'));
+  }
 }
 
 function pushQualityErrors(
@@ -37,9 +88,11 @@ function pushQualityErrors(
   }
 }
 
-export function validateState(state: any): ValidationResult {
+export function validateState(state: any, options: ValidationOptions = {}): ValidationResult {
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
+  const cwd = options.cwd ?? process.cwd();
+  const checkFiles = options.checkFiles !== false;
 
   if (!state || typeof state !== 'object') {
     return {
@@ -83,12 +136,31 @@ export function validateState(state: any): ValidationResult {
   if (propose.status === 'done' && !propose.proposal) {
     errors.push(issue('propose.proposal.missing', 'propose is done but proposal is empty', 'phases.propose.proposal'));
   }
+  const proposalPath = propose.proposal || state.artifacts?.proposal;
+  let proposalContent = '';
+  if (propose.status === 'done' && checkFiles) {
+    if (!artifactExists(proposalPath, cwd)) {
+      errors.push(issue('propose.proposal.not-found', `proposal file not found: ${proposalPath || '(empty)'}`, 'phases.propose.proposal'));
+    } else {
+      proposalContent = readArtifact(proposalPath, cwd);
+    }
+    if (!hasText(state.activeChange)) {
+      errors.push(issue('propose.active-change.missing', 'propose is done but activeChange is empty', 'activeChange'));
+    }
+    if (!hasText(state.artifacts?.specDelta)) {
+      errors.push(issue('propose.spec-delta.missing', 'propose is done but artifacts.specDelta is empty', 'artifacts.specDelta'));
+    }
+  }
+  validateFigmaTraceability(state, proposalContent, errors);
 
   const design = phases.design || {};
   const tasks = design.tasks || [];
   if (design.status === 'done') {
     if (!design.designDoc) {
       errors.push(issue('design.doc.missing', 'design is done but designDoc is empty', 'phases.design.designDoc'));
+    }
+    if (checkFiles && !artifactExists(design.designDoc, cwd)) {
+      errors.push(issue('design.doc.not-found', `design document not found: ${design.designDoc || '(empty)'}`, 'phases.design.designDoc'));
     }
     if (!Array.isArray(tasks) || tasks.length === 0) {
       errors.push(issue('design.tasks.empty', 'design is done but tasks is empty', 'phases.design.tasks'));
@@ -143,7 +215,10 @@ export function validateState(state: any): ValidationResult {
 
   const verify = phases.verify || {};
   if (verify.status === 'done' && !verify.pipelineResult && !state.artifacts?.verificationReport) {
-    warnings.push(issue('verify.evidence.missing', 'verify is done but no pipeline result or verification report is recorded', 'phases.verify'));
+    errors.push(issue('verify.evidence.missing', 'verify is done but no pipeline result or verification report is recorded', 'phases.verify'));
+  }
+  if (verify.status === 'done' && state.artifacts?.verificationReport && checkFiles && !artifactExists(state.artifacts.verificationReport, cwd)) {
+    errors.push(issue('verify.report.not-found', `verification report not found: ${state.artifacts.verificationReport}`, 'artifacts.verificationReport'));
   }
 
   return { pass: errors.length === 0, errors, warnings };

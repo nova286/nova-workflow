@@ -49,6 +49,12 @@ describe('getNextAction', () => {
     await fs.writeFile('.nova.yaml', yaml.stringify(state), 'utf-8');
   }
 
+  async function writeArtifacts() {
+    await fs.mkdir('docs', { recursive: true });
+    await fs.writeFile('docs/proposal.md', '# Proposal', 'utf-8');
+    await fs.writeFile('docs/design.md', '# Design', 'utf-8');
+  }
+
   test('recommends propose when proposal is pending', async () => {
     await writeState(baseState);
     const result = await getNextAction();
@@ -58,8 +64,11 @@ describe('getNextAction', () => {
   });
 
   test('recommends design after proposal is done', async () => {
+    await writeArtifacts();
     await writeState({
       ...baseState,
+      activeChange: 'change-one',
+      artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
         propose: { status: 'done', proposal: 'docs/proposal.md' },
@@ -73,8 +82,11 @@ describe('getNextAction', () => {
   });
 
   test('blocks implementation when design tasks are invalid', async () => {
+    await writeArtifacts();
     await writeState({
       ...baseState,
+      activeChange: 'change-one',
+      artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
         propose: { status: 'done', proposal: 'docs/proposal.md' },
@@ -89,8 +101,11 @@ describe('getNextAction', () => {
   });
 
   test('recommends archive after verification is done', async () => {
+    await writeArtifacts();
     await writeState({
       ...baseState,
+      activeChange: 'change-one',
+      artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
         propose: { status: 'done', proposal: 'docs/proposal.md' },

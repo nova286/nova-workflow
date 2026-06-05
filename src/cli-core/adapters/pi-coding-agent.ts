@@ -79,7 +79,7 @@ requirements so implementation can export and use suitable assets for the
 current project.
 
 ## Step 5: Update State
-Update \`.nova.yaml\`: proposal path. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
+Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id>\`. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
 `,
 
   'nova-design.md': (mcp) => `---
@@ -102,7 +102,7 @@ ${mcp?.figma ? FIGMA_STEP : ''}
 Write \`docs/designs/design.md\` with architecture, tech stack, components, data flow, and task list in YAML.
 
 ## Step 5: Update State
-Update .nova.yaml: designDoc, tasks. Run \`nova validate\`, then \`nova checkpoint phase design --status done\`.
+Update .nova.yaml: designDoc, tasks. Prefer \`nova checkpoint artifacts --design-doc docs/designs/design.md\`. Run \`nova validate\`, then \`nova checkpoint phase design --status done\`.
 `,
 
   'nova-implement.md': () => `---
@@ -151,7 +151,7 @@ ${mcp?.mobile ? MOBILE_STEP : ''}
 Write docs/reports/verification-report.md.
 
 ## Step 6: Update State
-Run \`nova validate\`, then set phases.verify.status = done with \`nova checkpoint phase verify --status done\`.
+Run \`nova checkpoint artifacts --verification-report docs/reports/verification-report.md\`, then \`nova validate\`, then set phases.verify.status = done with \`nova checkpoint phase verify --status done\`.
 `,
 
   'nova-iterate.md': () => `---

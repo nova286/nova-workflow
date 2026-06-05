@@ -11,6 +11,53 @@ export enum AgentType {
 export type TaskStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped';
 export type IntegrationMode = 'native' | 'compatible' | 'disabled';
 export type ImplementationMethod = 'tdd' | 'implementation' | 'refactor' | 'docs' | 'migration';
+export type DesignTaskType = 'design' | 'implementation' | 'review' | 'testing' | 'security' | 'docs' | 'other';
+
+export interface DesignTaskFile {
+  path: string;
+  action: string;
+}
+
+export interface DesignTask {
+  id: string;
+  title: string;
+  description?: string;
+  type: DesignTaskType;
+  method?: ImplementationMethod;
+  parentId?: string;
+  files: DesignTaskFile[];
+  dependencies?: string[];
+  specRefs?: string[];
+  acceptanceRefs?: string[];
+  acceptance: string[];
+  verification?: { commands?: string[] };
+  expectedArtifacts?: Array<{ type: string; description: string; pathHint?: string; validation?: unknown }>;
+  constraints?: { maxFilesChanged?: number; mustPassTests: boolean; codeStyle?: string };
+  evidence?: { required?: string[]; tests?: string[]; filesChanged?: string[]; traceIds?: string[] };
+  priority?: string;
+  estimatedComplexity?: number;
+  blocking?: boolean;
+  figma?: FigmaTraceability;
+}
+
+export interface FigmaTraceability {
+  url?: string;
+  nodeIds?: string[];
+  pageMode?: 'existing' | 'incremental' | 'new' | string;
+  routeOrScreen?: string;
+  entryPoint?: string;
+  assetRequirements?: string[];
+  blockedReason?: string;
+}
+
+export interface ProjectEnvironment {
+  language: string;
+  framework: string;
+  buildTool: string;
+  testFramework: string;
+  buildCommand?: string;
+  testCommand?: string;
+}
 
 export interface MethodologyIntegrations {
   openspec: { mode: IntegrationMode };
@@ -24,6 +71,7 @@ export interface WorkflowArtifacts {
   specDelta: string;
   implementationPlan: string;
   verificationReport: string;
+  figmaTraceability?: FigmaTraceability;
 }
 
 export interface TaskContext {

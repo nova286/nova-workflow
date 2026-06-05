@@ -108,9 +108,10 @@ cut assets from the current project's implementation context.
 
 ## Step 5: Update State
 Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
-\`artifacts.specDelta\`, \`phases.propose.status\`, and
-\`phases.propose.proposal\`. Run \`nova validate\`, then mark completion with
-\`nova checkpoint phase propose --status done\` when validation passes.
+\`artifacts.specDelta\`, and \`phases.propose.proposal\`. Prefer
+\`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id>\`.
+Run \`nova validate\`, then mark completion with \`nova checkpoint phase propose --status done\`
+when validation passes.
 
 ## Constraints
 - Read any file for context. Write only to \`docs/proposals/\`,
@@ -153,8 +154,9 @@ Verify each task has all required fields (id, title, type, description, files,
 acceptance, priority, estimatedComplexity).
 
 ## Step 6: Update State
-Set \`designDoc\` and \`tasks\` from parsed YAML. Run \`nova validate\`, then
-mark completion with \`nova checkpoint phase design --status done\`.
+Set \`designDoc\` and \`tasks\` from parsed YAML. Prefer
+\`nova checkpoint artifacts --design-doc docs/designs/design.md\`.
+Run \`nova validate\`, then mark completion with \`nova checkpoint phase design --status done\`.
 
 ## Constraints
 - Design and plan only — no implementation code.
@@ -252,6 +254,7 @@ overall assessment (PASS / NEEDS_FIXES / BLOCKED), and recommendations.
 ## Step 7: Update State
 Set \`phases.verify.status = 'done'\`, \`pipelineResult\` with stage results.
 Set \`artifacts.verificationReport = 'docs/reports/verification-report.md'\`.
+Prefer \`nova checkpoint artifacts --verification-report docs/reports/verification-report.md\`.
 Run \`nova validate\`, then mark completion with
 \`nova checkpoint phase verify --status done\`.
 

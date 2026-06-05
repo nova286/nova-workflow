@@ -19,12 +19,13 @@
 ## Figma Traceability
 
 <!-- If the request includes a Figma URL, record:
-- Figma file URL and relevant node IDs
-- Whether this is an existing page modification or an incremental new page
-- Existing route/screen/component for modifications
-- New route/screen and navigation entry point for incremental pages
-- Required exported assets/cut images/icons and where implementation should source them
-- Any blocked details if Figma MCP is not configured
+- url: Figma file/frame URL
+- nodeIds: relevant frame/component node IDs
+- pageMode: existing | incremental | new
+- routeOrScreen: affected route, screen, or component
+- entryPoint: navigation/menu/flow entry for incremental pages
+- assetRequirements: exported images, icons, slices, tokens, and component mappings needed during implementation
+- blockedReason: why Figma details could not be inspected, if Figma MCP is unavailable
 -->
 
 ## Success Criteria
@@ -34,3 +35,7 @@
 ## Risks & Constraints
 
 <!-- Known risks, limitations, dependencies, or constraints -->
+
+<!-- Before marking propose done, record artifacts:
+nova checkpoint artifacts --proposal docs/proposals/<file>.md --spec-delta <spec-ref-or-path> --active-change <change-id>
+-->

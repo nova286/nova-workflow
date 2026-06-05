@@ -37,9 +37,18 @@ describe('guardPhaseTransition', () => {
     await fs.writeFile('.nova.yaml', yaml.stringify(state), 'utf-8');
   }
 
+  async function writeCoreArtifacts() {
+    await fs.mkdir('docs', { recursive: true });
+    await fs.writeFile('docs/prop.md', '# Proposal', 'utf-8');
+    await fs.writeFile('docs/design.md', '# Design', 'utf-8');
+  }
+
   test('open-to-design passes when open is done with proposal', async () => {
+    await writeCoreArtifacts();
     await writeState({
       ...baseState,
+      activeChange: 'change-one',
+      artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: { ...baseState.phases, propose: { status: 'done', proposal: 'docs/prop.md' } },
     });
     expect((await guardPhaseTransition('propose', 'design')).pass).toBe(true);
@@ -51,6 +60,7 @@ describe('guardPhaseTransition', () => {
   });
 
   test('design-to-build passes when design is done with tasks', async () => {
+    await writeCoreArtifacts();
     await writeState({
       ...baseState,
       phases: {

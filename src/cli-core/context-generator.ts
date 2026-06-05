@@ -1,22 +1,6 @@
 import { StateManager } from './state';
 import { ImplementationMethod, MethodologyIntegrations, TaskContext, WorkflowArtifacts } from './types';
-
-const PROJECT_TYPE_ENV: Record<
-  string,
-  { language: string; framework: string; buildTool: string; testFramework: string }
-> = {
-  node: { language: 'TypeScript', framework: 'Express.js', buildTool: 'npm', testFramework: 'jest' },
-  python: { language: 'Python', framework: '', buildTool: 'pip', testFramework: 'pytest' },
-  go: { language: 'Go', framework: '', buildTool: 'go', testFramework: 'testing' },
-  java: { language: 'Java', framework: 'Spring Boot', buildTool: 'maven', testFramework: 'junit' },
-  rust: { language: 'Rust', framework: '', buildTool: 'cargo', testFramework: 'cargo test' },
-  ruby: { language: 'Ruby', framework: 'Rails', buildTool: 'bundler', testFramework: 'rspec' },
-  php: { language: 'PHP', framework: 'Laravel', buildTool: 'composer', testFramework: 'phpunit' },
-  cpp: { language: 'C++', framework: '', buildTool: 'cmake', testFramework: 'gtest' },
-  csharp: { language: 'C#', framework: '.NET', buildTool: 'dotnet', testFramework: 'xunit' },
-  swift: { language: 'Swift', framework: 'SwiftUI', buildTool: 'swift', testFramework: 'XCTest' },
-  kotlin: { language: 'Kotlin', framework: 'Spring Boot', buildTool: 'gradle', testFramework: 'junit' },
-};
+import { detectProjectEnvironment } from './project-detect';
 
 const TYPE_MAP: Record<string, TaskContext['taskType']> = {
   implementation: 'implementation',
@@ -58,13 +42,17 @@ export class ContextGenerator {
   static async generateFromTask(task: any): Promise<TaskContext> {
     const state = await StateManager.load();
     const projectType: string = (state as any).projectType || '';
-    const env = PROJECT_TYPE_ENV[projectType] || {
-      language: '',
-      framework: '',
-      buildTool: '',
-      testFramework: '',
-    };
+    const env = (state as any).projectEnvironment || await detectProjectEnvironment(process.cwd(), projectType);
     const taskType = TYPE_MAP[task.type] || 'other';
+    const figmaTraceability = task.figma || (state as any).phases?.propose?.figma || (state as any).artifacts?.figmaTraceability;
+    const expectedArtifacts = [...(task.expectedArtifacts || [])];
+    if (figmaTraceability?.assetRequirements?.length) {
+      expectedArtifacts.push({
+        type: 'figma-assets',
+        description: figmaTraceability.assetRequirements.join(', '),
+        pathHint: 'src/assets or project asset directory',
+      });
+    }
 
     return {
       taskId: task.id,
@@ -87,7 +75,7 @@ export class ContextGenerator {
         environment: env,
       },
       output: {
-        expectedArtifacts: (task.expectedArtifacts || []).map((a: any) => ({
+        expectedArtifacts: expectedArtifacts.map((a: any) => ({
           type: a.type,
           description: a.description,
           pathHint: a.pathHint,

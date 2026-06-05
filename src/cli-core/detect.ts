@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { execFile } from 'child_process';
 import * as yaml from 'yaml';
+import { McpServers } from './types';
 
 export type DetectionCategory = 'required' | 'recommended' | 'optional';
 export type DetectionStatus = 'available' | 'missing' | 'partial';
@@ -74,6 +75,47 @@ export async function detectNovaEnvironment(options: DetectOptions = {}): Promis
     agent,
     tools,
   };
+}
+
+export function mcpServersFromDetections(tools: ToolDetection[]): McpServers {
+  const mcpServers: McpServers = {};
+  const figma = tools.find(tool => tool.id === 'figma-mcp');
+  const mobile = tools.find(tool => tool.id === 'mobile-mcp');
+
+  if (figma?.status === 'available') {
+    mcpServers.figma = {
+      configured: true,
+      serverName: detectedServerName(figma, 'figma-mcp'),
+      platform: detectedPlatform(figma),
+    };
+  }
+
+  if (mobile?.status === 'available') {
+    mcpServers.mobile = {
+      configured: true,
+      serverName: detectedServerName(mobile, 'mobile-mcp'),
+      platform: detectedPlatform(mobile),
+    };
+  }
+
+  return mcpServers;
+}
+
+function detectedPlatform(tool: ToolDetection): string | undefined {
+  const details = tool.details.join('\n').toLowerCase();
+  if (details.includes('claude integration found')) return 'claude-code';
+  if (details.includes('codex config found')) return 'codex';
+  return undefined;
+}
+
+function detectedServerName(tool: ToolDetection, fallback: string): string {
+  for (const detail of tool.details) {
+    const match = detail.match(/server: ([^\s]+)/i);
+    if (match) return match[1];
+  }
+  const platform = detectedPlatform(tool);
+  if (platform === 'codex') return fallback;
+  return fallback;
 }
 
 async function detectAgentContext(
@@ -264,7 +306,7 @@ async function detectEcc(cwd: string, homeDir: string, commandExists: (cmd: stri
 }
 
 async function detectFigmaMcp(cwd: string, homeDir: string, agentId?: string | null): Promise<ToolDetection> {
-  const claude = await hasClaudeMcpServer(cwd, homeDir, ['figma']);
+  const claude = await findClaudeMcpServer(cwd, homeDir, ['figma']);
   const codex = await hasCodexConfig(homeDir, ['figma@', 'figma-mcp', 'mcp_servers.figma']);
   const configured = agentId === 'codex' ? codex : agentId === 'claude-code' ? claude : claude || codex;
   return {
@@ -275,14 +317,14 @@ async function detectFigmaMcp(cwd: string, homeDir: string, agentId?: string | n
     summary: configured ? 'configured' : 'not configured',
     install: installHint(agentId, 'figma-mcp'),
     details: [
-      claude ? 'Figma integration found in Claude settings' : 'Figma integration missing from Claude settings',
+      claude ? `Figma integration found in Claude settings; server: ${claude}` : 'Figma integration missing from Claude settings',
       codex ? 'Figma integration found in Codex config' : 'Figma integration missing from Codex config',
     ],
   };
 }
 
 async function detectMobileMcp(cwd: string, homeDir: string, agentId?: string | null): Promise<ToolDetection> {
-  const claude = await hasClaudeMcpServer(cwd, homeDir, ['mobile', 'simulator', 'maestro', 'xcodebuild']);
+  const claude = await findClaudeMcpServer(cwd, homeDir, ['mobile', 'simulator', 'maestro', 'xcodebuild']);
   const codex = await hasCodexConfig(homeDir, ['build-ios-apps', 'mobile-mcp', 'xcodebuild', 'simulator', 'maestro']);
   const configured = agentId === 'codex' ? codex : agentId === 'claude-code' ? claude : claude || codex;
   return {
@@ -293,13 +335,13 @@ async function detectMobileMcp(cwd: string, homeDir: string, agentId?: string | 
     summary: configured ? 'configured' : 'not configured',
     install: installHint(agentId, 'mobile-mcp'),
     details: [
-      claude ? 'Mobile/simulator integration found in Claude settings' : 'Mobile/simulator integration missing from Claude settings',
+      claude ? `Mobile/simulator integration found in Claude settings; server: ${claude}` : 'Mobile/simulator integration missing from Claude settings',
       codex ? 'Mobile/simulator integration found in Codex config' : 'Mobile/simulator integration missing from Codex config',
     ],
   };
 }
 
-async function hasClaudeMcpServer(cwd: string, homeDir: string, needles: string[]): Promise<boolean> {
+async function findClaudeMcpServer(cwd: string, homeDir: string, needles: string[]): Promise<string | null> {
   const settingsPaths = [
     path.join(homeDir, '.claude', 'settings.json'),
     path.join(cwd, '.claude', 'settings.json'),
@@ -312,11 +354,11 @@ async function hasClaudeMcpServer(cwd: string, homeDir: string, needles: string[
       const servers = settings.mcpServers ?? {};
       for (const name of Object.keys(servers)) {
         const lower = name.toLowerCase();
-        if (needles.some(needle => lower.includes(needle))) return true;
+        if (needles.some(needle => lower.includes(needle))) return name;
       }
     } catch {}
   }
-  return false;
+  return null;
 }
 
 async function hasCodexConfig(homeDir: string, needles: string[]): Promise<boolean> {

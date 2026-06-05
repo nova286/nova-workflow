@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { checkpointPhase, checkpointTask, CheckpointStatus } from '../../cli-core/checkpoint';
+import { checkpointArtifacts, checkpointPhase, checkpointTask, CheckpointStatus } from '../../cli-core/checkpoint';
 import { ui } from '../ui';
 import { withErrorHandling } from '../error-handler';
 
@@ -50,5 +50,23 @@ export function registerCheckpointCommand(program: Command) {
         note: options.note,
       });
       ui.success(`Checkpointed task ${taskId}: ${status}`);
+    }));
+
+  checkpoint
+    .command('artifacts')
+    .option('--proposal <path>', 'Proposal document path')
+    .option('--design-doc <path>', 'Design document path')
+    .option('--spec-delta <path>', 'Spec delta path or reference')
+    .option('--verification-report <path>', 'Verification report path')
+    .option('--active-change <id>', 'Active OpenSpec-compatible change id')
+    .action(withErrorHandling(async (options: {
+      proposal?: string;
+      designDoc?: string;
+      specDelta?: string;
+      verificationReport?: string;
+      activeChange?: string;
+    }) => {
+      await checkpointArtifacts(options);
+      ui.success('Checkpointed workflow artifacts.');
     }));
 }

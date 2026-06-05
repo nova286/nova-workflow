@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { EnvironmentAdapter } from '../types';
+import { genericAgentInstructions } from './skill-templates';
 
 const OPENCODE_INSTRUCTIONS = `# Nova Workflow
 
@@ -90,7 +91,7 @@ export class OpenCodeAdapter implements EnvironmentAdapter {
       return; // don't overwrite existing config
     } catch {}
     const config = {
-      instructions: OPENCODE_INSTRUCTIONS,
+      instructions: genericAgentInstructions('opencode'),
     };
     await fs.writeFile(filePath, JSON.stringify(config, null, 2), 'utf-8');
   }

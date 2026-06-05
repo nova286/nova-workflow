@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { EnvironmentAdapter } from '../types';
+import { genericAgentInstructions } from './skill-templates';
 
 const OPENCLAW_INSTRUCTIONS = `# Nova Workflow
 
@@ -91,6 +92,6 @@ export class OpenClawAdapter implements EnvironmentAdapter {
       await fs.access(filePath);
       return;
     } catch {}
-    await fs.writeFile(filePath, OPENCLAW_INSTRUCTIONS, 'utf-8');
+    await fs.writeFile(filePath, genericAgentInstructions('openclaw'), 'utf-8');
   }
 }

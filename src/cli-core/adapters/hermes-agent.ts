@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { EnvironmentAdapter } from '../types';
+import { genericAgentInstructions } from './skill-templates';
 
 const HERMES_INSTRUCTIONS = `# Nova Workflow
 
@@ -89,6 +90,6 @@ export class HermesAgentAdapter implements EnvironmentAdapter {
       await fs.access(filePath);
       return;
     } catch {}
-    await fs.writeFile(filePath, HERMES_INSTRUCTIONS, 'utf-8');
+    await fs.writeFile(filePath, genericAgentInstructions('hermes-agent'), 'utf-8');
   }
 }

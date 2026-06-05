@@ -5,7 +5,7 @@ import { withErrorHandling } from '../error-handler';
 
 export const validateCommand = withErrorHandling(async (options: { json?: boolean }) => {
   const state = await StateManager.load();
-  const result = validateState(state);
+  const result = validateState(state, { cwd: process.cwd() });
 
   if (options.json) {
     console.log(JSON.stringify(result, null, 2));

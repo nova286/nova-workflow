@@ -12,6 +12,14 @@ export interface TaskCheckpointInput {
   note?: string;
 }
 
+export interface ArtifactCheckpointInput {
+  proposal?: string;
+  designDoc?: string;
+  specDelta?: string;
+  verificationReport?: string;
+  activeChange?: string;
+}
+
 export async function checkpointPhase(phase: string, status: CheckpointStatus) {
   if (!['propose', 'design', 'implement', 'verify', 'archive'].includes(phase)) {
     throw new Error(`Unknown phase: ${phase}`);
@@ -22,7 +30,7 @@ export async function checkpointPhase(phase: string, status: CheckpointStatus) {
     state.phases[phase].status = status;
 
     if (status === 'done') {
-      const result = validateState(state);
+      const result = validateState(state, { cwd: process.cwd() });
       if (!result.pass) {
         const first = result.errors[0];
         throw new Error(`Cannot mark ${phase} done: ${first.message}`);
@@ -68,6 +76,34 @@ export async function checkpointTask(input: TaskCheckpointInput) {
     }
 
     state.phases.implement.tasks[input.taskId] = next;
+    return state;
+  });
+}
+
+export async function checkpointArtifacts(input: ArtifactCheckpointInput) {
+  await StateManager.update((state) => {
+    state.artifacts = {
+      openspecChange: '',
+      proposal: '',
+      specDelta: '',
+      implementationPlan: '',
+      verificationReport: '',
+      ...(state.artifacts || {}),
+    };
+    if (input.activeChange !== undefined) state.activeChange = input.activeChange;
+    if (input.proposal !== undefined) {
+      state.artifacts.proposal = input.proposal;
+      state.phases.propose.proposal = input.proposal;
+    }
+    if (input.designDoc !== undefined) {
+      state.phases.design.designDoc = input.designDoc;
+    }
+    if (input.specDelta !== undefined) {
+      state.artifacts.specDelta = input.specDelta;
+    }
+    if (input.verificationReport !== undefined) {
+      state.artifacts.verificationReport = input.verificationReport;
+    }
     return state;
   });
 }

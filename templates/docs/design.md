@@ -30,8 +30,15 @@ tasks:
       - {path: src/example.ts, action: create}
     expectedArtifacts:
       - {type: file, description: Example module, pathHint: src/example.ts}
+    specRefs:
+      - specs.example.requirement
+    acceptanceRefs:
+      - specs.example.acceptance
     acceptance:
       - Acceptance criterion 1
+    verification:
+      commands:
+        - npm test
     priority: medium
     estimatedComplexity: 3
 ```
@@ -85,6 +92,14 @@ tasks:
 
 <!-- Auto-populated by Figma MCP if available. Colors, typography, spacing, components. -->
 
+## Figma Implementation Assets
+
+<!-- If the proposal includes Figma traceability, map required cut images/icons/tokens/components to project asset paths and implementation tasks. -->
+
 ## Risks & Mitigations
 
 <!-- Known risks, what could go wrong, and how to handle it -->
+
+<!-- Before marking design done, record artifacts:
+nova checkpoint artifacts --design-doc docs/designs/<file>.md
+-->

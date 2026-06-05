@@ -13,6 +13,15 @@ describe("ContextGenerator", () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), "nova-ctx-test-"));
     originalCwd = process.cwd();
     process.chdir(testDir);
+    await fs.writeFile(
+      "package.json",
+      JSON.stringify({
+        dependencies: { express: "^4.0.0" },
+        devDependencies: { typescript: "^5.0.0", jest: "^29.0.0" },
+        scripts: { test: "jest", build: "tsc" },
+      }),
+      "utf-8"
+    );
     // 创建一个包含 projectType 的 state 文件
     const state = {
       version: 1,

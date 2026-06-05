@@ -6,6 +6,15 @@ import { StateManager } from '../../cli-core/state';
 import { guardPhaseTransition } from '../../cli-core/guard';
 import { withErrorHandling } from '../error-handler';
 
+function requireArtifact(cwd: string, label: string, relativePath?: string) {
+  if (!relativePath) {
+    throw new Error(`${label} artifact is missing from .nova.yaml. Run nova validate for details.`);
+  }
+  return fs.readFile(path.join(cwd, relativePath), 'utf-8').catch(() => {
+    throw new Error(`${label} artifact not found: ${relativePath}. Run nova validate for details.`);
+  });
+}
+
 export const archiveCommand = withErrorHandling(async (options: { rollback?: boolean }) => {
   if (options.rollback) {
     const { confirm } = await inquirer.prompt([{
@@ -40,33 +49,30 @@ export const archiveCommand = withErrorHandling(async (options: { rollback?: boo
 
   // 归档 proposal
   const proposalSrc = state.phases.propose?.proposal;
-  if (proposalSrc) {
-    const src = path.join(cwd, proposalSrc);
-    try {
-      const content = await fs.readFile(src, 'utf-8');
-      const dest = path.join(specsDir, `proposal-${Date.now()}.md`);
-      await fs.writeFile(dest, content);
-      mergedCount++;
-    } catch { /* 源文件不存在则跳过 */ }
-  }
+  const proposalContent = await requireArtifact(cwd, 'Proposal', proposalSrc);
+  const proposalDest = path.join(specsDir, `proposal-${Date.now()}.md`);
+  await fs.writeFile(proposalDest, proposalContent);
+  mergedCount++;
 
   // 归档 design
   const designSrc = state.phases.design?.designDoc;
-  if (designSrc) {
-    const src = path.join(cwd, designSrc);
-    try {
-      const content = await fs.readFile(src, 'utf-8');
-      const dest = path.join(specsDir, `design-${Date.now()}.md`);
-      await fs.writeFile(dest, content);
-      mergedCount++;
-    } catch { /* 源文件不存在则跳过 */ }
-  }
+  const designContent = await requireArtifact(cwd, 'Design', designSrc);
+  const designDest = path.join(specsDir, `design-${Date.now()}.md`);
+  await fs.writeFile(designDest, designContent);
+  mergedCount++;
 
   // 归档 verify 结果
-  if (state.phases.verify?.pipelineResult) {
+  if (state.artifacts?.verificationReport) {
+    const verifyContent = await requireArtifact(cwd, 'Verification report', state.artifacts.verificationReport);
+    const dest = path.join(specsDir, `verification-report-${Date.now()}.md`);
+    await fs.writeFile(dest, verifyContent);
+    mergedCount++;
+  } else if (state.phases.verify?.pipelineResult) {
     const dest = path.join(specsDir, `verify-result-${Date.now()}.json`);
     await fs.writeFile(dest, JSON.stringify(state.phases.verify.pipelineResult, null, 2));
     mergedCount++;
+  } else {
+    throw new Error('Verification artifact is missing. Run nova validate for details.');
   }
 
   // 清理临时文件

@@ -55,6 +55,12 @@ describe('getNextAction', () => {
     await fs.writeFile('docs/design.md', '# Design', 'utf-8');
   }
 
+  const noExtraTestStrategy = {
+    automatedUiTesting: false,
+    unitTesting: false,
+    rationale: 'No additional test automation selected for this fixture.',
+  };
+
   test('recommends propose when proposal is pending', async () => {
     await writeState(baseState);
     const result = await getNextAction();
@@ -71,7 +77,7 @@ describe('getNextAction', () => {
       artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
-        propose: { status: 'done', proposal: 'docs/proposal.md' },
+        propose: { status: 'done', proposal: 'docs/proposal.md', testStrategy: noExtraTestStrategy },
       },
     });
 
@@ -89,7 +95,7 @@ describe('getNextAction', () => {
       artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
-        propose: { status: 'done', proposal: 'docs/proposal.md' },
+        propose: { status: 'done', proposal: 'docs/proposal.md', testStrategy: noExtraTestStrategy },
         design: { status: 'done', designDoc: 'docs/design.md', tasks: [] },
       },
     });
@@ -108,7 +114,7 @@ describe('getNextAction', () => {
       artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
-        propose: { status: 'done', proposal: 'docs/proposal.md' },
+        propose: { status: 'done', proposal: 'docs/proposal.md', testStrategy: noExtraTestStrategy },
         design: { status: 'done', designDoc: 'docs/design.md', tasks: [task] },
         implement: {
           status: 'done',

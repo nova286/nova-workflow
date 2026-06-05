@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { checkpointArtifacts, checkpointPhase, checkpointTask, CheckpointStatus } from '../../cli-core/checkpoint';
+import { TestStrategy } from '../../cli-core/types';
 import { ui } from '../ui';
 import { withErrorHandling } from '../error-handler';
 
@@ -15,6 +16,27 @@ function parseStatus(status?: string): CheckpointStatus {
 function csv(value?: string): string[] | undefined {
   if (!value) return undefined;
   return value.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function parseTestStrategy(value?: string): TestStrategy | undefined {
+  if (!value) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error('--test-strategy must be valid JSON');
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('--test-strategy must be a JSON object');
+  }
+
+  const strategy = parsed as TestStrategy;
+  if (typeof strategy.automatedUiTesting !== 'boolean' || typeof strategy.unitTesting !== 'boolean') {
+    throw new Error('--test-strategy must include boolean automatedUiTesting and unitTesting');
+  }
+
+  return strategy;
 }
 
 export function registerCheckpointCommand(program: Command) {
@@ -59,14 +81,19 @@ export function registerCheckpointCommand(program: Command) {
     .option('--spec-delta <path>', 'Spec delta path or reference')
     .option('--verification-report <path>', 'Verification report path')
     .option('--active-change <id>', 'Active OpenSpec-compatible change id')
+    .option('--test-strategy <json>', 'JSON test strategy contract')
     .action(withErrorHandling(async (options: {
       proposal?: string;
       designDoc?: string;
       specDelta?: string;
       verificationReport?: string;
       activeChange?: string;
+      testStrategy?: string;
     }) => {
-      await checkpointArtifacts(options);
+      await checkpointArtifacts({
+        ...options,
+        testStrategy: parseTestStrategy(options.testStrategy),
+      });
       ui.success('Checkpointed workflow artifacts.');
     }));
 }

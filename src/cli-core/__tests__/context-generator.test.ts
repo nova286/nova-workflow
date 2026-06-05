@@ -42,6 +42,23 @@ describe("ContextGenerator", () => {
         verificationReport: "",
       },
       phases: {
+        propose: {
+          status: "done",
+          proposal: ".openspec/changes/add-login/proposal.md",
+          testStrategy: {
+            automatedUiTesting: true,
+            unitTesting: true,
+            unitTestTargets: ["src/login.ts"],
+            uiFlows: [{
+              name: "Login happy path",
+              entryPoint: "/login",
+              steps: ["Open login", "Submit credentials"],
+              expectedResult: "Dashboard is shown",
+              routeOrScreen: "LoginScreen",
+              requiresMobileMcp: true,
+            }],
+          },
+        },
         design: {
           status: "done",
           designDoc: "docs/design.md",
@@ -100,6 +117,9 @@ describe("ContextGenerator", () => {
     expect(context.implementation.specRefs).toEqual(["auth.requirements.valid-credential-login"]);
     expect(context.implementation.acceptanceRefs).toEqual(["auth.acceptance.valid-login-returns-token"]);
     expect(context.verification.commands).toEqual(["npm test -- login", "npx tsc --noEmit"]);
+    expect(context.verification.testStrategy?.automatedUiTesting).toBe(true);
+    expect(context.verification.testStrategy?.unitTesting).toBe(true);
+    expect(context.verification.testStrategy?.uiFlows?.[0].entryPoint).toBe("/login");
     expect(context.evidence.required).toEqual(["failing-test-before-implementation", "spec-ref-covered"]);
     // 环境信息应被检测
     expect(context.input.environment.language).toBe("TypeScript");

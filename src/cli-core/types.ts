@@ -18,6 +18,24 @@ export interface DesignTaskFile {
   action: string;
 }
 
+export interface TestFlow {
+  name: string;
+  entryPoint: string;
+  steps: string[];
+  expectedResult: string;
+  routeOrScreen?: string;
+  requiresMobileMcp?: boolean;
+  blockedReason?: string;
+}
+
+export interface TestStrategy {
+  automatedUiTesting: boolean;
+  unitTesting: boolean;
+  uiFlows?: TestFlow[];
+  unitTestTargets?: string[];
+  rationale?: string;
+}
+
 export interface DesignTask {
   id: string;
   title: string;
@@ -38,6 +56,7 @@ export interface DesignTask {
   estimatedComplexity?: number;
   blocking?: boolean;
   figma?: FigmaTraceability;
+  testStrategy?: TestStrategy;
 }
 
 export interface FigmaTraceability {
@@ -72,6 +91,7 @@ export interface WorkflowArtifacts {
   implementationPlan: string;
   verificationReport: string;
   figmaTraceability?: FigmaTraceability;
+  testStrategy?: TestStrategy;
 }
 
 export interface TaskContext {
@@ -106,6 +126,7 @@ export interface TaskContext {
   };
   verification: {
     commands: string[];
+    testStrategy?: TestStrategy;
   };
   evidence: {
     required: string[];
@@ -139,6 +160,7 @@ export interface NovaState {
   integrations?: MethodologyIntegrations;
   mcpServers?: McpServers;
   artifacts?: WorkflowArtifacts;
+  testStrategy?: TestStrategy;
   phases: Record<string, any>;
   metadata: { stateVersion: number; lastModified: string; history: any[] };
 }

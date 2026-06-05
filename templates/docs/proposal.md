@@ -28,6 +28,20 @@
 - blockedReason: why Figma details could not be inspected, if Figma MCP is unavailable
 -->
 
+## Test Strategy
+
+<!-- Confirm with the user before generating the proposal:
+- [ ] 自动化 UI 测试
+- [ ] 单元测试
+
+Record the selected strategy:
+- automatedUiTesting: true | false
+- unitTesting: true | false
+- uiFlows: name, entryPoint, routeOrScreen, steps, expectedResult, requiresMobileMcp
+- unitTestTargets: functions/components/modules to cover
+- rationale: why omitted or blocked, if a selected test type cannot be fully defined
+-->
+
 ## Success Criteria
 
 <!-- Measurable outcomes that define success -->

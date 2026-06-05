@@ -98,6 +98,17 @@ If the user's request contains a Figma URL:
    point, and required cut/export assets for the spec contract.
 
 ## Step 4: Generate Proposal
+Before generating the proposal, confirm the test strategy with the user using
+this Markdown checklist:
+
+- [ ] 自动化 UI 测试
+- [ ] 单元测试
+
+If automated UI testing is selected, determine the user flow early: entry point,
+route/screen, navigation steps, and success assertion. Infer this from code,
+Figma, or existing navigation when possible; ask the user only when it cannot be
+determined confidently.
+
 Write \`.openspec/changes/<change-id>/proposal.md\`, compatible spec files under
 \`.openspec/changes/<change-id>/specs/\`, and \`docs/proposals/proposal.md\` as
 a summary. Include requirement ids and acceptance ids for later task references.
@@ -105,11 +116,15 @@ When a Figma link is present, the spec MUST include Figma traceability, whether
 the work is an existing-page modification or incremental page, the navigation
 entry point for incremental pages, and requirements for exporting/using suitable
 cut assets from the current project's implementation context.
+Always include \`## Test Strategy\` with \`automatedUiTesting\`, \`unitTesting\`,
+UI flows when selected, unit test targets when selected, and rationale for
+omitted or blocked test types.
 
 ## Step 5: Update State
 Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
-\`artifacts.specDelta\`, and \`phases.propose.proposal\`. Prefer
-\`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id>\`.
+\`artifacts.specDelta\`, \`phases.propose.proposal\`, and
+\`phases.propose.testStrategy\`. Use \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>'\`,
+where \`<json>\` includes \`automatedUiTesting\` and \`unitTesting\`.
 Run \`nova validate\`, then mark completion with \`nova checkpoint phase propose --status done\`
 when validation passes.
 
@@ -148,6 +163,14 @@ Based on the user-selected approach, use the **writing-plans skill** to produce
 \`docs/designs/design.md\` and \`docs/superpowers/plans/<change-id>.md\`.
 Tasks must include \`method\`, \`specRefs\`, \`acceptanceRefs\`, and
 \`verification.commands\`.
+Follow the proposal test strategy:
+- If \`automatedUiTesting=true\`, define UI test cases with entry point,
+  route/screen, steps, expected result, and Mobile MCP/E2E runner needs. Add a
+  testing task or UI verification command.
+- If \`unitTesting=true\`, define unit test targets and include unit test
+  commands/files in implementation or testing tasks.
+- If a test type was not selected, do not force it; keep a concise rationale
+  when useful.
 
 ## Step 5: Validate Tasks
 Verify each task has all required fields (id, title, type, description, files,
@@ -195,7 +218,8 @@ For each task in priority order:
 ### Verify After Each Task
 1. Run \`task.verification.commands\` if present
 2. Run type check (\`npx tsc --noEmit\`)
-3. Run tests (\`npm test\` or project equivalent)
+3. Run selected tests from \`testStrategy\`: unit tests if selected, automated
+   UI scripts if selected
 4. Confirm specRefs and acceptanceRefs have evidence before marking complete
 
 ### Record Result
@@ -246,6 +270,8 @@ Use the **ecc:security-reviewer** skill to audit each task's changed files:
 injection risks, secret exposure, insecure dependencies, input validation.
 Verdict: PASS / VULNERABILITY_FOUND. Include severity and remediation.
 ${mcp?.mobile ? MOBILE_STEP : ''}
+Only require automated UI verification when the proposal test strategy selected
+\`automatedUiTesting=true\`. If it was not selected, note it as not applicable.
 
 ## Step 6: Generate Report
 Write \`docs/reports/verification-report.md\` with summary, spec-conformance results, per-task results,

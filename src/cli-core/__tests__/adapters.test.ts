@@ -12,6 +12,12 @@ describe('Environment Adapters', () => {
   let testDir: string;
   let originalHome: string | undefined;
 
+  function expectTestStrategyChecklist(content: string) {
+    expect(content).toContain('[ ] 自动化 UI 测试');
+    expect(content).toContain('[ ] 单元测试');
+    expect(content).toContain('testStrategy');
+  }
+
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-adapter-'));
     originalHome = process.env.HOME;
@@ -59,6 +65,14 @@ describe('Environment Adapters', () => {
       expect(content).toContain('存量页面修改还是增量新页面');
       expect(content).toContain('切图/图片/icon 资产');
     });
+
+    test('includes test strategy checklist', async () => {
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir);
+
+      const content = await fs.readFile(path.join(testDir, 'CODEX.md'), 'utf-8');
+      expectTestStrategyChecklist(content);
+    });
   });
 
   describe('OpenClawAdapter', () => {
@@ -83,6 +97,14 @@ describe('Environment Adapters', () => {
       const content = await fs.readFile(path.join(dir, 'instructions.md'), 'utf-8');
       expect(content).toBe('custom');
     });
+
+    test('includes test strategy checklist', async () => {
+      const adapter = new OpenClawAdapter();
+      await adapter.setup(testDir);
+
+      const content = await fs.readFile(path.join(testDir, '.openclaw', 'instructions.md'), 'utf-8');
+      expectTestStrategyChecklist(content);
+    });
   });
 
   describe('HermesAgentAdapter', () => {
@@ -104,6 +126,14 @@ describe('Environment Adapters', () => {
 
       const content = await fs.readFile(path.join(testDir, 'HERMES.md'), 'utf-8');
       expect(content).toBe('custom');
+    });
+
+    test('includes test strategy checklist', async () => {
+      const adapter = new HermesAgentAdapter();
+      await adapter.setup(testDir);
+
+      const content = await fs.readFile(path.join(testDir, 'HERMES.md'), 'utf-8');
+      expectTestStrategyChecklist(content);
     });
   });
 
@@ -129,6 +159,14 @@ describe('Environment Adapters', () => {
       const raw = await fs.readFile(path.join(testDir, 'opencode.json'), 'utf-8');
       const config = JSON.parse(raw);
       expect(config.model).toBe('claude-sonnet-4-6');
+    });
+
+    test('includes test strategy checklist', async () => {
+      const adapter = new OpenCodeAdapter();
+      await adapter.setup(testDir);
+
+      const raw = await fs.readFile(path.join(testDir, 'opencode.json'), 'utf-8');
+      expectTestStrategyChecklist(JSON.parse(raw).instructions);
     });
   });
 
@@ -173,6 +211,14 @@ describe('Environment Adapters', () => {
       expect(content).toContain('Existing page modification');
       expect(content).toContain('Incremental new page');
       expect(content).toContain('cut/export assets');
+    });
+
+    test('nova-propose asks for test strategy checklist', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
+      expectTestStrategyChecklist(content);
     });
 
     test('no MCP steps when no MCP configured', async () => {
@@ -234,6 +280,14 @@ describe('Environment Adapters', () => {
       expect(content).toContain('existing page modification');
       expect(content).toContain('incremental new page');
       expect(content).toContain('cut/export assets');
+    });
+
+    test('nova-propose asks for test strategy checklist', async () => {
+      const adapter = new PiCodingAgentAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
+      expectTestStrategyChecklist(content);
     });
   });
 });

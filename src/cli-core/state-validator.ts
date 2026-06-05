@@ -77,6 +77,90 @@ function validateFigmaTraceability(state: any, proposalContent: string, errors: 
   }
 }
 
+function resolveTestStrategy(state: any) {
+  return state.phases?.propose?.testStrategy || state.testStrategy || state.artifacts?.testStrategy;
+}
+
+function commandLooksLikeUiTest(command: unknown): boolean {
+  if (typeof command !== 'string') return false;
+  return /\b(playwright|cypress|detox|maestro|appium|mobile|simulator|xcodebuild|e2e|ui[-:]?test)\b/i.test(command);
+}
+
+function commandLooksLikeUnitTest(command: unknown): boolean {
+  if (typeof command !== 'string') return false;
+  if (commandLooksLikeUiTest(command)) return false;
+  return /\b(test|jest|vitest|mocha|pytest|go test|cargo test|xctest|phpunit|rspec)\b/i.test(command);
+}
+
+function taskHasCommand(task: any, predicate: (command: unknown) => boolean): boolean {
+  return Array.isArray(task.verification?.commands) && task.verification.commands.some(predicate);
+}
+
+function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[]) {
+  const strategy = resolveTestStrategy(state);
+  if (state.phases?.propose?.status === 'done' && !strategy) {
+    errors.push(issue('test-strategy.missing', 'propose is done but testStrategy is missing', 'phases.propose.testStrategy'));
+    return;
+  }
+  if (!strategy) return;
+
+  if (typeof strategy !== 'object' || Array.isArray(strategy)) {
+    errors.push(issue('test-strategy.invalid', 'testStrategy must be an object', 'phases.propose.testStrategy'));
+    return;
+  }
+  if (typeof strategy.automatedUiTesting !== 'boolean') {
+    errors.push(issue('test-strategy.invalid', 'testStrategy.automatedUiTesting must be a boolean', 'phases.propose.testStrategy.automatedUiTesting'));
+  }
+  if (typeof strategy.unitTesting !== 'boolean') {
+    errors.push(issue('test-strategy.invalid', 'testStrategy.unitTesting must be a boolean', 'phases.propose.testStrategy.unitTesting'));
+  }
+  if (typeof strategy.automatedUiTesting !== 'boolean' || typeof strategy.unitTesting !== 'boolean') {
+    return;
+  }
+
+  if (strategy.automatedUiTesting === true) {
+    const uiFlows = Array.isArray(strategy.uiFlows) ? strategy.uiFlows : [];
+    const hasBlockedReason = typeof strategy.rationale === 'string' && strategy.rationale.trim().length > 0;
+    if (uiFlows.length === 0 && !hasBlockedReason) {
+      errors.push(issue('test-strategy.ui-flow.missing', 'automated UI testing is selected but no UI flow or rationale is recorded', 'phases.propose.testStrategy.uiFlows'));
+    }
+    for (const [index, flow] of uiFlows.entries()) {
+      const base = `phases.propose.testStrategy.uiFlows.${index}`;
+      if (!hasText(flow?.name)) errors.push(issue('test-strategy.ui-flow.invalid', 'UI flow is missing name', `${base}.name`));
+      if (!hasText(flow?.entryPoint)) errors.push(issue('test-strategy.ui-flow.invalid', 'UI flow is missing entryPoint', `${base}.entryPoint`));
+      if (!Array.isArray(flow?.steps) || flow.steps.length === 0) errors.push(issue('test-strategy.ui-flow.invalid', 'UI flow is missing steps', `${base}.steps`));
+      if (!hasText(flow?.expectedResult)) errors.push(issue('test-strategy.ui-flow.invalid', 'UI flow is missing expectedResult', `${base}.expectedResult`));
+    }
+
+    if (state.phases?.design?.status === 'done') {
+      const hasUiTaskOrCommand = tasks.some(task =>
+        task.type === 'testing' && (
+          task.testKind === 'ui' ||
+          task.testType === 'ui' ||
+          task.uiFlowRef ||
+          taskHasCommand(task, commandLooksLikeUiTest)
+        )
+      ) || tasks.some(task => taskHasCommand(task, commandLooksLikeUiTest));
+      if (!hasUiTaskOrCommand) {
+        errors.push(issue('test-strategy.ui-task.missing', 'automated UI testing is selected but design has no UI testing task or UI verification command', 'phases.design.tasks'));
+      }
+    }
+  }
+
+  if (strategy.unitTesting === true && state.phases?.design?.status === 'done') {
+    const targets = Array.isArray(strategy.unitTestTargets) ? strategy.unitTestTargets : [];
+    const hasUnitCommand = tasks.some(task =>
+      (task.type === 'implementation' || task.type === 'testing') && taskHasCommand(task, commandLooksLikeUnitTest)
+    );
+    if (targets.length === 0) {
+      errors.push(issue('test-strategy.unit-targets.missing', 'unit testing is selected but no unitTestTargets are recorded', 'phases.propose.testStrategy.unitTestTargets'));
+    }
+    if (!hasUnitCommand) {
+      errors.push(issue('test-strategy.unit-command.missing', 'unit testing is selected but design tasks have no unit test verification command', 'phases.design.tasks'));
+    }
+  }
+}
+
 function pushQualityErrors(
   errors: ValidationIssue[],
   code: string,
@@ -180,6 +264,8 @@ export function validateState(state: any, options: ValidationOptions = {}): Vali
     pushQualityErrors(errors, 'task.acceptance.invalid', 'phases.design.tasks', acceptance.errors);
     pushQualityErrors(errors, 'task.spec.invalid', 'phases.design.tasks', spec.errors);
   }
+
+  validateTestStrategy(state, Array.isArray(tasks) ? tasks : [], errors);
 
   const implement = phases.implement || {};
   const taskResults = implement.tasks || {};

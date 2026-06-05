@@ -22,6 +22,12 @@ describe('guardPhaseTransition', () => {
     metadata: { stateVersion: 0, lastModified: '' },
   };
 
+  const noExtraTestStrategy = {
+    automatedUiTesting: false,
+    unitTesting: false,
+    rationale: 'No additional test automation selected for this fixture.',
+  };
+
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-guard-'));
     originalCwd = process.cwd();
@@ -49,7 +55,10 @@ describe('guardPhaseTransition', () => {
       ...baseState,
       activeChange: 'change-one',
       artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
-      phases: { ...baseState.phases, propose: { status: 'done', proposal: 'docs/prop.md' } },
+      phases: {
+        ...baseState.phases,
+        propose: { status: 'done', proposal: 'docs/prop.md', testStrategy: noExtraTestStrategy },
+      },
     });
     expect((await guardPhaseTransition('propose', 'design')).pass).toBe(true);
   });

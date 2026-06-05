@@ -1,5 +1,6 @@
 import { StateManager } from './state';
 import { validateState } from './state-validator';
+import { TestStrategy } from './types';
 
 export type CheckpointStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped';
 
@@ -18,6 +19,7 @@ export interface ArtifactCheckpointInput {
   specDelta?: string;
   verificationReport?: string;
   activeChange?: string;
+  testStrategy?: TestStrategy;
 }
 
 export async function checkpointPhase(phase: string, status: CheckpointStatus) {
@@ -94,6 +96,10 @@ export async function checkpointArtifacts(input: ArtifactCheckpointInput) {
     if (input.proposal !== undefined) {
       state.artifacts.proposal = input.proposal;
       state.phases.propose.proposal = input.proposal;
+    }
+    if (input.testStrategy !== undefined) {
+      state.artifacts.testStrategy = input.testStrategy;
+      state.phases.propose.testStrategy = input.testStrategy;
     }
     if (input.designDoc !== undefined) {
       state.phases.design.designDoc = input.designDoc;

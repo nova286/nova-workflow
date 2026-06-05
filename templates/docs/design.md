@@ -96,6 +96,23 @@ tasks:
 
 <!-- If the proposal includes Figma traceability, map required cut images/icons/tokens/components to project asset paths and implementation tasks. -->
 
+## Test Cases
+
+<!-- Follow the proposal Test Strategy.
+
+Automated UI testing:
+- Only required when automatedUiTesting=true.
+- Define each user flow with entry point, route/screen, steps, expected result, and whether Mobile MCP is required.
+- Add a testing task or verification command that can run the flow.
+
+Unit testing:
+- Only required when unitTesting=true.
+- Define unit test targets and expected assertions.
+- Add unit test files/commands to implementation or testing tasks.
+
+If a test type is not selected, do not force it; record a concise rationale when useful.
+-->
+
 ## Risks & Mitigations
 
 <!-- Known risks, what could go wrong, and how to handle it -->

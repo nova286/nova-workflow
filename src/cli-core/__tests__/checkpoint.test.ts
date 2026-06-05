@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import { checkpointPhase, checkpointTask } from '../checkpoint';
+import { checkpointArtifacts, checkpointPhase, checkpointTask } from '../checkpoint';
 import { StateManager } from '../state';
 
 describe('checkpoint', () => {
@@ -92,6 +92,22 @@ describe('checkpoint', () => {
     await expect(
       checkpointTask({ taskId: 'missing-task', status: 'done' })
     ).rejects.toThrow('not found');
+  });
+
+  test('checkpointArtifacts records test strategy in phase and artifacts', async () => {
+    await writeState(baseState);
+    const testStrategy = {
+      automatedUiTesting: false,
+      unitTesting: true,
+      unitTestTargets: ['src/task.ts'],
+      rationale: 'Core behavior should be covered by unit tests.',
+    };
+
+    await checkpointArtifacts({ testStrategy });
+
+    const state = await StateManager.load();
+    expect(state.phases.propose.testStrategy).toEqual(testStrategy);
+    expect(state.artifacts?.testStrategy).toEqual(testStrategy);
   });
 
   test('checkpointPhase refuses done when validation fails', async () => {

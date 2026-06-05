@@ -73,13 +73,25 @@ If the request contains a Figma URL:
    required cut/export assets in the proposal/spec.
 
 ## Step 4: Generate Proposal
+Before generating the proposal, confirm the test strategy with:
+
+- [ ] 自动化 UI 测试
+- [ ] 单元测试
+
+If automated UI testing is selected, determine the entry point, route/screen,
+navigation steps, and success assertion. Infer from code, Figma, or existing
+navigation when possible; ask the user when it cannot be determined.
+
 Write \`docs/proposals/proposal.md\` with problem, solution, user stories, scope, success criteria.
 When a Figma link is present, include Figma traceability and cut-asset
 requirements so implementation can export and use suitable assets for the
 current project.
+Always include \`## Test Strategy\` with automatedUiTesting, unitTesting, UI
+flows when selected, unit targets when selected, and rationale for omitted or
+blocked test types.
 
 ## Step 5: Update State
-Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id>\`. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
+Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>'\`, where \`<json>\` includes automatedUiTesting and unitTesting and is written to \`phases.propose.testStrategy\`. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
 `,
 
   'nova-design.md': (mcp) => `---
@@ -100,6 +112,9 @@ ${mcp?.figma ? FIGMA_STEP : ''}
 
 ## Step 4: Generate Design
 Write \`docs/designs/design.md\` with architecture, tech stack, components, data flow, and task list in YAML.
+Follow the proposal test strategy: automated UI testing requires UI flows plus
+a testing task or UI verification command; unit testing requires unit targets
+and unit test commands/files. Do not force unselected test types.
 
 ## Step 5: Update State
 Update .nova.yaml: designDoc, tasks. Prefer \`nova checkpoint artifacts --design-doc docs/designs/design.md\`. Run \`nova validate\`, then \`nova checkpoint phase design --status done\`.
@@ -118,7 +133,8 @@ Read .nova.yaml. Require phases.design.status = done. Update phases.implement.st
 Show task summary. Confirm before proceeding.
 
 ## Step 3: Execute Each Task
-For each task: implement, verify, record evidence with \`nova checkpoint task <task-id>\` (tests, filesChanged).
+For each task: implement, write only the selected unit/UI tests from testStrategy,
+verify, record evidence with \`nova checkpoint task <task-id>\` (tests, filesChanged).
 On failure: abort, skip, or retry.
 
 ## Step 4: Final Verification
@@ -142,6 +158,8 @@ Load tasks, changed files, design document.
 
 ## Step 3: Code Review
 Review changed files for correctness, conventions, error handling, test coverage.
+Run automated UI verification only when automatedUiTesting=true. Run unit tests
+only when unitTesting=true. Unselected test types are not failure conditions.
 
 ## Step 4: Security Review
 Audit for injection risks, secret exposure, insecure dependencies.

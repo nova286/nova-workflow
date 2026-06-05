@@ -25,6 +25,13 @@ const DEFAULT_ARTIFACTS: WorkflowArtifacts = {
   verificationReport: '',
 };
 
+function resolveTestStrategy(state: any, task: any) {
+  return task.testStrategy ||
+    state.phases?.propose?.testStrategy ||
+    state.testStrategy ||
+    state.artifacts?.testStrategy;
+}
+
 function normalizeMethod(method: unknown, taskType: TaskContext['taskType']): ImplementationMethod {
   if (
     method === 'tdd' ||
@@ -45,6 +52,7 @@ export class ContextGenerator {
     const env = (state as any).projectEnvironment || await detectProjectEnvironment(process.cwd(), projectType);
     const taskType = TYPE_MAP[task.type] || 'other';
     const figmaTraceability = task.figma || (state as any).phases?.propose?.figma || (state as any).artifacts?.figmaTraceability;
+    const testStrategy = resolveTestStrategy(state, task);
     const expectedArtifacts = [...(task.expectedArtifacts || [])];
     if (figmaTraceability?.assetRequirements?.length) {
       expectedArtifacts.push({
@@ -95,6 +103,7 @@ export class ContextGenerator {
       },
       verification: {
         commands: task.verification?.commands || [],
+        testStrategy,
       },
       evidence: {
         required: task.evidence?.required || [],

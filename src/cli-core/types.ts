@@ -12,6 +12,8 @@ export type TaskStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skippe
 export type IntegrationMode = 'native' | 'compatible' | 'disabled';
 export type ImplementationMethod = 'tdd' | 'implementation' | 'refactor' | 'docs' | 'migration';
 export type DesignTaskType = 'design' | 'implementation' | 'review' | 'testing' | 'security' | 'docs' | 'other';
+export type ChangeMode = 'existing' | 'incremental' | 'new';
+export type RefactorPolicy = 'none' | 'minimal' | 'full';
 
 export interface DesignTaskFile {
   path: string;
@@ -36,6 +38,24 @@ export interface TestStrategy {
   rationale?: string;
 }
 
+export interface LegacyPreflightIssue {
+  area: string;
+  finding: string;
+  severity: 'low' | 'medium' | 'high' | string;
+  recommendation?: string;
+}
+
+export interface LegacyPreflight {
+  required: boolean;
+  performed: boolean;
+  affectedAreas: string[];
+  hasIssues: boolean;
+  issues?: LegacyPreflightIssue[];
+  refactorPolicy?: RefactorPolicy;
+  userDecision?: string;
+  rationale?: string;
+}
+
 export interface DesignTask {
   id: string;
   title: string;
@@ -57,6 +77,7 @@ export interface DesignTask {
   blocking?: boolean;
   figma?: FigmaTraceability;
   testStrategy?: TestStrategy;
+  legacyPreflight?: LegacyPreflight;
 }
 
 export interface FigmaTraceability {
@@ -92,6 +113,8 @@ export interface WorkflowArtifacts {
   verificationReport: string;
   figmaTraceability?: FigmaTraceability;
   testStrategy?: TestStrategy;
+  changeMode?: ChangeMode;
+  legacyPreflight?: LegacyPreflight;
 }
 
 export interface TaskContext {
@@ -104,6 +127,7 @@ export interface TaskContext {
     designDocRef: string;
     relevantSpecs: string[];
     architectureNotes: string;
+    legacyPreflight?: LegacyPreflight;
   };
   input: {
     files: { path: string; content?: string; action: string }[];
@@ -157,10 +181,12 @@ export interface NovaState {
   environment: string[];
   currentPhase: string;
   activeChange?: string;
+  changeMode?: ChangeMode;
   integrations?: MethodologyIntegrations;
   mcpServers?: McpServers;
   artifacts?: WorkflowArtifacts;
   testStrategy?: TestStrategy;
+  legacyPreflight?: LegacyPreflight;
   phases: Record<string, any>;
   metadata: { stateVersion: number; lastModified: string; history: any[] };
 }

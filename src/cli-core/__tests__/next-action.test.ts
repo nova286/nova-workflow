@@ -77,7 +77,7 @@ describe('getNextAction', () => {
       artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
-        propose: { status: 'done', proposal: 'docs/proposal.md', testStrategy: noExtraTestStrategy },
+        propose: { status: 'done', proposal: 'docs/proposal.md', changeMode: 'new', testStrategy: noExtraTestStrategy },
       },
     });
 
@@ -95,7 +95,7 @@ describe('getNextAction', () => {
       artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
-        propose: { status: 'done', proposal: 'docs/proposal.md', testStrategy: noExtraTestStrategy },
+        propose: { status: 'done', proposal: 'docs/proposal.md', changeMode: 'new', testStrategy: noExtraTestStrategy },
         design: { status: 'done', designDoc: 'docs/design.md', tasks: [] },
       },
     });
@@ -114,7 +114,7 @@ describe('getNextAction', () => {
       artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
-        propose: { status: 'done', proposal: 'docs/proposal.md', testStrategy: noExtraTestStrategy },
+        propose: { status: 'done', proposal: 'docs/proposal.md', changeMode: 'new', testStrategy: noExtraTestStrategy },
         design: { status: 'done', designDoc: 'docs/design.md', tasks: [task] },
         implement: {
           status: 'done',

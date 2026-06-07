@@ -98,6 +98,15 @@ If the user's request contains a Figma URL:
    point, and required cut/export assets for the spec contract.
 
 ## Step 4: Generate Proposal
+Before generating the proposal, classify the change mode:
+
+- \`existing\`: modifies existing business logic, page, route, component, API, or workflow
+- \`incremental\`: adds a new page/entry/flow that connects to existing product navigation
+- \`new\`: creates an isolated new capability with no legacy behavior dependency
+
+If the change mode is \`existing\`, record affected modules/routes/components and
+state that design must run a legacy preflight before task planning.
+
 Before generating the proposal, confirm the test strategy with the user using
 this Markdown checklist:
 
@@ -119,12 +128,15 @@ cut assets from the current project's implementation context.
 Always include \`## Test Strategy\` with \`automatedUiTesting\`, \`unitTesting\`,
 UI flows when selected, unit test targets when selected, and rationale for
 omitted or blocked test types.
+Always include \`## Change Mode\` with \`changeMode\`, affected areas, and
+whether \`legacyPreflight.required\` is expected during design.
 
 ## Step 5: Update State
 Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
-\`artifacts.specDelta\`, \`phases.propose.proposal\`, and
+\`artifacts.specDelta\`, \`phases.propose.proposal\`, \`phases.propose.changeMode\`, and
 \`phases.propose.testStrategy\`. Use \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>'\`,
-where \`<json>\` includes \`automatedUiTesting\` and \`unitTesting\`.
+where \`<json>\` includes \`automatedUiTesting\` and \`unitTesting\`; also pass
+\`--change-mode existing|incremental|new\`.
 Run \`nova validate\`, then mark completion with \`nova checkpoint phase propose --status done\`
 when validation passes.
 
@@ -158,6 +170,24 @@ For each: architecture pattern, tech stack rationale, component structure, data
 flow, key trade-offs. Present alternatives to the user for selection.
 ${mcp?.figma ? FIGMA_STEP : ''}
 
+## Step 3.5: Legacy Preflight for Existing Changes
+If \`changeMode=existing\`, inspect the affected existing modules before task
+planning. Check whether they follow the current project conventions for
+architecture boundaries, component/module responsibility, state/data flow,
+testability, verification commands, design-system usage, and obvious technical
+debt that would affect this change.
+
+Record \`legacyPreflight\` with \`required\`, \`performed\`, \`affectedAreas\`,
+\`hasIssues\`, \`issues\`, and \`rationale\`. If issues are found, present this
+interactive choice and wait for the user before finalizing tasks:
+
+- [ ] 仅完成本次需求，不做重构
+- [ ] 做最小必要重构，只处理会阻塞本次需求的部分
+- [ ] 将相关模块一起重构到项目规范
+
+Map the answer to \`refactorPolicy\`: \`none\`, \`minimal\`, or \`full\`, and
+record \`userDecision\`. Do not expand refactoring scope later beyond this policy.
+
 ## Step 4: Generate Design Document
 Based on the user-selected approach, use the **writing-plans skill** to produce
 \`docs/designs/design.md\` and \`docs/superpowers/plans/<change-id>.md\`.
@@ -171,6 +201,8 @@ Follow the proposal test strategy:
   commands/files in implementation or testing tasks.
 - If a test type was not selected, do not force it; keep a concise rationale
   when useful.
+If \`changeMode=existing\`, include a \`## Legacy Preflight\` section and make
+tasks respect the selected \`refactorPolicy\`.
 
 ## Step 5: Validate Tasks
 Verify each task has all required fields (id, title, type, description, files,
@@ -178,7 +210,8 @@ acceptance, priority, estimatedComplexity).
 
 ## Step 6: Update State
 Set \`designDoc\` and \`tasks\` from parsed YAML. Prefer
-\`nova checkpoint artifacts --design-doc docs/designs/design.md\`.
+\`nova checkpoint artifacts --design-doc docs/designs/design.md --legacy-preflight '<json>'\`
+when \`changeMode=existing\`.
 Run \`nova validate\`, then mark completion with \`nova checkpoint phase design --status done\`.
 
 ## Constraints
@@ -203,7 +236,9 @@ Update \`phases.implement.status\` to \`in-progress\` with
 
 ## Step 2: Load Task List
 Show task summary (id, title, method, specRefs, priority). Ask user to confirm before
-proceeding.
+proceeding. For each task, use \`nova context --task-id <id>\`; if
+\`designContext.legacyPreflight\` is present, keep implementation and refactoring
+within its \`refactorPolicy\`.
 
 ## Step 3: Execute Each Task
 For each task in priority order:
@@ -220,7 +255,8 @@ For each task in priority order:
 2. Run type check (\`npx tsc --noEmit\`)
 3. Run selected tests from \`testStrategy\`: unit tests if selected, automated
    UI scripts if selected
-4. Confirm specRefs and acceptanceRefs have evidence before marking complete
+4. For existing changes, run or record regression checks for affected legacy behavior
+5. Confirm specRefs and acceptanceRefs have evidence before marking complete
 
 ### Record Result
 Record task status and evidence with \`nova checkpoint task <task-id> --status done --files <csv> --tests <csv> --trace-id <id>\` when available.
@@ -259,6 +295,9 @@ evidence, the design document, and \`artifacts.openspecChange\`.
 ## Step 3: Run Spec-Conformance Review
 Compare task evidence against \`specRefs\` and \`acceptanceRefs\`. Verdict:
 PASS / CHANGES_REQUESTED / BLOCKED.
+If \`changeMode=existing\`, verify changed files stayed within the selected
+\`legacyPreflight.refactorPolicy\` and that existing behavior regression evidence
+is present.
 
 ## Step 4: Run Code Review
 Use the **ecc:code-reviewer** skill to review each task's changed files:

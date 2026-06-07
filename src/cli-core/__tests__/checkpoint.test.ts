@@ -110,6 +110,27 @@ describe('checkpoint', () => {
     expect(state.artifacts?.testStrategy).toEqual(testStrategy);
   });
 
+  test('checkpointArtifacts records change mode and legacy preflight', async () => {
+    await writeState(baseState);
+    const legacyPreflight = {
+      required: true,
+      performed: true,
+      affectedAreas: ['src/task.ts'],
+      hasIssues: false,
+      rationale: 'Existing module follows project conventions.',
+    };
+
+    await checkpointArtifacts({ changeMode: 'existing', legacyPreflight });
+
+    const state = await StateManager.load();
+    expect(state.changeMode).toBe('existing');
+    expect(state.phases.propose.changeMode).toBe('existing');
+    expect(state.artifacts?.changeMode).toBe('existing');
+    expect(state.legacyPreflight).toEqual(legacyPreflight);
+    expect(state.phases.design.legacyPreflight).toEqual(legacyPreflight);
+    expect(state.artifacts?.legacyPreflight).toEqual(legacyPreflight);
+  });
+
   test('checkpointPhase refuses done when validation fails', async () => {
     await writeState({
       ...baseState,

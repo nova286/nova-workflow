@@ -1,6 +1,6 @@
 import { StateManager } from './state';
 import { validateState } from './state-validator';
-import { TestStrategy } from './types';
+import { ChangeMode, LegacyPreflight, TestStrategy } from './types';
 
 export type CheckpointStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped';
 
@@ -20,6 +20,8 @@ export interface ArtifactCheckpointInput {
   verificationReport?: string;
   activeChange?: string;
   testStrategy?: TestStrategy;
+  changeMode?: ChangeMode;
+  legacyPreflight?: LegacyPreflight;
 }
 
 export async function checkpointPhase(phase: string, status: CheckpointStatus) {
@@ -100,6 +102,16 @@ export async function checkpointArtifacts(input: ArtifactCheckpointInput) {
     if (input.testStrategy !== undefined) {
       state.artifacts.testStrategy = input.testStrategy;
       state.phases.propose.testStrategy = input.testStrategy;
+    }
+    if (input.changeMode !== undefined) {
+      state.changeMode = input.changeMode;
+      state.artifacts.changeMode = input.changeMode;
+      state.phases.propose.changeMode = input.changeMode;
+    }
+    if (input.legacyPreflight !== undefined) {
+      state.legacyPreflight = input.legacyPreflight;
+      state.artifacts.legacyPreflight = input.legacyPreflight;
+      state.phases.design.legacyPreflight = input.legacyPreflight;
     }
     if (input.designDoc !== undefined) {
       state.phases.design.designDoc = input.designDoc;

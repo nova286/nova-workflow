@@ -73,6 +73,15 @@ If the request contains a Figma URL:
    required cut/export assets in the proposal/spec.
 
 ## Step 4: Generate Proposal
+Before generating the proposal, classify the change mode:
+
+- \`existing\`: modifies existing business/page/route/component/API/workflow
+- \`incremental\`: adds a new connected page/entry/flow
+- \`new\`: creates an isolated new capability
+
+If \`existing\`, record affected modules/routes/components and require legacy
+preflight in design.
+
 Before generating the proposal, confirm the test strategy with:
 
 - [ ] 自动化 UI 测试
@@ -89,9 +98,11 @@ current project.
 Always include \`## Test Strategy\` with automatedUiTesting, unitTesting, UI
 flows when selected, unit targets when selected, and rationale for omitted or
 blocked test types.
+Always include \`## Change Mode\` with changeMode, affected areas, and whether
+legacyPreflight is required.
 
 ## Step 5: Update State
-Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>'\`, where \`<json>\` includes automatedUiTesting and unitTesting and is written to \`phases.propose.testStrategy\`. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
+Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>' --change-mode existing|incremental|new\`, where \`<json>\` includes automatedUiTesting and unitTesting and is written to \`phases.propose.testStrategy\`. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
 `,
 
   'nova-design.md': (mcp) => `---
@@ -110,14 +121,30 @@ Read proposal, AGENTS.md, package.json, src/.
 Explore at least 2 architectural approaches. Present alternatives.
 ${mcp?.figma ? FIGMA_STEP : ''}
 
+## Step 3.5: Legacy Preflight
+If \`changeMode=existing\`, inspect affected existing code before task planning:
+architecture boundaries, module/component responsibility, data flow,
+testability, verification commands, design-system usage, and technical debt.
+Record \`legacyPreflight\` with required/performed/affectedAreas/hasIssues/issues.
+If issues exist, ask the user to choose:
+
+- [ ] 仅完成本次需求，不做重构
+- [ ] 做最小必要重构，只处理会阻塞本次需求的部分
+- [ ] 将相关模块一起重构到项目规范
+
+Map the answer to \`refactorPolicy\`: \`none\`, \`minimal\`, or \`full\`, and
+record \`userDecision\`.
+
 ## Step 4: Generate Design
 Write \`docs/designs/design.md\` with architecture, tech stack, components, data flow, and task list in YAML.
 Follow the proposal test strategy: automated UI testing requires UI flows plus
 a testing task or UI verification command; unit testing requires unit targets
 and unit test commands/files. Do not force unselected test types.
+If \`changeMode=existing\`, include \`## Legacy Preflight\` and keep tasks within
+the selected refactorPolicy.
 
 ## Step 5: Update State
-Update .nova.yaml: designDoc, tasks. Prefer \`nova checkpoint artifacts --design-doc docs/designs/design.md\`. Run \`nova validate\`, then \`nova checkpoint phase design --status done\`.
+Update .nova.yaml: designDoc, tasks. Prefer \`nova checkpoint artifacts --design-doc docs/designs/design.md --legacy-preflight '<json>'\` when \`changeMode=existing\`. Run \`nova validate\`, then \`nova checkpoint phase design --status done\`.
 `,
 
   'nova-implement.md': () => `---
@@ -135,6 +162,8 @@ Show task summary. Confirm before proceeding.
 ## Step 3: Execute Each Task
 For each task: implement, write only the selected unit/UI tests from testStrategy,
 verify, record evidence with \`nova checkpoint task <task-id>\` (tests, filesChanged).
+Use \`nova context --task-id <id>\`; if legacyPreflight is present, stay within
+its refactorPolicy and record regression evidence for existing behavior.
 On failure: abort, skip, or retry.
 
 ## Step 4: Final Verification
@@ -160,6 +189,8 @@ Load tasks, changed files, design document.
 Review changed files for correctness, conventions, error handling, test coverage.
 Run automated UI verification only when automatedUiTesting=true. Run unit tests
 only when unitTesting=true. Unselected test types are not failure conditions.
+If changeMode=existing, verify implementation stayed within refactorPolicy and
+existing behavior regression evidence is present.
 
 ## Step 4: Security Review
 Audit for injection risks, secret exposure, insecure dependencies.

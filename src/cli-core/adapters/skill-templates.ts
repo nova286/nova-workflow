@@ -63,26 +63,33 @@ Always read it first.
    - Figma MCP 可用后，必须确认这是存量页面修改还是增量新页面
    - 存量页面要确认现有 route/screen/component；增量页面要确认新页面入口和跳转路径
    - spec 必须记录 Figma URL、node IDs、页面模式、入口路径，以及实现阶段需要按当前项目导出的切图/图片/icon 资产
-3. 在生成 proposal 前，用 Markdown checklist 让用户确认本次测试策略：
+3. 在生成 proposal 前，确认 changeMode：existing（修改存量业务/页面/组件/API）、incremental（新增但接入现有入口/流程）、new（独立新能力）。如果是 existing，记录 affectedAreas，并标记 design 阶段必须执行 legacyPreflight
+4. 在生成 proposal 前，用 Markdown checklist 让用户确认本次测试策略：
    - [ ] 自动化 UI 测试
    - [ ] 单元测试
    如果选择自动化 UI 测试，先确定入口、跳转路径、关键步骤和成功断言；AI 能从代码/Figma/导航确定就自行确定，不能确定就问用户。
-4. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 testStrategy
-5. 用 nova checkpoint artifacts --test-strategy '<json>' 记录 proposal、specDelta、activeChange 和 testStrategy
-6. 运行 nova validate
-7. 用 nova checkpoint phase propose --status done 记录完成
+5. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 changeMode、affectedAreas、testStrategy
+6. 用 nova checkpoint artifacts --change-mode existing|incremental|new --test-strategy '<json>' 记录 proposal、specDelta、activeChange、changeMode 和 testStrategy
+7. 运行 nova validate
+8. 用 nova checkpoint phase propose --status done 记录完成
 \`\`\`
 
 ### Phase 2: Design (设计)
 \`\`\`
 读取 activeChange 对应的 OpenSpec-compatible change，生成执行计划。
 1. 读 proposal/spec delta 和 src/ 了解架构
-2. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md
-3. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
-4. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands
-5. 用 nova checkpoint artifacts --design-doc 记录设计产物
-6. 运行 nova validate
-7. 用 nova checkpoint phase design --status done 记录完成
+2. 如果 changeMode=existing，先对 affectedAreas 做 legacyPreflight：检查架构边界、职责拆分、数据流、可测试性、验证命令、设计系统/项目规范、会影响本次需求的技术债
+3. 如果 legacyPreflight.hasIssues=true，用 Markdown checklist 询问用户重构策略：
+   - [ ] 仅完成本次需求，不做重构
+   - [ ] 做最小必要重构，只处理会阻塞本次需求的部分
+   - [ ] 将相关模块一起重构到项目规范
+   并映射 refactorPolicy: none|minimal|full
+4. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Legacy Preflight 结论
+5. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
+6. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands，并遵守 refactorPolicy
+7. 用 nova checkpoint artifacts --design-doc 记录设计产物；existing 场景还要加 --legacy-preflight '<json>'
+8. 运行 nova validate
+9. 用 nova checkpoint phase design --status done 记录完成
 \`\`\`
 
 ### Phase 3: Implement (实现)
@@ -91,10 +98,11 @@ Always read it first.
 1. 按 priority/dependency 排序执行
 2. 每个任务先运行 nova context --task-id <id> 获取上下文
 3. method=tdd 时先写失败测试，再实现，再重构
-4. 根据 testStrategy 编写被选择的单元测试或自动化 UI 脚本；未选择的测试类型不强制补写
-5. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence
-6. 失败时问用户：abort / skip / retry
-7. 全部完成后运行 nova guard implement verify，再用 nova checkpoint phase implement --status done
+4. 如果 context.designContext.legacyPreflight 存在，严格遵守 refactorPolicy，不临时扩大重构范围
+5. 根据 testStrategy 编写被选择的单元测试或自动化 UI 脚本；未选择的测试类型不强制补写
+6. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence
+7. 失败时问用户：abort / skip / retry
+8. 全部完成后运行 nova guard implement verify，再用 nova checkpoint phase implement --status done
 \`\`\`
 
 ### Phase 4: Verify (验证)

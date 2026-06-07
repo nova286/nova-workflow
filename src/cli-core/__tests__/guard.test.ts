@@ -57,7 +57,7 @@ describe('guardPhaseTransition', () => {
       artifacts: { specDelta: '.openspec/changes/change-one/specs/example/spec.md' },
       phases: {
         ...baseState.phases,
-        propose: { status: 'done', proposal: 'docs/prop.md', testStrategy: noExtraTestStrategy },
+        propose: { status: 'done', proposal: 'docs/prop.md', changeMode: 'new', testStrategy: noExtraTestStrategy },
       },
     });
     expect((await guardPhaseTransition('propose', 'design')).pass).toBe(true);

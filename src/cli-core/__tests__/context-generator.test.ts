@@ -29,6 +29,7 @@ describe("ContextGenerator", () => {
       projectType: "node",
       environment: ["generic"],
       activeChange: "add-login",
+      changeMode: "existing",
       integrations: {
         openspec: { mode: "compatible" },
         superpowers: { mode: "native" },
@@ -40,11 +41,26 @@ describe("ContextGenerator", () => {
         specDelta: ".openspec/changes/add-login/specs/auth/spec.md",
         implementationPlan: "docs/superpowers/plans/add-login.md",
         verificationReport: "",
+        changeMode: "existing",
+        legacyPreflight: {
+          required: true,
+          performed: true,
+          affectedAreas: ["src/login.ts"],
+          hasIssues: true,
+          issues: [{
+            area: "src/login.ts",
+            finding: "Existing login module mixes validation and token creation.",
+            severity: "medium",
+          }],
+          refactorPolicy: "minimal",
+          userDecision: "做最小必要重构，只处理会阻塞本次需求的部分",
+        },
       },
       phases: {
         propose: {
           status: "done",
           proposal: ".openspec/changes/add-login/proposal.md",
+          changeMode: "existing",
           testStrategy: {
             automatedUiTesting: true,
             unitTesting: true,
@@ -62,6 +78,19 @@ describe("ContextGenerator", () => {
         design: {
           status: "done",
           designDoc: "docs/design.md",
+          legacyPreflight: {
+            required: true,
+            performed: true,
+            affectedAreas: ["src/login.ts"],
+            hasIssues: true,
+            issues: [{
+              area: "src/login.ts",
+              finding: "Existing login module mixes validation and token creation.",
+              severity: "medium",
+            }],
+            refactorPolicy: "minimal",
+            userDecision: "做最小必要重构，只处理会阻塞本次需求的部分",
+          },
           tasks: [],
         },
       },
@@ -114,6 +143,8 @@ describe("ContextGenerator", () => {
     expect(context.methodology.openspec.mode).toBe("compatible");
     expect(context.methodology.superpowers.mode).toBe("native");
     expect(context.implementation.method).toBe("tdd");
+    expect(context.designContext.legacyPreflight?.refactorPolicy).toBe("minimal");
+    expect(context.designContext.architectureNotes).toContain("minimal");
     expect(context.implementation.specRefs).toEqual(["auth.requirements.valid-credential-login"]);
     expect(context.implementation.acceptanceRefs).toEqual(["auth.acceptance.valid-login-returns-token"]);
     expect(context.verification.commands).toEqual(["npm test -- login", "npx tsc --noEmit"]);

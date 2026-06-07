@@ -81,6 +81,22 @@ function resolveTestStrategy(state: any) {
   return state.phases?.propose?.testStrategy || state.testStrategy || state.artifacts?.testStrategy;
 }
 
+function resolveChangeMode(state: any) {
+  return state.phases?.propose?.changeMode || state.changeMode || state.artifacts?.changeMode;
+}
+
+function resolveLegacyPreflight(state: any) {
+  return state.phases?.design?.legacyPreflight || state.legacyPreflight || state.artifacts?.legacyPreflight;
+}
+
+function isValidChangeMode(value: unknown): boolean {
+  return value === 'existing' || value === 'incremental' || value === 'new';
+}
+
+function isValidRefactorPolicy(value: unknown): boolean {
+  return value === 'none' || value === 'minimal' || value === 'full';
+}
+
 function commandLooksLikeUiTest(command: unknown): boolean {
   if (typeof command !== 'string') return false;
   return /\b(playwright|cypress|detox|maestro|appium|mobile|simulator|xcodebuild|e2e|ui[-:]?test)\b/i.test(command);
@@ -161,6 +177,54 @@ function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[
   }
 }
 
+function validateChangeModeAndLegacyPreflight(state: any, errors: ValidationIssue[]) {
+  const changeMode = resolveChangeMode(state);
+  if (state.phases?.propose?.status === 'done' && !changeMode) {
+    errors.push(issue('change-mode.missing', 'propose is done but changeMode is missing', 'phases.propose.changeMode'));
+    return;
+  }
+  if (changeMode && !isValidChangeMode(changeMode)) {
+    errors.push(issue('change-mode.invalid', 'changeMode must be one of existing, incremental, new', 'phases.propose.changeMode'));
+    return;
+  }
+
+  if (changeMode !== 'existing' || state.phases?.design?.status !== 'done') return;
+
+  const preflight = resolveLegacyPreflight(state);
+  if (!preflight) {
+    errors.push(issue('legacy-preflight.missing', 'existing change requires legacyPreflight before design is done', 'phases.design.legacyPreflight'));
+    return;
+  }
+  if (typeof preflight !== 'object' || Array.isArray(preflight)) {
+    errors.push(issue('legacy-preflight.invalid', 'legacyPreflight must be an object', 'phases.design.legacyPreflight'));
+    return;
+  }
+  if (preflight.required !== true) {
+    errors.push(issue('legacy-preflight.invalid', 'legacyPreflight.required must be true for existing changes', 'phases.design.legacyPreflight.required'));
+  }
+  if (preflight.performed !== true) {
+    errors.push(issue('legacy-preflight.not-performed', 'legacy preflight must be performed before design is done', 'phases.design.legacyPreflight.performed'));
+  }
+  if (!Array.isArray(preflight.affectedAreas) || preflight.affectedAreas.length === 0) {
+    errors.push(issue('legacy-preflight.areas.missing', 'legacyPreflight must record affectedAreas', 'phases.design.legacyPreflight.affectedAreas'));
+  }
+  if (typeof preflight.hasIssues !== 'boolean') {
+    errors.push(issue('legacy-preflight.invalid', 'legacyPreflight.hasIssues must be a boolean', 'phases.design.legacyPreflight.hasIssues'));
+    return;
+  }
+  if (preflight.hasIssues === true) {
+    if (!Array.isArray(preflight.issues) || preflight.issues.length === 0) {
+      errors.push(issue('legacy-preflight.issues.missing', 'legacy preflight found issues but no issues are recorded', 'phases.design.legacyPreflight.issues'));
+    }
+    if (!isValidRefactorPolicy(preflight.refactorPolicy)) {
+      errors.push(issue('legacy-preflight.refactor-policy.missing', 'legacy preflight found issues but refactorPolicy is missing or invalid', 'phases.design.legacyPreflight.refactorPolicy'));
+    }
+    if (!hasText(preflight.userDecision)) {
+      errors.push(issue('legacy-preflight.user-decision.missing', 'legacy preflight found issues but userDecision is missing', 'phases.design.legacyPreflight.userDecision'));
+    }
+  }
+}
+
 function pushQualityErrors(
   errors: ValidationIssue[],
   code: string,
@@ -236,6 +300,7 @@ export function validateState(state: any, options: ValidationOptions = {}): Vali
     }
   }
   validateFigmaTraceability(state, proposalContent, errors);
+  validateChangeModeAndLegacyPreflight(state, errors);
 
   const design = phases.design || {};
   const tasks = design.tasks || [];

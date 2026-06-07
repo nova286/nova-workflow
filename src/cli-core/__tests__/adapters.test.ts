@@ -18,6 +18,14 @@ describe('Environment Adapters', () => {
     expect(content).toContain('testStrategy');
   }
 
+  function expectLegacyPreflightRules(content: string) {
+    expect(content).toContain('changeMode');
+    expect(content).toContain('legacyPreflight');
+    expect(content).toContain('[ ] 仅完成本次需求，不做重构');
+    expect(content).toContain('[ ] 做最小必要重构，只处理会阻塞本次需求的部分');
+    expect(content).toContain('[ ] 将相关模块一起重构到项目规范');
+  }
+
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-adapter-'));
     originalHome = process.env.HOME;
@@ -72,6 +80,7 @@ describe('Environment Adapters', () => {
 
       const content = await fs.readFile(path.join(testDir, 'CODEX.md'), 'utf-8');
       expectTestStrategyChecklist(content);
+      expectLegacyPreflightRules(content);
     });
   });
 
@@ -104,6 +113,7 @@ describe('Environment Adapters', () => {
 
       const content = await fs.readFile(path.join(testDir, '.openclaw', 'instructions.md'), 'utf-8');
       expectTestStrategyChecklist(content);
+      expectLegacyPreflightRules(content);
     });
   });
 
@@ -134,6 +144,7 @@ describe('Environment Adapters', () => {
 
       const content = await fs.readFile(path.join(testDir, 'HERMES.md'), 'utf-8');
       expectTestStrategyChecklist(content);
+      expectLegacyPreflightRules(content);
     });
   });
 
@@ -166,7 +177,9 @@ describe('Environment Adapters', () => {
       await adapter.setup(testDir);
 
       const raw = await fs.readFile(path.join(testDir, 'opencode.json'), 'utf-8');
-      expectTestStrategyChecklist(JSON.parse(raw).instructions);
+      const instructions = JSON.parse(raw).instructions;
+      expectTestStrategyChecklist(instructions);
+      expectLegacyPreflightRules(instructions);
     });
   });
 
@@ -217,8 +230,10 @@ describe('Environment Adapters', () => {
       const adapter = new ClaudeCodeAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
 
-      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
-      expectTestStrategyChecklist(content);
+      const propose = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
+      const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
+      expectTestStrategyChecklist(propose);
+      expectLegacyPreflightRules(`${propose}\n${design}`);
     });
 
     test('no MCP steps when no MCP configured', async () => {
@@ -286,8 +301,10 @@ describe('Environment Adapters', () => {
       const adapter = new PiCodingAgentAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
 
-      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
-      expectTestStrategyChecklist(content);
+      const propose = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
+      const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
+      expectTestStrategyChecklist(propose);
+      expectLegacyPreflightRules(`${propose}\n${design}`);
     });
   });
 });

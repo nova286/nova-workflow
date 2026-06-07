@@ -26,6 +26,28 @@ const validTask = {
   verification: { commands: ['npm test'] },
 };
 
+const noExtraTestStrategy = {
+  automatedUiTesting: false,
+  unitTesting: false,
+  rationale: 'No additional test automation selected.',
+};
+
+const validLegacyPreflight = {
+  required: true,
+  performed: true,
+  affectedAreas: ['src/task.ts'],
+  hasIssues: true,
+  issues: [{
+    area: 'src/task.ts',
+    finding: 'Module mixes validation and persistence concerns.',
+    severity: 'medium',
+    recommendation: 'Extract validation touched by this change.',
+  }],
+  refactorPolicy: 'minimal',
+  userDecision: '做最小必要重构，只处理会阻塞本次需求的部分',
+  rationale: 'Only blockers should be refactored in this change.',
+};
+
 describe('validateState', () => {
   test('passes a freshly initialized state', () => {
     const result = validateState(baseState);
@@ -114,6 +136,100 @@ describe('validateState', () => {
     expect(result.errors.some(e => e.code === 'test-strategy.missing')).toBe(true);
   });
 
+  test('fails when propose is done without change mode', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          testStrategy: noExtraTestStrategy,
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'change-mode.missing')).toBe(true);
+  });
+
+  test('fails when existing change design is done without legacy preflight', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          changeMode: 'existing',
+          testStrategy: noExtraTestStrategy,
+        },
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'legacy-preflight.missing')).toBe(true);
+  });
+
+  test('fails when legacy preflight finds issues without refactor policy', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          changeMode: 'existing',
+          testStrategy: noExtraTestStrategy,
+        },
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          legacyPreflight: {
+            required: true,
+            performed: true,
+            affectedAreas: ['src/task.ts'],
+            hasIssues: true,
+            issues: [{ area: 'src/task.ts', finding: 'Too broad', severity: 'medium' }],
+          },
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'legacy-preflight.refactor-policy.missing')).toBe(true);
+    expect(result.errors.some(e => e.code === 'legacy-preflight.user-decision.missing')).toBe(true);
+  });
+
+  test('passes existing change with valid legacy preflight', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          changeMode: 'existing',
+          testStrategy: noExtraTestStrategy,
+        },
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          legacyPreflight: validLegacyPreflight,
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.errors.filter(e => e.code.startsWith('legacy-preflight.'))).toEqual([]);
+  });
+
   test('fails when test strategy is malformed', () => {
     const result = validateState({
       ...baseState,
@@ -122,6 +238,7 @@ describe('validateState', () => {
         propose: {
           status: 'done',
           proposal: 'docs/proposal.md',
+          changeMode: 'new',
           testStrategy: {
             automatedUiTesting: 'true',
             unitTesting: undefined,
@@ -142,6 +259,7 @@ describe('validateState', () => {
         propose: {
           status: 'done',
           proposal: 'docs/proposal.md',
+          changeMode: 'new',
           testStrategy: { automatedUiTesting: true, unitTesting: false },
         },
       },
@@ -159,6 +277,7 @@ describe('validateState', () => {
         propose: {
           status: 'done',
           proposal: 'docs/proposal.md',
+          changeMode: 'new',
           testStrategy: {
             automatedUiTesting: false,
             unitTesting: true,
@@ -185,6 +304,7 @@ describe('validateState', () => {
         propose: {
           status: 'done',
           proposal: 'docs/proposal.md',
+          changeMode: 'new',
           testStrategy: {
             automatedUiTesting: false,
             unitTesting: true,
@@ -215,6 +335,7 @@ describe('validateState', () => {
         propose: {
           status: 'done',
           proposal: 'docs/proposal.md',
+          changeMode: 'new',
           testStrategy: {
             automatedUiTesting: false,
             unitTesting: false,
@@ -240,6 +361,7 @@ describe('validateState', () => {
         propose: {
           status: 'done',
           proposal: 'docs/proposal.md',
+          changeMode: 'new',
           testStrategy: {
             automatedUiTesting: true,
             unitTesting: true,

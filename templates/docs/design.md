@@ -16,6 +16,33 @@
 
 <!-- How data moves through the system, key interfaces -->
 
+## Legacy Preflight
+
+<!-- Required when proposal changeMode=existing.
+
+Inspect affected existing code before task planning:
+- architecture boundaries and module/component responsibility
+- state/data flow and interface contracts
+- testability and available verification commands
+- project conventions/design-system compliance
+- technical debt that could affect this change
+
+If issues are found, ask the user before finalizing tasks:
+- [ ] 仅完成本次需求，不做重构
+- [ ] 做最小必要重构，只处理会阻塞本次需求的部分
+- [ ] 将相关模块一起重构到项目规范
+
+Record:
+- required: true
+- performed: true
+- affectedAreas: string[]
+- hasIssues: true | false
+- issues: area, finding, severity, recommendation
+- refactorPolicy: none | minimal | full
+- userDecision: exact user-facing decision
+- rationale: why the selected policy is appropriate
+-->
+
 ## Implementation Plan
 
 <!-- Ordered list of tasks defined in YAML below -->
@@ -119,4 +146,6 @@ If a test type is not selected, do not force it; record a concise rationale when
 
 <!-- Before marking design done, record artifacts:
 nova checkpoint artifacts --design-doc docs/designs/<file>.md
+For existing changes, also pass:
+nova checkpoint artifacts --legacy-preflight '<json>'
 -->

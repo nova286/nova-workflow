@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { checkpointArtifacts, checkpointPhase, checkpointTask, CheckpointStatus } from '../../cli-core/checkpoint';
-import { TestStrategy } from '../../cli-core/types';
+import { ChangeMode, LegacyPreflight, TestStrategy } from '../../cli-core/types';
 import { ui } from '../ui';
 import { withErrorHandling } from '../error-handler';
 
@@ -37,6 +37,42 @@ function parseTestStrategy(value?: string): TestStrategy | undefined {
   }
 
   return strategy;
+}
+
+function parseChangeMode(value?: string): ChangeMode | undefined {
+  if (!value) return undefined;
+  if (value !== 'existing' && value !== 'incremental' && value !== 'new') {
+    throw new Error('--change-mode must be one of existing, incremental, new');
+  }
+  return value;
+}
+
+function parseLegacyPreflight(value?: string): LegacyPreflight | undefined {
+  if (!value) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error('--legacy-preflight must be valid JSON');
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('--legacy-preflight must be a JSON object');
+  }
+
+  const preflight = parsed as LegacyPreflight;
+  if (
+    typeof preflight.required !== 'boolean' ||
+    typeof preflight.performed !== 'boolean' ||
+    typeof preflight.hasIssues !== 'boolean'
+  ) {
+    throw new Error('--legacy-preflight must include boolean required, performed, and hasIssues');
+  }
+  if (!Array.isArray(preflight.affectedAreas)) {
+    throw new Error('--legacy-preflight must include affectedAreas array');
+  }
+
+  return preflight;
 }
 
 export function registerCheckpointCommand(program: Command) {
@@ -82,6 +118,8 @@ export function registerCheckpointCommand(program: Command) {
     .option('--verification-report <path>', 'Verification report path')
     .option('--active-change <id>', 'Active OpenSpec-compatible change id')
     .option('--test-strategy <json>', 'JSON test strategy contract')
+    .option('--change-mode <mode>', 'Change mode: existing, incremental, or new')
+    .option('--legacy-preflight <json>', 'JSON legacy preflight contract')
     .action(withErrorHandling(async (options: {
       proposal?: string;
       designDoc?: string;
@@ -89,10 +127,14 @@ export function registerCheckpointCommand(program: Command) {
       verificationReport?: string;
       activeChange?: string;
       testStrategy?: string;
+      changeMode?: string;
+      legacyPreflight?: string;
     }) => {
       await checkpointArtifacts({
         ...options,
         testStrategy: parseTestStrategy(options.testStrategy),
+        changeMode: parseChangeMode(options.changeMode),
+        legacyPreflight: parseLegacyPreflight(options.legacyPreflight),
       });
       ui.success('Checkpointed workflow artifacts.');
     }));

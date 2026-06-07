@@ -32,6 +32,13 @@ function resolveTestStrategy(state: any, task: any) {
     state.artifacts?.testStrategy;
 }
 
+function resolveLegacyPreflight(state: any, task: any) {
+  return task.legacyPreflight ||
+    state.phases?.design?.legacyPreflight ||
+    state.legacyPreflight ||
+    state.artifacts?.legacyPreflight;
+}
+
 function normalizeMethod(method: unknown, taskType: TaskContext['taskType']): ImplementationMethod {
   if (
     method === 'tdd' ||
@@ -53,6 +60,7 @@ export class ContextGenerator {
     const taskType = TYPE_MAP[task.type] || 'other';
     const figmaTraceability = task.figma || (state as any).phases?.propose?.figma || (state as any).artifacts?.figmaTraceability;
     const testStrategy = resolveTestStrategy(state, task);
+    const legacyPreflight = resolveLegacyPreflight(state, task);
     const expectedArtifacts = [...(task.expectedArtifacts || [])];
     if (figmaTraceability?.assetRequirements?.length) {
       expectedArtifacts.push({
@@ -71,7 +79,10 @@ export class ContextGenerator {
       designContext: {
         designDocRef: state.phases.design?.designDoc || '',
         relevantSpecs: task.specRefs || [],
-        architectureNotes: '',
+        architectureNotes: legacyPreflight?.refactorPolicy
+          ? `Legacy refactor policy: ${legacyPreflight.refactorPolicy}`
+          : '',
+        legacyPreflight,
       },
       input: {
         files: (task.files || []).map((f: any) => ({

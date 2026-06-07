@@ -12,6 +12,10 @@
 
 <!-- Per-task review results: correctness, conventions, error handling, test coverage. -->
 
+## Legacy Regression
+
+<!-- If changeMode=existing, report whether implementation stayed within refactorPolicy and how existing behavior was regression-checked. -->
+
 ## Security Review
 
 <!-- Injection risks, secret exposure, insecure dependencies, input validation. -->

@@ -238,6 +238,7 @@ describe('InitManager', () => {
     test('generates Nova skills in ~/.agents/skills/ with symlinks when skillsDir=user', async () => {
       const agentsSkillsDir = path.join(homeDir, '.agents', 'skills');
       const claudeSkillsDir = path.join(homeDir, '.claude', 'skills');
+      const codexSkillsDir = path.join(homeDir, '.codex', 'skills');
       const mgr = new InitManager(testDir, { force: false, skillsDir: 'user', homeDir });
       await mgr.run();
 
@@ -251,6 +252,11 @@ describe('InitManager', () => {
         expect(content).toContain('description:');
       }
       await expect(fs.access(claudeSkillsDir)).resolves.toBeUndefined();
+      await expect(fs.access(codexSkillsDir)).resolves.toBeUndefined();
+      expect((await fs.lstat(claudeSkillsDir)).isSymbolicLink()).toBe(true);
+      expect((await fs.lstat(codexSkillsDir)).isSymbolicLink()).toBe(true);
+      expect(await fs.readlink(claudeSkillsDir)).toBe(agentsSkillsDir);
+      expect(await fs.readlink(codexSkillsDir)).toBe(agentsSkillsDir);
     });
   });
 

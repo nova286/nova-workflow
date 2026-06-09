@@ -177,17 +177,24 @@ export class InitManager {
   private async prepareSharedSkillsDirs() {
     const agentsSkillsDir = path.join(this.homeDir(), '.agents', 'skills');
     const claudeSkillsDir = path.join(this.homeDir(), '.claude', 'skills');
+    const codexSkillsDir = path.join(this.homeDir(), '.codex', 'skills');
     await fs.mkdir(agentsSkillsDir, { recursive: true });
+
+    await this.ensureSharedSkillsLink(agentsSkillsDir, claudeSkillsDir);
+    await this.ensureSharedSkillsLink(agentsSkillsDir, codexSkillsDir);
+  }
+
+  private async ensureSharedSkillsLink(agentsSkillsDir: string, skillsDir: string) {
     try {
-      await fs.lstat(claudeSkillsDir);
+      await fs.lstat(skillsDir);
       return;
     } catch {}
 
-    await fs.mkdir(path.dirname(claudeSkillsDir), { recursive: true });
+    await fs.mkdir(path.dirname(skillsDir), { recursive: true });
     try {
-      await fs.symlink(agentsSkillsDir, claudeSkillsDir, 'dir');
+      await fs.symlink(agentsSkillsDir, skillsDir, 'dir');
     } catch {
-      await fs.mkdir(claudeSkillsDir, { recursive: true });
+      await fs.mkdir(skillsDir, { recursive: true });
     }
   }
 
@@ -268,7 +275,7 @@ export class InitManager {
   private async cleanEnvCommands(envs: string[]) {
     const cleanupMap: Record<string, string[]> = {
       'claude-code': ['.agents/skills'],
-      'codex': ['CODEX.md'],
+      'codex': ['CODEX.md', '.agents/skills/nova-archive', '.codex/skills/nova-archive'],
       'openclaw': ['.openclaw'],
       'hermes-agent': ['HERMES.md'],
       'opencode': ['opencode.json'],
@@ -276,7 +283,7 @@ export class InitManager {
     for (const env of envs) {
       const targets = cleanupMap[env] ?? [];
       for (const target of targets) {
-        const baseDir = (env === 'claude-code' && this.resolvedSkillsDir === 'user')
+        const baseDir = ((env === 'claude-code' || env === 'codex') && this.resolvedSkillsDir === 'user')
           ? this.homeDir()
           : this.cwd;
         await fs.rm(path.join(baseDir, target), { recursive: true, force: true });

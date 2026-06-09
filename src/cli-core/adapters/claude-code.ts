@@ -38,10 +38,11 @@ Based on the first phase that is NOT done:
 - design: pending → "/nova-design — Create technical design"
 - implement: pending → "/nova-implement — Start implementing"
 - verify: pending → "/nova-verify — Run review pipeline"
-- all done → "nova archive — Finalize project"
+- archive: pending → "/nova-archive — Finalize and clean artifacts"
+- all done → "Complete — workflow archived"
 
 Show: "Next: <suggestion>"
-Also list: /nova-propose /nova-design /nova-implement /nova-verify /nova-iterate /nova-status and CLI helpers \`nova next\`, \`nova validate\`, \`nova checkpoint\`.
+Also list: /nova-propose /nova-design /nova-implement /nova-verify /nova-archive /nova-iterate /nova-status and CLI helpers \`nova next\`, \`nova validate\`, \`nova checkpoint\`.
 
 ## Step 4: Act
 Ask: "Run the suggested action, pick another, or do something else?"
@@ -326,6 +327,35 @@ Run \`nova validate\`, then mark completion with
 ## Constraints
 - Be specific — reference file paths and line numbers.
 - Security findings must include severity and remediation.
+`,
+
+  'nova-archive.md': () => `---
+description: Nova archive phase — finalize specs and clean source artifacts
+---
+
+# Nova Archive Phase
+
+You are executing the **archive phase** of a Nova workflow. Your role is to
+finalize the workflow by delegating to the deterministic CLI archive command.
+
+## Step 1: Verify State
+Read \`.nova.yaml\`. Require \`phases.verify.status: done\`. Run
+\`nova guard verify archive\` and stop if it fails.
+
+## Step 2: Archive
+Run \`nova archive\`. This copies proposal, design, and verification artifacts
+into \`docs/specs/\`, updates \`.nova.yaml\` to point at the archived copies,
+removes source artifacts recorded in state, removes the active OpenSpec change
+directory when recorded, removes the Superpowers implementation plan when
+recorded, and clears temporary Nova contexts.
+
+## Step 3: Report
+Summarize the archived files and cleaned source artifacts from the CLI output.
+Then run \`nova next\` or read \`.nova.yaml\` to confirm the workflow is complete.
+
+## Constraints
+- Do not manually delete code files.
+- If \`nova archive\` fails, report the exact guard or artifact issue.
 `,
 
   'nova-iterate.md': () => `---

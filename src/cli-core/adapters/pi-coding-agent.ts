@@ -38,7 +38,8 @@ Based on the first phase that is NOT done:
 - design: pending → "Run design phase"
 - implement: pending → "Run implement phase"
 - verify: pending → "Run verify phase"
-- all done → "Run nova archive"
+- archive: pending → "Run archive phase"
+- all done → "Workflow archived"
 `,
 
   'nova-propose.md': () => `---
@@ -201,6 +202,25 @@ Write docs/reports/verification-report.md.
 
 ## Step 6: Update State
 Run \`nova checkpoint artifacts --verification-report docs/reports/verification-report.md\`, then \`nova validate\`, then set phases.verify.status = done with \`nova checkpoint phase verify --status done\`.
+`,
+
+  'nova-archive.md': () => `---
+description: Nova archive phase — finalize specs and clean source artifacts
+---
+
+# Nova Archive Phase
+
+## Step 1: Verify State
+Read \`.nova.yaml\`. Require phases.verify.status = done. Run \`nova guard verify archive\`.
+
+## Step 2: Archive
+Run \`nova archive\`. It copies proposal, design, and verification artifacts into
+\`docs/specs/\`, updates state to point at archived copies, deletes source
+artifacts recorded in state, deletes recorded OpenSpec/Superpowers planning
+artifacts, and clears temporary contexts.
+
+## Step 3: Confirm Completion
+Run \`nova next\` or read \`.nova.yaml\` and report the workflow is complete.
 `,
 
   'nova-iterate.md': () => `---

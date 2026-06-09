@@ -68,7 +68,7 @@ export async function getNextAction(): Promise<NextActionResult> {
     if (!guard.pass) {
       return blocked('archive', 'nova guard verify archive', 'Cannot archive until verification guard passes.', guardFailuresToIssues(guard.failures), validation.warnings);
     }
-    return ready('archive', 'nova archive', 'Verification is complete and archive is next.', validation.warnings);
+    return ready('archive', '/nova-archive', 'Verification is complete and archive is next.', validation.warnings);
   }
 
   return {

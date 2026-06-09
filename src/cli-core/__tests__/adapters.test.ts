@@ -82,6 +82,53 @@ describe('Environment Adapters', () => {
       expectTestStrategyChecklist(content);
       expectLegacyPreflightRules(content);
     });
+
+    test('creates nova-archive skill in project agents skills', async () => {
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-archive', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('nova archive');
+      expect(content).toContain('docs/specs/');
+      expect(content).toContain('Superpowers');
+    });
+
+    test('creates nova-archive skill in user Codex skills', async () => {
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-codex-home-'));
+
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir, { skillsDir: 'user', homeDir });
+
+      const codexSkillsStat = await fs.lstat(path.join(homeDir, '.codex', 'skills'));
+      expect(codexSkillsStat.isSymbolicLink()).toBe(true);
+      expect(await fs.readlink(path.join(homeDir, '.codex', 'skills'))).toBe(path.join(homeDir, '.agents', 'skills'));
+      await expect(fs.access(path.join(homeDir, '.agents', 'skills', 'nova-archive', 'SKILL.md'))).resolves.toBeUndefined();
+
+      const content = await fs.readFile(path.join(homeDir, '.codex', 'skills', 'nova-archive', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('nova archive');
+      expect(content).toContain('docs/specs/');
+      expect(content).toContain('Superpowers');
+
+      await fs.rm(homeDir, { recursive: true, force: true });
+    });
+
+    test('does not replace an existing user Codex skills directory', async () => {
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-codex-home-'));
+      const codexSkillsDir = path.join(homeDir, '.codex', 'skills');
+      await fs.mkdir(codexSkillsDir, { recursive: true });
+      await fs.writeFile(path.join(codexSkillsDir, 'custom.txt'), 'keep', 'utf-8');
+
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir, { skillsDir: 'user', homeDir });
+
+      const codexSkillsStat = await fs.lstat(codexSkillsDir);
+      expect(codexSkillsStat.isDirectory()).toBe(true);
+      expect(codexSkillsStat.isSymbolicLink()).toBe(false);
+      await expect(fs.readFile(path.join(codexSkillsDir, 'custom.txt'), 'utf-8')).resolves.toBe('keep');
+      await expect(fs.access(path.join(codexSkillsDir, 'nova-archive', 'SKILL.md'))).resolves.toBeUndefined();
+
+      await fs.rm(homeDir, { recursive: true, force: true });
+    });
   });
 
   describe('OpenClawAdapter', () => {
@@ -214,6 +261,16 @@ describe('Environment Adapters', () => {
       expect(content).not.toContain('which openspec');
     });
 
+    test('creates nova-archive skill', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-archive', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('nova archive');
+      expect(content).toContain('docs/specs/');
+      expect(content).toContain('source artifacts');
+    });
+
     test('nova-propose handles Figma links before generating specs', async () => {
       const adapter = new ClaudeCodeAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
@@ -305,6 +362,16 @@ describe('Environment Adapters', () => {
       const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
       expectTestStrategyChecklist(propose);
       expectLegacyPreflightRules(`${propose}\n${design}`);
+    });
+
+    test('creates nova-archive skill', async () => {
+      const adapter = new PiCodingAgentAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-archive', 'SKILL.md'), 'utf-8');
+      expect(content).toContain('nova archive');
+      expect(content).toContain('docs/specs/');
+      expect(content).toContain('Superpowers');
     });
   });
 });

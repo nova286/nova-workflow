@@ -150,6 +150,7 @@ And you can always iterate back — real development is not a waterfall.
 | `/nova-design` | Build a Superpowers-compatible plan and task graph from the spec |
 | `/nova-implement` | Execute spec-bound tasks with method, tests, and evidence |
 | `/nova-verify` | Run ECC (Everything Claude Code) compatible code, security, and spec-conformance review |
+| `/nova-archive` | Finalize archived specs and clean source planning artifacts |
 | `/nova-iterate` | Roll back to a previous phase for iteration |
 
 ### CLI Commands (in terminal)

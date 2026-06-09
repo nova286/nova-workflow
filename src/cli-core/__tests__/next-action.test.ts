@@ -127,6 +127,6 @@ describe('getNextAction', () => {
     const result = await getNextAction();
     expect(result.status).toBe('ready');
     expect(result.phase).toBe('archive');
-    expect(result.command).toBe('nova archive');
+    expect(result.command).toBe('/nova-archive');
   });
 });

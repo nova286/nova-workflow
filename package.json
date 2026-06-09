@@ -1,6 +1,6 @@
 {
   "name": "@nova286/nova-workflow",
-  "version": "2.5.6",
+  "version": "2.5.7",
   "description": "Nova: AI workflow orchestration — a thin shell for disciplined AI-assisted development",
   "main": "dist/cli/index.js",
   "bin": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && tsc && chmod +x dist/cli/index.js",
     "dev": "ts-node src/cli/index.ts",
     "test": "jest",
     "check:package": "node scripts/check-package-contents.js",

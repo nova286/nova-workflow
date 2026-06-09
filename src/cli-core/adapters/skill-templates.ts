@@ -119,7 +119,7 @@ Always read it first.
 
 ### Phase 5: Archive (归档)
 \`\`\`
-运行 nova archive 合并产物并清理
+运行 /nova-archive 或 nova archive 合并产物并清理。archive 会把 proposal、design、verification 复制到 docs/specs/，更新 .nova.yaml 指向归档副本，并删除 state 中记录的源文档、OpenSpec change、Superpowers plan 和临时 contexts。
 \`\`\`
 
 ## Key Rules
@@ -139,6 +139,7 @@ export const SKILL_DESCRIPTIONS: Record<string, string> = {
   'nova-design.md': 'Nova design phase — plan spec-bound work from an approved change',
   'nova-implement.md': 'Nova implement phase — execute spec-bound tasks with evidence',
   'nova-verify.md': 'Nova verify phase — run spec conformance, code, and security review',
+  'nova-archive.md': 'Nova archive phase — finalize specs and clean source artifacts',
   'nova-iterate.md': 'Nova iterate — roll back to a previous phase for iteration',
   'nova-status.md': 'Nova status — display phase progress, task completion, and stuck detection',
   'nova-detect.md': 'Nova detect — check installation status of CodeGraph, OpenSpec, Figma-mcp, Superpowers, affaan-m/ECC, mobile-mcp and provide install instructions',

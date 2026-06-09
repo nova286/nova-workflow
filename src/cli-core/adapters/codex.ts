@@ -1,6 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { EnvironmentAdapter } from '../types';
+import * as os from 'os';
+import * as crypto from 'crypto';
+import { AdapterSetupOptions, EnvironmentAdapter } from '../types';
 import { genericAgentInstructions } from './skill-templates';
 
 const CODEX_INSTRUCTIONS = `# Nova Workflow
@@ -89,7 +91,12 @@ Always read it first.
 export class CodexAdapter implements EnvironmentAdapter {
   name = 'codex';
 
-  async setup(cwd: string) {
+  async setup(cwd: string, options?: AdapterSetupOptions) {
+    await this.writeCodexInstructions(cwd);
+    await this.writeSkills(cwd, options);
+  }
+
+  private async writeCodexInstructions(cwd: string) {
     const filePath = path.join(cwd, 'CODEX.md');
     try {
       await fs.access(filePath);
@@ -97,4 +104,85 @@ export class CodexAdapter implements EnvironmentAdapter {
     } catch {}
     await fs.writeFile(filePath, genericAgentInstructions('codex'), 'utf-8');
   }
+
+  private async writeSkills(cwd: string, options?: AdapterSetupOptions) {
+    const skillsDir = options?.skillsDir === 'user'
+      ? await this.prepareUserSkillsDir(options.homeDir)
+      : path.join(cwd, '.agents', 'skills');
+
+    for (const [skillName, content] of Object.entries(CODEX_SKILLS)) {
+      const skillDir = path.join(skillsDir, skillName);
+      await fs.mkdir(skillDir, { recursive: true });
+      await this.writeSkillFile(path.join(skillDir, 'SKILL.md'), content);
+    }
+  }
+
+  private async prepareUserSkillsDir(homeDir = os.homedir()) {
+    const agentsSkillsDir = path.join(homeDir, '.agents', 'skills');
+    const codexSkillsDir = path.join(homeDir, '.codex', 'skills');
+    await fs.mkdir(agentsSkillsDir, { recursive: true });
+
+    try {
+      await fs.lstat(codexSkillsDir);
+    } catch {
+      await fs.mkdir(path.dirname(codexSkillsDir), { recursive: true });
+      try {
+        await fs.symlink(agentsSkillsDir, codexSkillsDir, 'dir');
+      } catch {
+        await fs.mkdir(codexSkillsDir, { recursive: true });
+      }
+    }
+
+    return codexSkillsDir;
+  }
+
+  private async writeSkillFile(filePath: string, content: string) {
+    const newHash = crypto.createHash('md5').update(content).digest('hex');
+    try {
+      const existing = await fs.readFile(filePath, 'utf-8');
+      const oldHash = crypto.createHash('md5').update(existing).digest('hex');
+      if (oldHash === newHash) return;
+    } catch {}
+    await fs.writeFile(filePath, content, 'utf-8');
+  }
 }
+
+const CODEX_SKILLS: Record<string, string> = {
+  'nova-archive': `---
+description: Nova archive phase — finalize specs and clean source artifacts
+---
+
+# Nova Archive Phase
+
+Use this skill when the Nova workflow is ready to archive.
+
+## Step 1: Verify State
+Read \`.nova.yaml\`. Require \`phases.verify.status: done\`. Run:
+
+\`\`\`bash
+nova guard verify archive
+\`\`\`
+
+Stop and report the guard failure if it fails.
+
+## Step 2: Archive
+Run:
+
+\`\`\`bash
+nova archive
+\`\`\`
+
+The CLI copies proposal, design, OpenSpec change, and verification artifacts into
+\`docs/specs/\`, updates \`.nova.yaml\` to point at archived copies, removes
+source artifacts recorded in state, removes recorded OpenSpec/Superpowers
+planning artifacts, and clears temporary Nova contexts.
+
+## Step 3: Confirm Completion
+Run \`nova next\` or read \`.nova.yaml\` to confirm the workflow is complete.
+Summarize the archived files and cleaned artifacts from the CLI output.
+
+## Constraints
+- Do not manually delete source code files.
+- If \`nova archive\` fails, report the exact artifact or guard issue.
+`,
+};

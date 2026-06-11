@@ -78,18 +78,19 @@ Always read it first.
 \`\`\`
 读取 activeChange 对应的 OpenSpec-compatible change，生成执行计划。
 1. 读 proposal/spec delta 和 src/ 了解架构
-2. 如果 changeMode=existing，先对 affectedAreas 做 legacyPreflight：检查架构边界、职责拆分、数据流、可测试性、验证命令、设计系统/项目规范、会影响本次需求的技术债
-3. 如果 legacyPreflight.hasIssues=true，用 Markdown checklist 询问用户重构策略：
+2. 必须读取当前项目目录声明的规范文件（如 AGENTS.md、CLAUDE.md、CODEX.md、README.md、.cursorrules、.cursor/rules/），以及将要触碰子目录内更近的 AGENTS.md/规范文件；提取强制规则、禁止事项、验证命令和编码约定
+3. 如果 changeMode=existing，先对 affectedAreas 做 legacyPreflight：检查架构边界、职责拆分、数据流、可测试性、验证命令、设计系统/项目规范、会影响本次需求的技术债
+4. 如果 legacyPreflight.hasIssues=true，用 Markdown checklist 询问用户重构策略：
    - [ ] 仅完成本次需求，不做重构
    - [ ] 做最小必要重构，只处理会阻塞本次需求的部分
    - [ ] 将相关模块一起重构到项目规范
    并映射 refactorPolicy: none|minimal|full
-4. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Legacy Preflight 结论
-5. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
-6. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands，并遵守 refactorPolicy
-7. 用 nova checkpoint artifacts --design-doc 记录设计产物；existing 场景还要加 --legacy-preflight '<json>'
-8. 运行 nova validate
-9. 用 nova checkpoint phase design --status done 记录完成
+5. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Project Rules/Conventions 摘要和 Legacy Preflight 结论
+6. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
+7. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands，并遵守项目规范和 refactorPolicy
+8. 用 nova checkpoint artifacts --design-doc 记录设计产物；existing 场景还要加 --legacy-preflight '<json>'
+9. 运行 nova validate
+10. 用 nova checkpoint phase design --status done 记录完成
 \`\`\`
 
 ### Phase 3: Implement (实现)
@@ -97,12 +98,13 @@ Always read it first.
 读取 .nova.yaml 中的 spec-bound tasks，逐个实现：
 1. 按 priority/dependency 排序执行
 2. 每个任务先运行 nova context --task-id <id> 获取上下文
-3. method=tdd 时先写失败测试，再实现，再重构
-4. 如果 context.designContext.legacyPreflight 存在，严格遵守 refactorPolicy，不临时扩大重构范围
-5. 根据 testStrategy 编写被选择的单元测试或自动化 UI 脚本；未选择的测试类型不强制补写
-6. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence
-7. 失败时问用户：abort / skip / retry
-8. 全部完成后运行 nova guard implement verify，再用 nova checkpoint phase implement --status done
+3. 在修改任何文件前，必须读取当前项目目录和目标文件子目录声明的规范文件（AGENTS.md、CLAUDE.md、CODEX.md、README.md、.cursorrules、.cursor/rules/ 等）；若规范与通用 Nova 指令冲突，优先遵守项目规范
+4. method=tdd 时先写失败测试，再实现，再重构
+5. 如果 context.designContext.legacyPreflight 存在，严格遵守 refactorPolicy，不临时扩大重构范围
+6. 根据 testStrategy 编写被选择的单元测试或自动化 UI 脚本；未选择的测试类型不强制补写
+7. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence，并在 evidence/总结中说明已遵守哪些项目规范和验证命令
+8. 失败时问用户：abort / skip / retry
+9. 全部完成后运行 nova guard implement verify，再用 nova checkpoint phase implement --status done
 \`\`\`
 
 ### Phase 4: Verify (验证)
@@ -125,6 +127,7 @@ Always read it first.
 ## Key Rules
 
 - Always read \`.nova.yaml\` before any action
+- Always obey project-local instruction files before Nova defaults: \`AGENTS.md\`, \`CLAUDE.md\`, \`CODEX.md\`, \`README.md\`, \`.cursorrules\`, \`.cursor/rules/\`, and closer directory-specific rule files for files you touch
 - Use \`nova next\`, \`nova validate\`, \`nova guard\`, \`nova context\`, and \`nova checkpoint\` for deterministic workflow decisions and state writes
 - After each task, run task verification commands, then project checks when needed
 - Do not mark a task done without spec/acceptance evidence

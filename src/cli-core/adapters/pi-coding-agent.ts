@@ -116,7 +116,15 @@ description: Nova design phase — create technical design and task list
 Read \`.nova.yaml\`. Require phases.propose.status = done. Update phases.design.status to in-progress with \`nova checkpoint phase design --status in-progress\` when available.
 
 ## Step 2: Load Context
-Read proposal, AGENTS.md, package.json, src/.
+Read proposal, \`AGENTS.md\`, \`CLAUDE.md\`, \`CODEX.md\`, \`README.md\`,
+package metadata, and \`src/\`. Also read project-local rule files when present,
+including \`.cursorrules\`, \`.cursor/rules/\`, and closer directory-specific
+\`AGENTS.md\` or instruction files for affected areas.
+
+Before planning tasks, extract mandatory project rules, forbidden patterns,
+required libraries/frameworks, and verification commands. Project rules override
+generic Nova guidance. Include a \`## Project Rules / Conventions\` summary in
+\`docs/designs/design.md\`.
 
 ## Step 3: Explore Architecture
 Explore at least 2 architectural approaches. Present alternatives.
@@ -138,6 +146,8 @@ record \`userDecision\`.
 
 ## Step 4: Generate Design
 Write \`docs/designs/design.md\` with architecture, tech stack, components, data flow, and task list in YAML.
+Tasks must reference the relevant project rules/conventions they must obey when
+touching code.
 Follow the proposal test strategy: automated UI testing requires UI flows plus
 a testing task or UI verification command; unit testing requires unit targets
 and unit test commands/files. Do not force unselected test types.
@@ -161,10 +171,19 @@ Read .nova.yaml. Require phases.design.status = done. Update phases.implement.st
 Show task summary. Confirm before proceeding.
 
 ## Step 3: Execute Each Task
-For each task: implement, write only the selected unit/UI tests from testStrategy,
-verify, record evidence with \`nova checkpoint task <task-id>\` (tests, filesChanged).
-Use \`nova context --task-id <id>\`; if legacyPreflight is present, stay within
-its refactorPolicy and record regression evidence for existing behavior.
+For each task: run \`nova context --task-id <id>\`, then before editing files
+read and obey the project-local instruction files that apply to the repository
+and target paths: \`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`,
+\`.cursorrules\`, \`.cursor/rules/\`, and any closer directory-specific rule
+files. If these rules conflict with generic Nova instructions, follow the
+project rules.
+
+Implement, write only the selected unit/UI tests from testStrategy, verify,
+confirm the work follows applicable project rules/conventions, and record
+evidence with \`nova checkpoint task <task-id>\` (tests, filesChanged). Include
+in the task summary/evidence which project rules and verification commands were
+followed. If legacyPreflight is present, stay within its refactorPolicy and
+record regression evidence for existing behavior.
 On failure: abort, skip, or retry.
 
 ## Step 4: Final Verification

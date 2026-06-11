@@ -26,6 +26,25 @@ describe('Environment Adapters', () => {
     expect(content).toContain('[ ] 将相关模块一起重构到项目规范');
   }
 
+  function expectProjectRulesInDesign(content: string) {
+    expect(content).toContain('AGENTS.md');
+    expect(content).toContain('CODEX.md');
+    expect(content).toContain('CLAUDE.md');
+    expect(content).toContain('.cursor/rules/');
+    expect(content).toContain('Project Rules / Conventions');
+    expect(content).toMatch(/Project rules override|higher priority/);
+  }
+
+  function expectProjectRulesInImplement(content: string) {
+    expect(content).toMatch(/[Bb]efore editing files/);
+    expect(content).toContain('AGENTS.md');
+    expect(content).toContain('CODEX.md');
+    expect(content).toContain('CLAUDE.md');
+    expect(content).toContain('.cursor/rules/');
+    expect(content).toMatch(/[Ii]f these\s+rules conflict/);
+    expect(content).toContain('task summary/evidence');
+  }
+
   const expectedNovaSkills = [
     'nova',
     'nova-propose',
@@ -103,6 +122,16 @@ describe('Environment Adapters', () => {
         const content = await fs.readFile(path.join(testDir, '.agents', 'skills', skill, 'SKILL.md'), 'utf-8');
         expect(content).toContain('description:');
       }
+    });
+
+    test('design and implement skills enforce project-local rules', async () => {
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const design = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
+      const implement = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-implement', 'SKILL.md'), 'utf-8');
+      expectProjectRulesInDesign(design);
+      expectProjectRulesInImplement(implement);
     });
 
     test('creates all Nova skills in user Codex skills', async () => {
@@ -307,6 +336,16 @@ describe('Environment Adapters', () => {
       expectLegacyPreflightRules(`${propose}\n${design}`);
     });
 
+    test('design and implement skills enforce project-local rules', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
+      const implement = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-implement', 'SKILL.md'), 'utf-8');
+      expectProjectRulesInDesign(design);
+      expectProjectRulesInImplement(implement);
+    });
+
     test('no MCP steps when no MCP configured', async () => {
       const adapter = new ClaudeCodeAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
@@ -376,6 +415,16 @@ describe('Environment Adapters', () => {
       const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
       expectTestStrategyChecklist(propose);
       expectLegacyPreflightRules(`${propose}\n${design}`);
+    });
+
+    test('design and implement skills enforce project-local rules', async () => {
+      const adapter = new PiCodingAgentAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
+      const implement = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-implement', 'SKILL.md'), 'utf-8');
+      expectProjectRulesInDesign(design);
+      expectProjectRulesInImplement(implement);
     });
 
     test('creates nova-archive skill', async () => {

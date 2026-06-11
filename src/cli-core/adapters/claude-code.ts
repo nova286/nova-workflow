@@ -163,7 +163,15 @@ Update \`phases.design.status\` to \`in-progress\` with
 
 ## Step 2: Load Context
 Read the proposal/spec delta (\`artifacts.proposal\`, \`artifacts.openspecChange\`),
-\`AGENTS.md\`, \`package.json\`, \`src/\`.
+\`AGENTS.md\`, \`CLAUDE.md\`, \`CODEX.md\`, \`README.md\`, package metadata,
+and \`src/\`. Also read project-local rule files when present, including
+\`.cursorrules\`, \`.cursor/rules/\`, and closer directory-specific
+\`AGENTS.md\` or instruction files for affected areas.
+
+Before planning tasks, extract mandatory project rules, forbidden patterns,
+required libraries/frameworks, and verification commands. Treat these project
+rules as higher priority than generic Nova guidance, and include a
+\`## Project Rules / Conventions\` summary in the design document.
 
 ## Step 3: Explore Architecture Options
 Use the **brainstorming skill** to explore at least 2 architectural approaches.
@@ -193,7 +201,8 @@ record \`userDecision\`. Do not expand refactoring scope later beyond this polic
 Based on the user-selected approach, use the **writing-plans skill** to produce
 \`docs/designs/design.md\` and \`docs/superpowers/plans/<change-id>.md\`.
 Tasks must include \`method\`, \`specRefs\`, \`acceptanceRefs\`, and
-\`verification.commands\`.
+\`verification.commands\`. Tasks must also reference the relevant project
+rules/conventions they must obey when touching code.
 Follow the proposal test strategy:
 - If \`automatedUiTesting=true\`, define UI test cases with entry point,
   route/screen, steps, expected result, and Mobile MCP/E2E runner needs. Add a
@@ -241,6 +250,12 @@ proceeding. For each task, use \`nova context --task-id <id>\`; if
 \`designContext.legacyPreflight\` is present, keep implementation and refactoring
 within its \`refactorPolicy\`.
 
+Before editing files for a task, read and obey the project-local instruction
+files that apply to the repository and target paths: \`AGENTS.md\`,
+\`CLAUDE.md\`, \`CODEX.md\`, \`README.md\`, \`.cursorrules\`,
+\`.cursor/rules/\`, and any closer directory-specific rule files. If these
+rules conflict with generic Nova instructions, follow the project rules.
+
 ## Step 3: Execute Each Task
 For each task in priority order:
 
@@ -258,9 +273,12 @@ For each task in priority order:
    UI scripts if selected
 4. For existing changes, run or record regression checks for affected legacy behavior
 5. Confirm specRefs and acceptanceRefs have evidence before marking complete
+6. Confirm the implementation follows the applicable project rules/conventions
 
 ### Record Result
 Record task status and evidence with \`nova checkpoint task <task-id> --status done --files <csv> --tests <csv> --trace-id <id>\` when available.
+Include in the task summary/evidence which project rules and verification
+commands were followed.
 On failure, ask user: abort, skip, or retry.
 
 ## Step 4: Final Verification

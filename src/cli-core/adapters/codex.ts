@@ -225,13 +225,23 @@ nova checkpoint phase design --status in-progress
 \`\`\`
 
 ## Step 2: Load Context
-Read the proposal/spec delta, \`AGENTS.md\`, package metadata, and relevant
-source files.
+Read the proposal/spec delta, \`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`,
+\`README.md\`, package metadata, and relevant source files. Also read
+project-local rule files when present, including \`.cursorrules\`,
+\`.cursor/rules/\`, and closer directory-specific \`AGENTS.md\` or instruction
+files for affected areas.
+
+Before planning tasks, extract mandatory project rules, forbidden patterns,
+required libraries/frameworks, and verification commands. Project rules override
+generic Nova guidance. Include a \`## Project Rules / Conventions\` summary in
+\`docs/designs/design.md\`.
 
 ## Step 3: Plan
 Produce \`docs/designs/design.md\` and
 \`docs/superpowers/plans/<change-id>.md\`. Tasks must include concrete files,
 method, specRefs, acceptanceRefs, acceptance criteria, and verification commands.
+Tasks must also reference the relevant project rules/conventions they must obey
+when touching code.
 For existing changes, perform and record legacyPreflight before task planning.
 
 ## Step 4: Update State
@@ -254,9 +264,17 @@ nova checkpoint phase implement --status in-progress
 \`\`\`
 
 ## Step 2: Execute Tasks
-For each task, run \`nova context --task-id <id>\`, implement only the scoped
-work, run the task verification commands, and record evidence with
-\`nova checkpoint task <task-id>\`.
+For each task, run \`nova context --task-id <id>\`. Before editing files, read
+and obey the project-local instruction files that apply to the repository and
+target paths: \`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`,
+\`.cursorrules\`, \`.cursor/rules/\`, and any closer directory-specific rule
+files. If these rules conflict with generic Nova instructions, follow the
+project rules.
+
+Implement only the scoped work, run the task verification commands, confirm the
+work follows applicable project rules/conventions, and record evidence with
+\`nova checkpoint task <task-id>\`. Include in the task summary/evidence which
+project rules and verification commands were followed.
 
 ## Step 3: Finish
 Run project checks, \`nova guard implement verify\`, then

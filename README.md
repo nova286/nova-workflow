@@ -72,10 +72,11 @@ nova init --agent codex   # Or initialize only for a specific Agent
 nova                      # Show the next recommended action
 ```
 
-By default, `nova init` detects installed Agent CLIs and configures all matching
-environments. Use `--agent <id>` to make initialization deterministic for one
-Agent, such as `codex`, `claude-code`, `openclaw`, `opencode`, or
-`pi-coding-agent`.
+By default, `nova init` asks where to install skills (`user` shared skills or
+project-local skills), then asks which AI tools to configure. Detected Agent
+CLIs are preselected. Use `--skills-dir <user|project>` and `--agent <id>` to
+make initialization deterministic for scripts, with Agent ids such as `codex`,
+`claude-code`, `openclaw`, `opencode`, or `pi-coding-agent`.
 
 Then, inside Claude Code:
 
@@ -158,7 +159,7 @@ And you can always iterate back — real development is not a waterfall.
 | Command | What it does |
 |---------|-------------|
 | `nova` | Equivalent to `nova next`; shows the recommended next action |
-| `nova init [--agent <id>]` | Initialize Nova: creates `.nova.yaml`, installs Agent files |
+| `nova init [--agent <id>] [--skills-dir <user\|project>]` | Initialize Nova: creates `.nova.yaml`, installs selected Agent files |
 | `nova next` | Decide the next action without running long Agent work |
 | `nova validate` | Validate `.nova.yaml`, artifacts, task shape, and evidence |
 | `nova detect` | Check required, recommended, and optional Nova-enhancing tools |

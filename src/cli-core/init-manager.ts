@@ -36,6 +36,15 @@ const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
   'pi-coding-agent': () => new PiCodingAgentAdapter(),
 };
 
+const AI_ENVIRONMENT_CHOICES = [
+  { name: 'Claude Code', value: 'claude-code' },
+  { name: 'Codex', value: 'codex' },
+  { name: 'OpenClaw', value: 'openclaw' },
+  { name: 'Hermes Agent', value: 'hermes-agent' },
+  { name: 'OpenCode', value: 'opencode' },
+  { name: 'Pi Coding Agent', value: 'pi-coding-agent' },
+];
+
 export class InitManager {
   private cwd: string;
   private options: { eccPath?: string; force?: boolean; skillsDir?: 'project' | 'user'; agent?: string; homeDir?: string };
@@ -56,13 +65,13 @@ export class InitManager {
     }
     if (await this.isInitialized()) await this.backup();
 
-    const envs = await this.detectAIEnvironment();
-    const envAdapters = envs.map(e => this.getAdapter(e));
     const detection = await this.detectEnvironment();
     const mcpServers = mcpServersFromDetections(detection.tools);
 
-    const skillsDir = this.options.skillsDir ?? await this.promptSkillsDir(envs);
+    const skillsDir = this.options.skillsDir ?? await this.promptSkillsDir();
     this.resolvedSkillsDir = skillsDir;
+    const envs = await this.resolveAIEnvironments();
+    const envAdapters = envs.map(e => this.getAdapter(e));
     const adapterOptions: AdapterSetupOptions = { skillsDir, mcpServers, homeDir: this.homeDir() };
 
     this.steps = [
@@ -108,15 +117,14 @@ export class InitManager {
     try { await fs.access(path.join(this.cwd, '.nova.yaml')); return true; } catch { return false; }
   }
 
-  private async promptSkillsDir(envs: string[]): Promise<'project' | 'user'> {
-    if (!envs.includes('claude-code')) return 'project';
+  private async promptSkillsDir(): Promise<'project' | 'user'> {
     const { skillsDir } = await inquirer.prompt([{
       type: 'list',
       name: 'skillsDir',
       message: 'Where to install Nova skills?',
       choices: [
-        { name: 'User (~/.agents/skills/) — shared across all AI tools', value: 'user' },
-        { name: 'Project (.claude/skills/) — project-specific', value: 'project' },
+        { name: 'User (~/.agents/skills/) - shared across AI tools', value: 'user' },
+        { name: 'Project (project-local skills) - project-specific', value: 'project' },
       ],
       default: 'user',
     }]);
@@ -151,7 +159,7 @@ export class InitManager {
     });
   }
 
-  private async detectAIEnvironment(): Promise<string[]> {
+  private async resolveAIEnvironments(): Promise<string[]> {
     if (this.options.agent) {
       if (!ADAPTER_FACTORIES[this.options.agent]) {
         throw new Error(`Unknown Agent: ${this.options.agent}. Supported: ${Object.keys(ADAPTER_FACTORIES).join(', ')}`);
@@ -159,6 +167,36 @@ export class InitManager {
       return [this.options.agent];
     }
 
+    const detected = await this.detectAIEnvironment();
+    return this.promptAIEnvironments(detected);
+  }
+
+  private async promptAIEnvironments(detected: string[]): Promise<string[]> {
+    const defaults = detected.length > 0 ? detected : ['claude-code'];
+    const choices = AI_ENVIRONMENT_CHOICES.map(choice => ({
+      ...choice,
+      checked: defaults.includes(choice.value),
+    }));
+    const { environments } = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'environments',
+      message: 'Which AI tools should Nova install skills/config for?',
+      choices,
+      default: defaults,
+      validate: (value: string[]) => value.length > 0 || 'Select at least one AI tool.',
+    }]);
+    if (!Array.isArray(environments) || environments.length === 0) {
+      throw new Error('Select at least one AI tool to install Nova skills/config.');
+    }
+    for (const env of environments) {
+      if (!ADAPTER_FACTORIES[env]) {
+        throw new Error(`Unknown Agent: ${env}. Supported: ${Object.keys(ADAPTER_FACTORIES).join(', ')}`);
+      }
+    }
+    return environments;
+  }
+
+  private async detectAIEnvironment(): Promise<string[]> {
     const detectors: { env: string; cmd: string }[] = [
       { env: 'claude-code', cmd: 'claude' },
       { env: 'codex', cmd: 'codex' },
@@ -171,7 +209,7 @@ export class InitManager {
     for (const d of detectors) {
       if (await this.commandExists(d.cmd)) detected.push(d.env);
     }
-    return detected.length > 0 ? detected : ['claude-code'];
+    return detected;
   }
 
   private getAdapter(env: string): EnvironmentAdapter {

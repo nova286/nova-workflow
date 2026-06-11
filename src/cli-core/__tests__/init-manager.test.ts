@@ -2,14 +2,18 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import * as yaml from 'yaml';
+import inquirer from 'inquirer';
 import { InitManager } from '../init-manager';
 
 describe('InitManager', () => {
   let testDir: string;
   let homeDir: string;
   let originalCwd: string;
+  const promptMock = inquirer.prompt as unknown as jest.Mock;
 
   beforeEach(async () => {
+    promptMock.mockReset();
+    promptMock.mockResolvedValue({ skillsDir: 'project', environments: ['claude-code'] });
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-init-'));
     homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-init-home-'));
     originalCwd = process.cwd();
@@ -158,6 +162,42 @@ describe('InitManager', () => {
       const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'unknown-agent', homeDir });
 
       await expect(mgr.run()).rejects.toThrow('Unknown Agent: unknown-agent');
+    });
+
+    test('prompts for skills location and AI tools when options are not explicit', async () => {
+      promptMock
+        .mockResolvedValueOnce({ skillsDir: 'project' })
+        .mockResolvedValueOnce({ environments: ['claude-code', 'codex'] });
+
+      const mgr = new InitManager(testDir, { force: false, homeDir });
+      await mgr.run();
+
+      expect(promptMock).toHaveBeenCalledTimes(2);
+      expect(promptMock.mock.calls[0][0][0]).toMatchObject({ type: 'list', name: 'skillsDir' });
+      expect(promptMock.mock.calls[1][0][0]).toMatchObject({ type: 'checkbox', name: 'environments' });
+
+      const raw = await fs.readFile('.nova.yaml', 'utf-8');
+      const state = yaml.parse(raw);
+      expect(state.environment).toEqual(['claude-code', 'codex']);
+      await expect(fs.access(path.join(testDir, '.claude', 'skills', 'nova', 'SKILL.md'))).resolves.toBeUndefined();
+      await expect(fs.access(path.join(testDir, '.agents', 'skills', 'nova', 'SKILL.md'))).resolves.toBeUndefined();
+    });
+
+    test('rejects empty AI tool selection', async () => {
+      promptMock
+        .mockResolvedValueOnce({ skillsDir: 'project' })
+        .mockResolvedValueOnce({ environments: [] });
+
+      const mgr = new InitManager(testDir, { force: false, homeDir });
+
+      await expect(mgr.run()).rejects.toThrow('Select at least one AI tool');
+    });
+
+    test('skips AI tool prompt when agent option is explicit', async () => {
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex', homeDir });
+      await mgr.run();
+
+      expect(promptMock).not.toHaveBeenCalled();
     });
   });
 

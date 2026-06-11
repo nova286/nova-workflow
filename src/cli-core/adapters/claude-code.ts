@@ -173,6 +173,15 @@ required libraries/frameworks, and verification commands. Treat these project
 rules as higher priority than generic Nova guidance, and include a
 \`## Project Rules / Conventions\` summary in the design document.
 
+Also identify project type best practices from \`.nova.yaml.projectType\`,
+project metadata such as \`package.json\`, \`go.mod\`, \`pyproject.toml\`, or
+equivalent files, and the existing codebase. Capture architecture boundaries,
+framework idioms, error handling, test strategy, security defaults, and
+performance considerations for this project type. Include a
+\`## Project Type Best Practices\` summary in the design document. If a project
+rule conflicts with a generic best practice, follow the project rule and record
+the rationale.
+
 ## Step 3: Explore Architecture Options
 Use the **brainstorming skill** to explore at least 2 architectural approaches.
 For each: architecture pattern, tech stack rationale, component structure, data
@@ -181,7 +190,8 @@ ${mcp?.figma ? FIGMA_STEP : ''}
 
 ## Step 3.5: Legacy Preflight for Existing Changes
 If \`changeMode=existing\`, inspect the affected existing modules before task
-planning. Check whether they follow the current project conventions for
+planning. Check whether they follow the current project conventions and project
+type best practices for
 architecture boundaries, component/module responsibility, state/data flow,
 testability, verification commands, design-system usage, and obvious technical
 debt that would affect this change.
@@ -202,7 +212,8 @@ Based on the user-selected approach, use the **writing-plans skill** to produce
 \`docs/designs/design.md\` and \`docs/superpowers/plans/<change-id>.md\`.
 Tasks must include \`method\`, \`specRefs\`, \`acceptanceRefs\`, and
 \`verification.commands\`. Tasks must also reference the relevant project
-rules/conventions they must obey when touching code.
+rules/conventions and project type best practices they must obey when touching
+code. Any planned deviation from either must include a clear rationale.
 Follow the proposal test strategy:
 - If \`automatedUiTesting=true\`, define UI test cases with entry point,
   route/screen, steps, expected result, and Mobile MCP/E2E runner needs. Add a
@@ -256,6 +267,12 @@ files that apply to the repository and target paths: \`AGENTS.md\`,
 \`.cursor/rules/\`, and any closer directory-specific rule files. If these
 rules conflict with generic Nova instructions, follow the project rules.
 
+Also read the design document's \`Project Type Best Practices\` section and
+apply the best practices for the current \`.nova.yaml.projectType\` and detected
+stack. If implementation must deviate from a project rule or best practice,
+record a specific rationale in the task evidence; weak or missing rationale
+will be rejected in verify.
+
 ## Step 3: Execute Each Task
 For each task in priority order:
 
@@ -274,11 +291,13 @@ For each task in priority order:
 4. For existing changes, run or record regression checks for affected legacy behavior
 5. Confirm specRefs and acceptanceRefs have evidence before marking complete
 6. Confirm the implementation follows the applicable project rules/conventions
+   and project type best practices
 
 ### Record Result
 Record task status and evidence with \`nova checkpoint task <task-id> --status done --files <csv> --tests <csv> --trace-id <id>\` when available.
-Include in the task summary/evidence which project rules and verification
-commands were followed.
+Include in the task summary/evidence which project rules, project type best
+practices, and verification commands were followed. List any deviations with
+rationale.
 On failure, ask user: abort, skip, or retry.
 
 ## Step 4: Final Verification
@@ -310,6 +329,8 @@ Update \`phases.verify.status\` to \`in-progress\` with
 ## Step 2: Gather Context
 Load completed tasks from \`phases.design.tasks\`. Read changed files, task
 evidence, the design document, and \`artifacts.openspecChange\`.
+Also read applicable project-local instruction files and the design document's
+\`Project Rules / Conventions\` and \`Project Type Best Practices\` sections.
 
 ## Step 3: Run Spec-Conformance Review
 Compare task evidence against \`specRefs\` and \`acceptanceRefs\`. Verdict:
@@ -323,6 +344,19 @@ Use the **ecc:code-reviewer** skill to review each task's changed files:
 correctness, conventions, error handling, test coverage, type safety.
 Verdict: PASS / CHANGES_REQUESTED / COMMENT.
 
+## Step 4.5: Run Project Rules and Best-Practice Review
+For each changed file and task, verify conformance with:
+
+- project-local rules: \`AGENTS.md\`, \`CLAUDE.md\`, \`CODEX.md\`, \`README.md\`,
+  \`.cursorrules\`, \`.cursor/rules/\`, and closer directory-specific rules
+- project type best practices from \`.nova.yaml.projectType\`, project metadata,
+  existing code patterns, and the design document
+
+If code deviates from project rules or best practices, accept it only when the
+task evidence or implementation notes provide a specific, sufficient rationale.
+Weak, missing, or convenience-only rationale is \`CHANGES_REQUESTED\`; do not
+allow verify to pass.
+
 ## Step 5: Run Security Review
 Use the **ecc:security-reviewer** skill to audit each task's changed files:
 injection risks, secret exposure, insecure dependencies, input validation.
@@ -332,8 +366,11 @@ Only require automated UI verification when the proposal test strategy selected
 \`automatedUiTesting=true\`. If it was not selected, note it as not applicable.
 
 ## Step 6: Generate Report
-Write \`docs/reports/verification-report.md\` with summary, spec-conformance results, per-task results,
-overall assessment (PASS / NEEDS_FIXES / BLOCKED), and recommendations.
+Write \`docs/reports/verification-report.md\` with summary, spec-conformance
+results, project rules verdict, project type best-practice verdict, per-task
+results, overall assessment (PASS / NEEDS_FIXES / BLOCKED), and
+recommendations. List every deviation, the stated rationale, and whether it was
+accepted.
 
 ## Step 7: Update State
 Set \`phases.verify.status = 'done'\`, \`pipelineResult\` with stage results.
@@ -344,6 +381,9 @@ Run \`nova validate\`, then mark completion with
 
 ## Constraints
 - Be specific — reference file paths and line numbers.
+- Do not mark verify done unless spec conformance, project rules conformance,
+  project type best-practice conformance, code review, and security review all
+  pass or have sufficient documented rationale for every deviation.
 - Security findings must include severity and remediation.
 `,
 

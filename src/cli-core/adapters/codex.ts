@@ -236,12 +236,22 @@ required libraries/frameworks, and verification commands. Project rules override
 generic Nova guidance. Include a \`## Project Rules / Conventions\` summary in
 \`docs/designs/design.md\`.
 
+Also identify project type best practices from \`.nova.yaml.projectType\`,
+project metadata such as \`package.json\`, \`go.mod\`, \`pyproject.toml\`, or
+equivalent files, and the existing codebase. Capture architecture boundaries,
+framework idioms, error handling, test strategy, security defaults, and
+performance considerations for this project type. Include a
+\`## Project Type Best Practices\` summary in \`docs/designs/design.md\`. If a
+project rule conflicts with a generic best practice, follow the project rule and
+record the rationale.
+
 ## Step 3: Plan
 Produce \`docs/designs/design.md\` and
 \`docs/superpowers/plans/<change-id>.md\`. Tasks must include concrete files,
 method, specRefs, acceptanceRefs, acceptance criteria, and verification commands.
 Tasks must also reference the relevant project rules/conventions they must obey
-when touching code.
+when touching code, plus the project type best practices they must follow. Any
+planned deviation from either must include a clear rationale.
 For existing changes, perform and record legacyPreflight before task planning.
 
 ## Step 4: Update State
@@ -271,10 +281,17 @@ target paths: \`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`,
 files. If these rules conflict with generic Nova instructions, follow the
 project rules.
 
+Also read the design document's \`Project Type Best Practices\` section and
+apply the best practices for the current \`.nova.yaml.projectType\` and detected
+stack. If implementation must deviate from a project rule or best practice,
+record a specific rationale in the task evidence; weak or missing rationale
+will be rejected in verify.
+
 Implement only the scoped work, run the task verification commands, confirm the
-work follows applicable project rules/conventions, and record evidence with
-\`nova checkpoint task <task-id>\`. Include in the task summary/evidence which
-project rules and verification commands were followed.
+work follows applicable project rules/conventions and project type best
+practices, and record evidence with \`nova checkpoint task <task-id>\`. Include
+in the task summary/evidence which project rules, project type best practices,
+and verification commands were followed. List any deviations with rationale.
 
 ## Step 3: Finish
 Run project checks, \`nova guard implement verify\`, then
@@ -296,7 +313,20 @@ nova checkpoint phase verify --status in-progress
 
 ## Step 2: Review
 Review task evidence against specRefs/acceptanceRefs, inspect changed files for
-correctness, and perform a security review.
+correctness, and perform a security review. Also read applicable project-local
+instruction files and the design document's \`Project Rules / Conventions\` and
+\`Project Type Best Practices\` sections.
+
+For each changed file and task, verify conformance with project-local rules
+(\`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`, \`.cursorrules\`,
+\`.cursor/rules/\`, and closer directory-specific rules) and project type best
+practices from \`.nova.yaml.projectType\`, project metadata, existing code
+patterns, and the design document.
+
+If code deviates from project rules or best practices, accept it only when the
+task evidence or implementation notes provide a specific, sufficient rationale.
+Weak, missing, or convenience-only rationale is \`CHANGES_REQUESTED\`; do not
+allow verify to pass.
 
 ## Step 3: Report
 Write \`docs/reports/verification-report.md\`, then run:
@@ -306,6 +336,11 @@ nova checkpoint artifacts --verification-report docs/reports/verification-report
 nova validate
 nova checkpoint phase verify --status done
 \`\`\`
+
+Only mark verify done when spec conformance, project rules conformance, project
+type best-practice conformance, code review, and security review all pass or
+have sufficient documented rationale for every deviation. The report must list
+every deviation, the stated rationale, and whether it was accepted.
 `,
 
   'nova-archive': `---

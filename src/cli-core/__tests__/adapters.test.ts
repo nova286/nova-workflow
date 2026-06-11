@@ -35,6 +35,14 @@ describe('Environment Adapters', () => {
     expect(content).toMatch(/Project rules override|higher priority/);
   }
 
+  function expectBestPracticesInDesign(content: string) {
+    expect(content).toContain('Project Type Best Practices');
+    expect(content).toContain('.nova.yaml.projectType');
+    expect(content).toMatch(/project metadata|package\.json/);
+    expect(content).toContain('best practices');
+    expect(content).toContain('rationale');
+  }
+
   function expectProjectRulesInImplement(content: string) {
     expect(content).toMatch(/[Bb]efore editing files/);
     expect(content).toContain('AGENTS.md');
@@ -43,6 +51,25 @@ describe('Environment Adapters', () => {
     expect(content).toContain('.cursor/rules/');
     expect(content).toMatch(/[Ii]f these\s+rules conflict/);
     expect(content).toContain('task summary/evidence');
+  }
+
+  function expectBestPracticesInImplement(content: string) {
+    expect(content).toContain('Project Type Best Practices');
+    expect(content).toContain('.nova.yaml.projectType');
+    expect(content).toContain('best practices');
+    expect(content).toMatch(/deviat|deviation/);
+    expect(content).toContain('rationale');
+  }
+
+  function expectRulesAndBestPracticesInVerify(content: string) {
+    expect(content).toMatch(/Project Rules\s*\/\s*Conventions|Project Rules \/ Best Practices/);
+    expect(content).toContain('Project Type Best Practices');
+    expect(content).toContain('.nova.yaml.projectType');
+    expect(content).toMatch(/project-local rules|Project rules conformance/);
+    expect(content).toContain('best practices');
+    expect(content).toContain('CHANGES_REQUESTED');
+    expect(content).toMatch(/Weak, missing, or convenience-only rationale|理由不充分/);
+    expect(content).toMatch(/do not\s+allow verify to pass|Only mark verify done|Only set phases\.verify\.status = done|只有当/i);
   }
 
   const expectedNovaSkills = [
@@ -124,14 +151,18 @@ describe('Environment Adapters', () => {
       }
     });
 
-    test('design and implement skills enforce project-local rules', async () => {
+    test('design, implement, and verify skills enforce project rules and best practices', async () => {
       const adapter = new CodexAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
 
       const design = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
       const implement = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-implement', 'SKILL.md'), 'utf-8');
+      const verify = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
       expectProjectRulesInDesign(design);
+      expectBestPracticesInDesign(design);
       expectProjectRulesInImplement(implement);
+      expectBestPracticesInImplement(implement);
+      expectRulesAndBestPracticesInVerify(verify);
     });
 
     test('creates all Nova skills in user Codex skills', async () => {
@@ -204,6 +235,9 @@ describe('Environment Adapters', () => {
       const content = await fs.readFile(path.join(testDir, '.openclaw', 'instructions.md'), 'utf-8');
       expectTestStrategyChecklist(content);
       expectLegacyPreflightRules(content);
+      expectBestPracticesInDesign(content);
+      expectBestPracticesInImplement(content);
+      expectRulesAndBestPracticesInVerify(content);
     });
   });
 
@@ -235,6 +269,9 @@ describe('Environment Adapters', () => {
       const content = await fs.readFile(path.join(testDir, 'HERMES.md'), 'utf-8');
       expectTestStrategyChecklist(content);
       expectLegacyPreflightRules(content);
+      expectBestPracticesInDesign(content);
+      expectBestPracticesInImplement(content);
+      expectRulesAndBestPracticesInVerify(content);
     });
   });
 
@@ -270,6 +307,9 @@ describe('Environment Adapters', () => {
       const instructions = JSON.parse(raw).instructions;
       expectTestStrategyChecklist(instructions);
       expectLegacyPreflightRules(instructions);
+      expectBestPracticesInDesign(instructions);
+      expectBestPracticesInImplement(instructions);
+      expectRulesAndBestPracticesInVerify(instructions);
     });
   });
 
@@ -336,14 +376,18 @@ describe('Environment Adapters', () => {
       expectLegacyPreflightRules(`${propose}\n${design}`);
     });
 
-    test('design and implement skills enforce project-local rules', async () => {
+    test('design, implement, and verify skills enforce project rules and best practices', async () => {
       const adapter = new ClaudeCodeAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
 
       const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
       const implement = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-implement', 'SKILL.md'), 'utf-8');
+      const verify = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
       expectProjectRulesInDesign(design);
+      expectBestPracticesInDesign(design);
       expectProjectRulesInImplement(implement);
+      expectBestPracticesInImplement(implement);
+      expectRulesAndBestPracticesInVerify(verify);
     });
 
     test('no MCP steps when no MCP configured', async () => {
@@ -417,14 +461,18 @@ describe('Environment Adapters', () => {
       expectLegacyPreflightRules(`${propose}\n${design}`);
     });
 
-    test('design and implement skills enforce project-local rules', async () => {
+    test('design, implement, and verify skills enforce project rules and best practices', async () => {
       const adapter = new PiCodingAgentAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
 
       const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
       const implement = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-implement', 'SKILL.md'), 'utf-8');
+      const verify = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
       expectProjectRulesInDesign(design);
+      expectBestPracticesInDesign(design);
       expectProjectRulesInImplement(implement);
+      expectBestPracticesInImplement(implement);
+      expectRulesAndBestPracticesInVerify(verify);
     });
 
     test('creates nova-archive skill', async () => {

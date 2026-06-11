@@ -126,6 +126,15 @@ required libraries/frameworks, and verification commands. Project rules override
 generic Nova guidance. Include a \`## Project Rules / Conventions\` summary in
 \`docs/designs/design.md\`.
 
+Also identify project type best practices from \`.nova.yaml.projectType\`,
+project metadata such as \`package.json\`, \`go.mod\`, \`pyproject.toml\`, or
+equivalent files, and the existing codebase. Capture architecture boundaries,
+framework idioms, error handling, test strategy, security defaults, and
+performance considerations for this project type. Include a
+\`## Project Type Best Practices\` summary in \`docs/designs/design.md\`. If a
+project rule conflicts with a generic best practice, follow the project rule and
+record the rationale.
+
 ## Step 3: Explore Architecture
 Explore at least 2 architectural approaches. Present alternatives.
 ${mcp?.figma ? FIGMA_STEP : ''}
@@ -147,7 +156,8 @@ record \`userDecision\`.
 ## Step 4: Generate Design
 Write \`docs/designs/design.md\` with architecture, tech stack, components, data flow, and task list in YAML.
 Tasks must reference the relevant project rules/conventions they must obey when
-touching code.
+touching code, plus the project type best practices they must follow. Any
+planned deviation from either must include a clear rationale.
 Follow the proposal test strategy: automated UI testing requires UI flows plus
 a testing task or UI verification command; unit testing requires unit targets
 and unit test commands/files. Do not force unselected test types.
@@ -178,12 +188,19 @@ and target paths: \`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`,
 files. If these rules conflict with generic Nova instructions, follow the
 project rules.
 
+Also read the design document's \`Project Type Best Practices\` section and
+apply the best practices for the current \`.nova.yaml.projectType\` and detected
+stack. If implementation must deviate from a project rule or best practice,
+record a specific rationale in the task evidence; weak or missing rationale
+will be rejected in verify.
+
 Implement, write only the selected unit/UI tests from testStrategy, verify,
-confirm the work follows applicable project rules/conventions, and record
-evidence with \`nova checkpoint task <task-id>\` (tests, filesChanged). Include
-in the task summary/evidence which project rules and verification commands were
-followed. If legacyPreflight is present, stay within its refactorPolicy and
-record regression evidence for existing behavior.
+confirm the work follows applicable project rules/conventions and project type
+best practices, and record evidence with \`nova checkpoint task <task-id>\`
+(tests, filesChanged). Include in the task summary/evidence which project
+rules, project type best practices, and verification commands were followed.
+List any deviations with rationale. If legacyPreflight is present, stay within
+its refactorPolicy and record regression evidence for existing behavior.
 On failure: abort, skip, or retry.
 
 ## Step 4: Final Verification
@@ -203,7 +220,9 @@ description: Nova verify phase — run code review and security review
 Read .nova.yaml. Require phases.implement.status = done. Update phases.verify.status to in-progress with \`nova checkpoint phase verify --status in-progress\` when available.
 
 ## Step 2: Gather Context
-Load tasks, changed files, design document.
+Load tasks, changed files, design document. Also read applicable project-local
+instruction files and the design document's \`Project Rules / Conventions\` and
+\`Project Type Best Practices\` sections.
 
 ## Step 3: Code Review
 Review changed files for correctness, conventions, error handling, test coverage.
@@ -212,15 +231,29 @@ only when unitTesting=true. Unselected test types are not failure conditions.
 If changeMode=existing, verify implementation stayed within refactorPolicy and
 existing behavior regression evidence is present.
 
+## Step 3.5: Project Rules and Best-Practice Review
+For each changed file and task, verify conformance with project-local rules
+(\`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`, \`.cursorrules\`,
+\`.cursor/rules/\`, and closer directory-specific rules) and project type best
+practices from \`.nova.yaml.projectType\`, project metadata, existing code
+patterns, and the design document.
+
+If code deviates from project rules or best practices, accept it only when the
+task evidence or implementation notes provide a specific, sufficient rationale.
+Weak, missing, or convenience-only rationale is \`CHANGES_REQUESTED\`; do not
+allow verify to pass.
+
 ## Step 4: Security Review
 Audit for injection risks, secret exposure, insecure dependencies.
 ${mcp?.mobile ? MOBILE_STEP : ''}
 
 ## Step 5: Generate Report
-Write docs/reports/verification-report.md.
+Write docs/reports/verification-report.md with project rules verdict, project
+type best-practice verdict, every deviation, the stated rationale, and whether
+it was accepted.
 
 ## Step 6: Update State
-Run \`nova checkpoint artifacts --verification-report docs/reports/verification-report.md\`, then \`nova validate\`, then set phases.verify.status = done with \`nova checkpoint phase verify --status done\`.
+Run \`nova checkpoint artifacts --verification-report docs/reports/verification-report.md\`, then \`nova validate\`. Only set phases.verify.status = done with \`nova checkpoint phase verify --status done\` when spec conformance, project rules conformance, project type best-practice conformance, code review, and security review all pass or have sufficient documented rationale for every deviation.
 `,
 
   'nova-archive.md': () => `---

@@ -62,11 +62,15 @@ describe('InitManager', () => {
 
       const agentsSkillsDir = path.join(homeDir, '.agents', 'skills');
       const claudeSkillsDir = path.join(homeDir, '.claude', 'skills');
+      const codexSkillsDir = path.join(homeDir, '.codex', 'skills');
       const claudeSkillsStat = await fs.lstat(claudeSkillsDir);
+      const codexSkillsStat = await fs.lstat(codexSkillsDir);
 
       await expect(fs.access(agentsSkillsDir)).resolves.toBeUndefined();
       expect(claudeSkillsStat.isSymbolicLink()).toBe(true);
+      expect(codexSkillsStat.isSymbolicLink()).toBe(true);
       expect(await fs.readlink(claudeSkillsDir)).toBe(agentsSkillsDir);
+      expect(await fs.readlink(codexSkillsDir)).toBe(agentsSkillsDir);
 
       await fs.rm(homeDir, { recursive: true, force: true });
     });
@@ -257,6 +261,29 @@ describe('InitManager', () => {
       expect((await fs.lstat(codexSkillsDir)).isSymbolicLink()).toBe(true);
       expect(await fs.readlink(claudeSkillsDir)).toBe(agentsSkillsDir);
       expect(await fs.readlink(codexSkillsDir)).toBe(agentsSkillsDir);
+    });
+
+    test('generates all Codex Nova skills in project agents skills', async () => {
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex', homeDir });
+      await mgr.run();
+
+      const skillsDir = path.join(testDir, '.agents', 'skills');
+      const expected = [
+        'nova',
+        'nova-propose',
+        'nova-design',
+        'nova-implement',
+        'nova-verify',
+        'nova-archive',
+        'nova-iterate',
+        'nova-status',
+        'nova-detect',
+      ];
+
+      for (const skill of expected) {
+        const content = await fs.readFile(path.join(skillsDir, skill, 'SKILL.md'), 'utf-8');
+        expect(content).toContain('description:');
+      }
     });
   });
 

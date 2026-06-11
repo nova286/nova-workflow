@@ -15,6 +15,18 @@ import { OpenCodeAdapter } from './adapters/opencode';
 import { PiCodingAgentAdapter } from './adapters/pi-coding-agent';
 import { DetectResult, ToolDetection, detectNovaEnvironment, mcpServersFromDetections } from './detect';
 
+const NOVA_SKILL_DIRS = [
+  'nova',
+  'nova-propose',
+  'nova-design',
+  'nova-implement',
+  'nova-verify',
+  'nova-archive',
+  'nova-iterate',
+  'nova-status',
+  'nova-detect',
+];
+
 const ADAPTER_FACTORIES: Record<string, () => EnvironmentAdapter> = {
   'claude-code': () => new ClaudeCodeAdapter(),
   'codex': () => new CodexAdapter(),
@@ -274,8 +286,12 @@ export class InitManager {
 
   private async cleanEnvCommands(envs: string[]) {
     const cleanupMap: Record<string, string[]> = {
-      'claude-code': ['.agents/skills'],
-      'codex': ['CODEX.md', '.agents/skills/nova-archive', '.codex/skills/nova-archive'],
+      'claude-code': NOVA_SKILL_DIRS.map(skill => path.join('.agents', 'skills', skill)),
+      'codex': [
+        'CODEX.md',
+        ...NOVA_SKILL_DIRS.map(skill => path.join('.agents', 'skills', skill)),
+        ...NOVA_SKILL_DIRS.map(skill => path.join('.codex', 'skills', skill)),
+      ],
       'openclaw': ['.openclaw'],
       'hermes-agent': ['HERMES.md'],
       'opencode': ['opencode.json'],

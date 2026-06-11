@@ -148,6 +148,148 @@ export class CodexAdapter implements EnvironmentAdapter {
 }
 
 const CODEX_SKILLS: Record<string, string> = {
+  'nova': `---
+description: Nova — unified entry point for Codex. Shows progress and suggests next action.
+---
+
+# Nova
+
+Read \`.nova.yaml\` and present a compact overview with the next action.
+Prefer \`nova next\` when available.
+
+## Step 1: Read State
+Run \`nova next\`. If \`.nova.yaml\` does not exist, tell the user to run
+\`nova init\` first.
+
+## Step 2: Suggest Next Action
+Use the command returned by \`nova next\`:
+
+- \`/nova-propose\`
+- \`/nova-design\`
+- \`/nova-implement\`
+- \`/nova-verify\`
+- \`/nova-archive\`
+
+## Step 3: Act
+Ask whether to run the suggested action unless the user already asked to
+continue or execute the next phase.
+`,
+
+  'nova-propose': `---
+description: Nova propose phase — specify an OpenSpec-compatible change contract
+---
+
+# Nova Propose Phase
+
+## Step 1: Verify State
+Read \`.nova.yaml\`. If propose is pending, run:
+
+\`\`\`bash
+nova checkpoint phase propose --status in-progress
+\`\`\`
+
+## Step 2: Gather Context
+Read \`AGENTS.md\`, \`CODEX.md\`, \`README.md\`, package metadata, and relevant
+source files.
+
+## Step 3: Explore Requirements
+Clarify the problem, alternatives, risks, success criteria, change mode, and test
+strategy. For Figma links, run \`nova detect --agent codex --json\` and record
+traceability or limitations.
+
+## Step 4: Write Artifacts
+Write compatible artifacts:
+
+- \`.openspec/changes/<change-id>/proposal.md\`
+- \`.openspec/changes/<change-id>/specs/...\`
+- \`docs/proposals/proposal.md\`
+
+Include change mode and test strategy.
+
+## Step 5: Update State
+Run \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --change-mode existing|incremental|new --test-strategy '<json>'\`.
+Then run \`nova validate\` and \`nova checkpoint phase propose --status done\`.
+`,
+
+  'nova-design': `---
+description: Nova design phase — plan spec-bound work from an approved change
+---
+
+# Nova Design Phase
+
+## Step 1: Verify State
+Read \`.nova.yaml\`. Require propose to be done. Run:
+
+\`\`\`bash
+nova checkpoint phase design --status in-progress
+\`\`\`
+
+## Step 2: Load Context
+Read the proposal/spec delta, \`AGENTS.md\`, package metadata, and relevant
+source files.
+
+## Step 3: Plan
+Produce \`docs/designs/design.md\` and
+\`docs/superpowers/plans/<change-id>.md\`. Tasks must include concrete files,
+method, specRefs, acceptanceRefs, acceptance criteria, and verification commands.
+For existing changes, perform and record legacyPreflight before task planning.
+
+## Step 4: Update State
+Run \`nova checkpoint artifacts --design-doc docs/designs/design.md\`, include
+\`--legacy-preflight '<json>'\` when required, then run \`nova validate\` and
+\`nova checkpoint phase design --status done\`.
+`,
+
+  'nova-implement': `---
+description: Nova implement phase — execute spec-bound tasks with evidence
+---
+
+# Nova Implement Phase
+
+## Step 1: Verify State
+Read \`.nova.yaml\`. Require design to be done. Run:
+
+\`\`\`bash
+nova checkpoint phase implement --status in-progress
+\`\`\`
+
+## Step 2: Execute Tasks
+For each task, run \`nova context --task-id <id>\`, implement only the scoped
+work, run the task verification commands, and record evidence with
+\`nova checkpoint task <task-id>\`.
+
+## Step 3: Finish
+Run project checks, \`nova guard implement verify\`, then
+\`nova checkpoint phase implement --status done\`.
+`,
+
+  'nova-verify': `---
+description: Nova verify phase — run spec conformance, code, and security review
+---
+
+# Nova Verify Phase
+
+## Step 1: Verify State
+Read \`.nova.yaml\`. Require implement to be done. Run:
+
+\`\`\`bash
+nova checkpoint phase verify --status in-progress
+\`\`\`
+
+## Step 2: Review
+Review task evidence against specRefs/acceptanceRefs, inspect changed files for
+correctness, and perform a security review.
+
+## Step 3: Report
+Write \`docs/reports/verification-report.md\`, then run:
+
+\`\`\`bash
+nova checkpoint artifacts --verification-report docs/reports/verification-report.md
+nova validate
+nova checkpoint phase verify --status done
+\`\`\`
+`,
+
   'nova-archive': `---
 description: Nova archive phase — finalize specs and clean source artifacts
 ---
@@ -184,5 +326,42 @@ Summarize the archived files and cleaned artifacts from the CLI output.
 ## Constraints
 - Do not manually delete source code files.
 - If \`nova archive\` fails, report the exact artifact or guard issue.
+`,
+
+  'nova-iterate': `---
+description: Nova iterate — roll back to a previous phase for iteration
+---
+
+# Nova Iterate
+
+Read \`.nova.yaml\`, identify the current phase and valid rollback target, ask
+the user which phase to return to, then reset that phase and later phases while
+preserving source files unless the user explicitly asks to discard work.
+`,
+
+  'nova-status': `---
+description: Nova status — display phase progress and issues
+---
+
+# Nova Status
+
+Run \`nova status\` or read \`.nova.yaml\`. Show each phase status, key
+artifacts, task completion, and any missing or stale evidence.
+`,
+
+  'nova-detect': `---
+description: Nova detect — check installation status of tools and integrations
+---
+
+# Nova Detect
+
+Run:
+
+\`\`\`bash
+nova detect --agent codex
+\`\`\`
+
+Use \`--json\` when structured output helps. Report required, recommended, and
+optional tool status without auto-installing anything.
 `,
 };

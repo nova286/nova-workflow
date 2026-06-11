@@ -26,6 +26,18 @@ describe('Environment Adapters', () => {
     expect(content).toContain('[ ] 将相关模块一起重构到项目规范');
   }
 
+  const expectedNovaSkills = [
+    'nova',
+    'nova-propose',
+    'nova-design',
+    'nova-implement',
+    'nova-verify',
+    'nova-archive',
+    'nova-iterate',
+    'nova-status',
+    'nova-detect',
+  ];
+
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-adapter-'));
     originalHome = process.env.HOME;
@@ -83,17 +95,17 @@ describe('Environment Adapters', () => {
       expectLegacyPreflightRules(content);
     });
 
-    test('creates nova-archive skill in project agents skills', async () => {
+    test('creates all Nova skills in project agents skills', async () => {
       const adapter = new CodexAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
 
-      const content = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-archive', 'SKILL.md'), 'utf-8');
-      expect(content).toContain('nova archive');
-      expect(content).toContain('docs/specs/');
-      expect(content).toContain('Superpowers');
+      for (const skill of expectedNovaSkills) {
+        const content = await fs.readFile(path.join(testDir, '.agents', 'skills', skill, 'SKILL.md'), 'utf-8');
+        expect(content).toContain('description:');
+      }
     });
 
-    test('creates nova-archive skill in user Codex skills', async () => {
+    test('creates all Nova skills in user Codex skills', async () => {
       const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-codex-home-'));
 
       const adapter = new CodexAdapter();
@@ -102,12 +114,12 @@ describe('Environment Adapters', () => {
       const codexSkillsStat = await fs.lstat(path.join(homeDir, '.codex', 'skills'));
       expect(codexSkillsStat.isSymbolicLink()).toBe(true);
       expect(await fs.readlink(path.join(homeDir, '.codex', 'skills'))).toBe(path.join(homeDir, '.agents', 'skills'));
-      await expect(fs.access(path.join(homeDir, '.agents', 'skills', 'nova-archive', 'SKILL.md'))).resolves.toBeUndefined();
 
-      const content = await fs.readFile(path.join(homeDir, '.codex', 'skills', 'nova-archive', 'SKILL.md'), 'utf-8');
-      expect(content).toContain('nova archive');
-      expect(content).toContain('docs/specs/');
-      expect(content).toContain('Superpowers');
+      for (const skill of expectedNovaSkills) {
+        const content = await fs.readFile(path.join(homeDir, '.codex', 'skills', skill, 'SKILL.md'), 'utf-8');
+        expect(content).toContain('description:');
+        await expect(fs.access(path.join(homeDir, '.agents', 'skills', skill, 'SKILL.md'))).resolves.toBeUndefined();
+      }
 
       await fs.rm(homeDir, { recursive: true, force: true });
     });
@@ -125,7 +137,9 @@ describe('Environment Adapters', () => {
       expect(codexSkillsStat.isDirectory()).toBe(true);
       expect(codexSkillsStat.isSymbolicLink()).toBe(false);
       await expect(fs.readFile(path.join(codexSkillsDir, 'custom.txt'), 'utf-8')).resolves.toBe('keep');
-      await expect(fs.access(path.join(codexSkillsDir, 'nova-archive', 'SKILL.md'))).resolves.toBeUndefined();
+      for (const skill of expectedNovaSkills) {
+        await expect(fs.access(path.join(codexSkillsDir, skill, 'SKILL.md'))).resolves.toBeUndefined();
+      }
 
       await fs.rm(homeDir, { recursive: true, force: true });
     });

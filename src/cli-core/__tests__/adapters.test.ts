@@ -43,6 +43,13 @@ describe('Environment Adapters', () => {
     expect(content).toContain('rationale');
   }
 
+  function expectProjectContextContractInDesign(content: string) {
+    expect(content).toContain('Project Context Contract');
+    expect(content).toContain('projectContext');
+    expect(content).toContain('--project-context');
+    expect(content).toContain('complianceRefs');
+  }
+
   function expectProjectRulesInImplement(content: string) {
     expect(content).toMatch(/[Bb]efore editing files/);
     expect(content).toContain('AGENTS.md');
@@ -61,6 +68,13 @@ describe('Environment Adapters', () => {
     expect(content).toContain('rationale');
   }
 
+  function expectProjectContextContractInImplement(content: string) {
+    expect(content).toContain('Project Context Contract');
+    expect(content).toContain('context.projectContext');
+    expect(content).toContain('complianceRefs');
+    expect(content).toContain('--compliance');
+  }
+
   function expectRulesAndBestPracticesInVerify(content: string) {
     expect(content).toMatch(/Project Rules\s*\/\s*Conventions|Project Rules \/ Best Practices/);
     expect(content).toContain('Project Type Best Practices');
@@ -70,6 +84,20 @@ describe('Environment Adapters', () => {
     expect(content).toContain('CHANGES_REQUESTED');
     expect(content).toMatch(/Weak, missing, or convenience-only rationale|理由不充分/);
     expect(content).toMatch(/do not\s+allow verify to pass|Only mark verify done|Only set phases\.verify\.status = done|只有当/i);
+  }
+
+  function expectProjectContextContractInVerify(content: string) {
+    expect(content).toContain('Project Context Contract');
+    expect(content).toContain('projectRulesVerdict');
+    expect(content).toContain('bestPracticesVerdict');
+    expect(content).toContain('reviewIndependence');
+    expect(content).toContain('--review-independence');
+    expect(content).toContain('--verification-commands');
+    expect(content).toContain('verificationCommands');
+    expect(content).toMatch(/build|compile|typecheck/);
+    expect(content).toMatch(/subagent|子智能体/);
+    expect(content).toContain('fresh-context');
+    expect(content).toContain('same-session-fallback');
   }
 
   const expectedNovaSkills = [
@@ -160,9 +188,12 @@ describe('Environment Adapters', () => {
       const verify = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
       expectProjectRulesInDesign(design);
       expectBestPracticesInDesign(design);
+      expectProjectContextContractInDesign(design);
       expectProjectRulesInImplement(implement);
       expectBestPracticesInImplement(implement);
+      expectProjectContextContractInImplement(implement);
       expectRulesAndBestPracticesInVerify(verify);
+      expectProjectContextContractInVerify(verify);
     });
 
     test('creates all Nova skills in user Codex skills', async () => {
@@ -236,8 +267,11 @@ describe('Environment Adapters', () => {
       expectTestStrategyChecklist(content);
       expectLegacyPreflightRules(content);
       expectBestPracticesInDesign(content);
+      expectProjectContextContractInDesign(content);
       expectBestPracticesInImplement(content);
+      expectProjectContextContractInImplement(content);
       expectRulesAndBestPracticesInVerify(content);
+      expectProjectContextContractInVerify(content);
     });
   });
 
@@ -270,8 +304,11 @@ describe('Environment Adapters', () => {
       expectTestStrategyChecklist(content);
       expectLegacyPreflightRules(content);
       expectBestPracticesInDesign(content);
+      expectProjectContextContractInDesign(content);
       expectBestPracticesInImplement(content);
+      expectProjectContextContractInImplement(content);
       expectRulesAndBestPracticesInVerify(content);
+      expectProjectContextContractInVerify(content);
     });
   });
 
@@ -308,8 +345,11 @@ describe('Environment Adapters', () => {
       expectTestStrategyChecklist(instructions);
       expectLegacyPreflightRules(instructions);
       expectBestPracticesInDesign(instructions);
+      expectProjectContextContractInDesign(instructions);
       expectBestPracticesInImplement(instructions);
+      expectProjectContextContractInImplement(instructions);
       expectRulesAndBestPracticesInVerify(instructions);
+      expectProjectContextContractInVerify(instructions);
     });
   });
 
@@ -385,9 +425,12 @@ describe('Environment Adapters', () => {
       const verify = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
       expectProjectRulesInDesign(design);
       expectBestPracticesInDesign(design);
+      expectProjectContextContractInDesign(design);
       expectProjectRulesInImplement(implement);
       expectBestPracticesInImplement(implement);
+      expectProjectContextContractInImplement(implement);
       expectRulesAndBestPracticesInVerify(verify);
+      expectProjectContextContractInVerify(verify);
     });
 
     test('no MCP steps when no MCP configured', async () => {
@@ -470,9 +513,12 @@ describe('Environment Adapters', () => {
       const verify = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
       expectProjectRulesInDesign(design);
       expectBestPracticesInDesign(design);
+      expectProjectContextContractInDesign(design);
       expectProjectRulesInImplement(implement);
       expectBestPracticesInImplement(implement);
+      expectProjectContextContractInImplement(implement);
       expectRulesAndBestPracticesInVerify(verify);
+      expectProjectContextContractInVerify(verify);
     });
 
     test('creates nova-archive skill', async () => {

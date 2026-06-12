@@ -28,6 +28,23 @@ describe('guardPhaseTransition', () => {
     rationale: 'No additional test automation selected for this fixture.',
   };
 
+  const projectContext = {
+    rules: {
+      sources: ['AGENTS.md'],
+      must: ['Use structured logging'],
+      mustNot: ['Use fmt.Println'],
+      verificationCommands: ['npm test'],
+    },
+    bestPractices: {
+      projectType: 'node',
+      sources: ['package.json'],
+      must: ['Keep TypeScript strict'],
+      should: ['Keep modules focused'],
+      risks: ['ESM interop'],
+    },
+    conflicts: [],
+  };
+
   beforeEach(async () => {
     testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-guard-'));
     originalCwd = process.cwd();
@@ -72,6 +89,7 @@ describe('guardPhaseTransition', () => {
     await writeCoreArtifacts();
     await writeState({
       ...baseState,
+      projectContext,
       phases: {
         ...baseState.phases,
         design: {
@@ -85,6 +103,10 @@ describe('guardPhaseTransition', () => {
               method: 'tdd',
               specRefs: ['workflow.requirements.task-1'],
               acceptanceRefs: ['workflow.acceptance.task-1'],
+              complianceRefs: {
+                projectRules: ['rules.must.0'],
+                bestPractices: ['bestPractices.must.0'],
+              },
               verification: { commands: ['npm test -- task-1'] },
               files: [{ path: 'x.ts', action: 'create' }],
               acceptance: ['done'],

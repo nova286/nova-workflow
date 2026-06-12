@@ -64,14 +64,15 @@ Always read it first.
    - 存量页面要确认现有 route/screen/component；增量页面要确认新页面入口和跳转路径
    - spec 必须记录 Figma URL、node IDs、页面模式、入口路径，以及实现阶段需要按当前项目导出的切图/图片/icon 资产
 3. 在生成 proposal 前，确认 changeMode：existing（修改存量业务/页面/组件/API）、incremental（新增但接入现有入口/流程）、new（独立新能力）。如果是 existing，记录 affectedAreas，并标记 design 阶段必须执行 legacyPreflight
-4. 在生成 proposal 前，用 Markdown checklist 让用户确认本次测试策略：
+4. 做轻量 Project Context discovery：记录规则来源、projectType、主要技术栈和明显风险到 proposal；不要在 propose 阶段写正式 .nova.yaml.projectContext，正式 Project Context Contract 由 design 生成/刷新
+5. 在生成 proposal 前，用 Markdown checklist 让用户确认本次测试策略：
    - [ ] 自动化 UI 测试
    - [ ] 单元测试
    如果选择自动化 UI 测试，先确定入口、跳转路径、关键步骤和成功断言；AI 能从代码/Figma/导航确定就自行确定，不能确定就问用户。
-5. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 changeMode、affectedAreas、testStrategy
-6. 用 nova checkpoint artifacts --change-mode existing|incremental|new --test-strategy '<json>' 记录 proposal、specDelta、activeChange、changeMode 和 testStrategy
-7. 运行 nova validate
-8. 用 nova checkpoint phase propose --status done 记录完成
+6. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 changeMode、affectedAreas、testStrategy
+7. 用 nova checkpoint artifacts --change-mode existing|incremental|new --test-strategy '<json>' 记录 proposal、specDelta、activeChange、changeMode 和 testStrategy
+8. 运行 nova validate
+9. 用 nova checkpoint phase propose --status done 记录完成
 \`\`\`
 
 ### Phase 2: Design (设计)
@@ -86,12 +87,13 @@ Always read it first.
    - [ ] 做最小必要重构，只处理会阻塞本次需求的部分
    - [ ] 将相关模块一起重构到项目规范
    并映射 refactorPolicy: none|minimal|full
-6. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Project Rules/Conventions、Project Type Best Practices 摘要和 Legacy Preflight 结论
-7. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
-8. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands，并遵守项目规范、项目类型最佳实践和 refactorPolicy；任何偏离必须写明理由
-9. 用 nova checkpoint artifacts --design-doc 记录设计产物；existing 场景还要加 --legacy-preflight '<json>'
-10. 运行 nova validate
-11. 用 nova checkpoint phase design --status done 记录完成
+6. 生成/刷新 Project Context Contract（.nova.yaml.projectContext，可同时引用 artifacts.projectContext），包含 rules.sources/must/mustNot/verificationCommands、bestPractices.projectType/sources/must/should/risks 和 conflicts[]
+7. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Project Rules/Conventions、Project Type Best Practices 摘要、Project Context Contract 摘要和 Legacy Preflight 结论
+8. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
+9. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands, complianceRefs.projectRules, complianceRefs.bestPractices，并遵守项目规范、项目类型最佳实践和 refactorPolicy；任何偏离必须写明理由
+10. 用 nova checkpoint artifacts --design-doc 记录设计产物，并用 --project-context '<json>' 记录 Project Context Contract；existing 场景还要加 --legacy-preflight '<json>'
+11. 运行 nova validate
+12. 用 nova checkpoint phase design --status done 记录完成
 \`\`\`
 
 ### Phase 3: Implement (实现)
@@ -100,11 +102,11 @@ Always read it first.
 1. 按 priority/dependency 排序执行
 2. 每个任务先运行 nova context --task-id <id> 获取上下文
 3. 在修改任何文件前，必须读取当前项目目录和目标文件子目录声明的规范文件（AGENTS.md、CLAUDE.md、CODEX.md、README.md、.cursorrules、.cursor/rules/ 等）；若规范与通用 Nova 指令冲突，优先遵守项目规范
-4. 必须读取 design 中的 Project Type Best Practices，并结合 .nova.yaml projectType 和现有代码，遵守当前项目类型的最佳实践；如果确实需要偏离，必须在 evidence/总结中写明充分理由
+4. 必须读取 context.projectContext（Project Context Contract）和 task complianceRefs，遵守 project rules 与 project type best practices；如果确实需要偏离，必须在 compliance.deviations/evidence/总结中写明充分理由
 5. method=tdd 时先写失败测试，再实现，再重构
 6. 如果 context.designContext.legacyPreflight 存在，严格遵守 refactorPolicy，不临时扩大重构范围
 7. 根据 testStrategy 编写被选择的单元测试或自动化 UI 脚本；未选择的测试类型不强制补写
-8. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence，并在 evidence/总结中说明已遵守哪些项目规范、项目类型最佳实践和验证命令；列出所有偏离及理由
+8. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence，并用 --compliance '<json>' 记录 compliance.followed 和 compliance.deviations；列出所有偏离及理由
 9. 失败时问用户：abort / skip / retry
 10. 全部完成后运行 nova guard implement verify，再用 nova checkpoint phase implement --status done
 \`\`\`
@@ -112,15 +114,18 @@ Always read it first.
 ### Phase 4: Verify (验证)
 \`\`\`
 对已修改的文件做 spec conformance + code review + security review：
-1. Spec conformance: evidence 是否覆盖 specRefs/acceptanceRefs
-2. Project rules conformance: 校验当前项目声明的规范（AGENTS.md/CLAUDE.md/CODEX.md/README.md/.cursorrules/.cursor/rules/ 等）是否被遵守；不符合必须检查 evidence 中的偏离理由，理由不充分直接 CHANGES_REQUESTED
-3. Project type best-practice conformance: 校验 design 中的 Project Type Best Practices 和当前项目类型最佳实践是否被遵守；不符合必须给出充分理由，理由不充分直接 CHANGES_REQUESTED
-4. Code review: 正确性、错误处理、类型安全、测试覆盖
-5. Security review: 注入、密钥暴露、路径遍历
-6. 根据 testStrategy 执行已选择的测试：自动化 UI 测试优先用 Mobile MCP 或项目 E2E runner，单元测试运行对应命令；未选择的测试类型不作为失败条件
-7. 写入 docs/reports/verification-report.md，包含 Project Rules / Best Practices verdicts: PASS / CHANGES_REQUESTED / BLOCKED，以及所有偏离、理由和是否接受
-8. 只有当 spec、本地项目规范、项目类型最佳实践、代码审查、安全审查都 PASS，才能用 nova checkpoint phase verify --status done；否则不要标记完成
-9. 用 nova checkpoint artifacts --verification-report 记录验证报告
+1. 默认启动独立验证子智能体/独立 reviewer context；主智能体只负责编排、运行命令、写 checkpoint，不得自行给 PASS
+2. 如果环境不支持子智能体，使用 fresh-context review：重新读取 artifacts/evidence/changed files，不沿用 implement 阶段的解释；仍不可用时才使用 same-session-fallback，并必须记录 rationale
+3. Spec conformance: evidence 是否覆盖 specRefs/acceptanceRefs
+4. Project rules conformance: 基于 Project Context Contract 校验当前项目声明的规范（AGENTS.md/CLAUDE.md/CODEX.md/README.md/.cursorrules/.cursor/rules/ 等）是否被遵守；不符合必须检查 compliance.deviations/evidence 中的偏离理由，理由不充分直接 CHANGES_REQUESTED
+5. Project type best-practice conformance: 基于 Project Context Contract 校验当前项目类型最佳实践是否被遵守；不符合必须给出充分理由，理由不充分直接 CHANGES_REQUESTED
+6. Code review: 正确性、错误处理、类型安全、测试覆盖
+7. Security review: 注入、密钥暴露、路径遍历
+8. 必须执行 Project Context Contract 中 rules.verificationCommands 的所有命令（包括 build/compile/typecheck/test）；任一命令失败或跳过，都不得 PASS
+9. 根据 testStrategy 执行已选择的测试：自动化 UI 测试优先用 Mobile MCP 或项目 E2E runner，单元测试运行对应命令；未选择的测试类型不作为失败条件
+10. 写入 docs/reports/verification-report.md，包含 reviewIndependence、verificationCommands、Project Context Contract verdicts: projectRulesVerdict 和 bestPracticesVerdict（PASS / CHANGES_REQUESTED / BLOCKED），以及所有偏离、理由和是否接受
+11. 只有当 spec、本地项目规范、项目类型最佳实践、required verification commands、代码审查、安全审查都 PASS，才能用 nova checkpoint phase verify --status done；否则不要标记完成
+12. 用 nova checkpoint artifacts --verification-report 记录验证报告，并记录 --project-rules-verdict PASS、--best-practices-verdict PASS（或包含 deviations 的 JSON verdict）、--review-independence '<json>' 和 --verification-commands '<json>'
 \`\`\`
 
 ### Phase 5: Archive (归档)
@@ -131,6 +136,7 @@ Always read it first.
 ## Key Rules
 
 - Always read \`.nova.yaml\` before any action
+- Design must generate/refresh the Project Context Contract in \`.nova.yaml.projectContext\`; implement must consume it through \`nova context --task-id\`; verify must reject weak or missing deviation rationale
 - Always obey project-local instruction files before Nova defaults: \`AGENTS.md\`, \`CLAUDE.md\`, \`CODEX.md\`, \`README.md\`, \`.cursorrules\`, \`.cursor/rules/\`, and closer directory-specific rule files for files you touch
 - Always account for project type best practices from \`.nova.yaml.projectType\`, project metadata, and existing code; deviations require explicit, sufficient rationale and must be rejected in verify when the rationale is weak
 - Use \`nova next\`, \`nova validate\`, \`nova guard\`, \`nova context\`, and \`nova checkpoint\` for deterministic workflow decisions and state writes

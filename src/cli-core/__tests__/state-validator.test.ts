@@ -24,7 +24,32 @@ const validTask = {
   acceptanceRefs: ['accept.task-one'],
   acceptance: ['Task works'],
   verification: { commands: ['npm test'] },
+  complianceRefs: {
+    projectRules: ['rules.must.0'],
+    bestPractices: ['bestPractices.must.0'],
+  },
 };
+
+const validProjectContext = {
+  rules: {
+    sources: ['AGENTS.md'],
+    must: ['Use structured logging'],
+    mustNot: ['Use fmt.Println'],
+    verificationCommands: ['npm test'],
+  },
+  bestPractices: {
+    projectType: 'node',
+    sources: ['package.json'],
+    must: ['Keep TypeScript strict'],
+    should: ['Prefer focused modules'],
+    risks: ['Runtime ESM interop'],
+  },
+  conflicts: [],
+};
+
+const passingVerificationCommands = [
+  { command: 'npm test', status: 'PASS' },
+];
 
 const noExtraTestStrategy = {
   automatedUiTesting: false,
@@ -118,6 +143,277 @@ describe('validateState', () => {
 
     expect(result.pass).toBe(false);
     expect(result.errors.some(e => e.code === 'implement.task.evidence.missing')).toBe(true);
+  });
+
+  test('keeps legacy design-done states valid by default when projectContext is absent', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.errors.some(e => e.code === 'project-context.missing')).toBe(false);
+  });
+
+  test('fails design completion without projectContext when required', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false, requireProjectContext: true });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'project-context.missing')).toBe(true);
+  });
+
+  test('passes valid projectContext contract when required', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false, requireProjectContext: true });
+
+    expect(result.errors.filter(e => e.code.startsWith('project-context.'))).toEqual([]);
+    expect(result.errors.filter(e => e.code === 'task.compliance-refs.missing')).toEqual([]);
+  });
+
+  test('fails malformed projectContext schema', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: {
+        rules: { sources: [], must: 'nope', mustNot: [], verificationCommands: [] },
+        bestPractices: { projectType: '', sources: [], must: [], should: [], risks: [] },
+      },
+      phases: {
+        ...baseState.phases,
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false, requireProjectContext: true });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'project-context.rules.invalid')).toBe(true);
+    expect(result.errors.some(e => e.code === 'project-context.best-practices.project-type.missing')).toBe(true);
+  });
+
+  test('fails implementation task missing complianceRefs when projectContext is required', () => {
+    const taskWithoutRefs = { ...validTask, complianceRefs: undefined };
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [taskWithoutRefs],
+        },
+      },
+    }, { checkFiles: false, requireProjectContext: true });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'task.compliance-refs.missing')).toBe(true);
+  });
+
+  test('fails implement done without compliance evidence when projectContext exists', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [validTask],
+        },
+        implement: {
+          status: 'done',
+          tasks: { 'task-one': { status: 'done', filesChanged: ['src/task.ts'] } },
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'implement.task.compliance.missing')).toBe(true);
+  });
+
+  test('fails verify done without project rules and best-practice verdicts', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        verify: { status: 'done', pipelineResult: {} },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.filter(e => e.code === 'verify.compliance-verdict.missing')).toHaveLength(2);
+  });
+
+  test('fails verify done when compliance verdict requests changes', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        verify: {
+          status: 'done',
+          pipelineResult: {},
+          projectRulesVerdict: 'PASS',
+          bestPracticesVerdict: { status: 'CHANGES_REQUESTED', deviations: [{ ref: 'bestPractices.must.0', reason: 'Convenience only', accepted: false }] },
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'verify.compliance-verdict.failed')).toBe(true);
+  });
+
+  test('fails verify done without review independence record when projectContext exists', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        verify: {
+          status: 'done',
+          pipelineResult: {},
+          projectRulesVerdict: 'PASS',
+          bestPracticesVerdict: 'PASS',
+          verificationCommands: passingVerificationCommands,
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'verify.review-independence.missing')).toBe(true);
+  });
+
+  test('fails same-session fallback review without rationale', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        verify: {
+          status: 'done',
+          pipelineResult: {},
+          projectRulesVerdict: 'PASS',
+          bestPracticesVerdict: 'PASS',
+          reviewIndependence: { mode: 'same-session-fallback' },
+          verificationCommands: passingVerificationCommands,
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'verify.review-independence.rationale.missing')).toBe(true);
+  });
+
+  test('passes verify done with independent subagent review record', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        verify: {
+          status: 'done',
+          pipelineResult: {},
+          projectRulesVerdict: 'PASS',
+          bestPracticesVerdict: 'PASS',
+          reviewIndependence: { mode: 'subagent', agent: 'codex-reviewer', traceId: 'review-1' },
+          verificationCommands: passingVerificationCommands,
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.errors.filter(e => e.code.startsWith('verify.review-independence'))).toEqual([]);
+    expect(result.errors.filter(e => e.code.startsWith('verify.commands'))).toEqual([]);
+  });
+
+  test('fails verify done without required verification command results', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        verify: {
+          status: 'done',
+          pipelineResult: {},
+          projectRulesVerdict: 'PASS',
+          bestPracticesVerdict: 'PASS',
+          reviewIndependence: { mode: 'subagent', agent: 'codex-reviewer' },
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'verify.commands.missing')).toBe(true);
+  });
+
+  test('fails verify done when required verification command fails', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        verify: {
+          status: 'done',
+          pipelineResult: {},
+          projectRulesVerdict: 'PASS',
+          bestPracticesVerdict: 'PASS',
+          reviewIndependence: { mode: 'subagent', agent: 'codex-reviewer' },
+          verificationCommands: [{ command: 'npm test', status: 'FAIL', exitCode: 1 }],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'verify.commands.failed')).toBe(true);
+  });
+
+  test('fails verify done when required verification command is skipped', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: validProjectContext,
+      phases: {
+        ...baseState.phases,
+        verify: {
+          status: 'done',
+          pipelineResult: {},
+          projectRulesVerdict: 'PASS',
+          bestPracticesVerdict: 'PASS',
+          reviewIndependence: { mode: 'subagent', agent: 'codex-reviewer' },
+          verificationCommands: [{ command: 'npm test', status: 'SKIPPED', rationale: 'CI unavailable' }],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(false);
+    expect(result.errors.some(e => e.code === 'verify.commands.failed')).toBe(true);
   });
 
   test('fails when propose is done without test strategy', () => {

@@ -1,6 +1,16 @@
 import { StateManager } from './state';
 import { validateState } from './state-validator';
-import { ChangeMode, LegacyPreflight, TestStrategy } from './types';
+import {
+  ChangeMode,
+  ComplianceEvidence,
+  ComplianceVerdict,
+  ComplianceVerdictStatus,
+  LegacyPreflight,
+  ProjectContextContract,
+  ReviewIndependence,
+  TestStrategy,
+  VerificationCommandResult,
+} from './types';
 
 export type CheckpointStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped';
 
@@ -11,6 +21,7 @@ export interface TaskCheckpointInput {
   tests?: string[];
   traceId?: string;
   note?: string;
+  compliance?: ComplianceEvidence;
 }
 
 export interface ArtifactCheckpointInput {
@@ -22,6 +33,12 @@ export interface ArtifactCheckpointInput {
   testStrategy?: TestStrategy;
   changeMode?: ChangeMode;
   legacyPreflight?: LegacyPreflight;
+  projectContext?: ProjectContextContract;
+  projectContextPath?: string;
+  projectRulesVerdict?: ComplianceVerdict | ComplianceVerdictStatus;
+  bestPracticesVerdict?: ComplianceVerdict | ComplianceVerdictStatus;
+  reviewIndependence?: ReviewIndependence;
+  verificationCommands?: VerificationCommandResult[];
 }
 
 export async function checkpointPhase(phase: string, status: CheckpointStatus) {
@@ -34,7 +51,10 @@ export async function checkpointPhase(phase: string, status: CheckpointStatus) {
     state.phases[phase].status = status;
 
     if (status === 'done') {
-      const result = validateState(state, { cwd: process.cwd() });
+      const result = validateState(state, {
+        cwd: process.cwd(),
+        requireProjectContext: phase === 'design' || Boolean(state.projectContext),
+      });
       if (!result.pass) {
         const first = result.errors[0];
         throw new Error(`Cannot mark ${phase} done: ${first.message}`);
@@ -78,6 +98,9 @@ export async function checkpointTask(input: TaskCheckpointInput) {
     if (input.note) {
       next.notes = mergeStrings(current.notes, [input.note]);
     }
+    if (input.compliance) {
+      next.compliance = mergeCompliance(current.compliance, input.compliance);
+    }
 
     state.phases.implement.tasks[input.taskId] = next;
     return state;
@@ -113,6 +136,15 @@ export async function checkpointArtifacts(input: ArtifactCheckpointInput) {
       state.artifacts.legacyPreflight = input.legacyPreflight;
       state.phases.design.legacyPreflight = input.legacyPreflight;
     }
+    if (input.projectContext !== undefined) {
+      state.projectContext = {
+        ...input.projectContext,
+        updatedAt: input.projectContext.updatedAt || new Date().toISOString(),
+      };
+    }
+    if (input.projectContextPath !== undefined) {
+      state.artifacts.projectContext = input.projectContextPath;
+    }
     if (input.designDoc !== undefined) {
       state.phases.design.designDoc = input.designDoc;
     }
@@ -122,6 +154,18 @@ export async function checkpointArtifacts(input: ArtifactCheckpointInput) {
     if (input.verificationReport !== undefined) {
       state.artifacts.verificationReport = input.verificationReport;
     }
+    if (input.projectRulesVerdict !== undefined) {
+      state.phases.verify.projectRulesVerdict = input.projectRulesVerdict;
+    }
+    if (input.bestPracticesVerdict !== undefined) {
+      state.phases.verify.bestPracticesVerdict = input.bestPracticesVerdict;
+    }
+    if (input.reviewIndependence !== undefined) {
+      state.phases.verify.reviewIndependence = input.reviewIndependence;
+    }
+    if (input.verificationCommands !== undefined) {
+      state.phases.verify.verificationCommands = input.verificationCommands;
+    }
     return state;
   });
 }
@@ -130,6 +174,31 @@ function mergeStrings(existing: unknown, incoming: string[]): string[] {
   const values = Array.isArray(existing) ? existing.filter(v => typeof v === 'string') : [];
   for (const item of incoming.map(v => v.trim()).filter(Boolean)) {
     if (!values.includes(item)) values.push(item);
+  }
+  return values;
+}
+
+function mergeCompliance(existing: unknown, incoming: ComplianceEvidence): ComplianceEvidence {
+  const current = existing && typeof existing === 'object' && !Array.isArray(existing)
+    ? existing as ComplianceEvidence
+    : {};
+  return {
+    ...current,
+    ...incoming,
+    followed: mergeStrings(current.followed, incoming.followed || []),
+    deviations: mergeDeviations(current.deviations, incoming.deviations || []),
+  };
+}
+
+function mergeDeviations(existing: unknown, incoming: NonNullable<ComplianceEvidence['deviations']>): NonNullable<ComplianceEvidence['deviations']> {
+  const values = Array.isArray(existing) ? [...existing] : [];
+  for (const item of incoming) {
+    if (!item || typeof item !== 'object') continue;
+    const duplicate = values.some(existingItem =>
+      existingItem.ref === item.ref &&
+      existingItem.reason === item.reason
+    );
+    if (!duplicate) values.push(item);
   }
   return values;
 }

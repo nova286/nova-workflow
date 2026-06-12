@@ -23,6 +23,7 @@ const DEFAULT_ARTIFACTS: WorkflowArtifacts = {
   specDelta: '',
   implementationPlan: '',
   verificationReport: '',
+  projectContext: '',
 };
 
 function resolveTestStrategy(state: any, task: any) {
@@ -83,7 +84,9 @@ export class ContextGenerator {
           ? `Legacy refactor policy: ${legacyPreflight.refactorPolicy}`
           : '',
         legacyPreflight,
+        complianceRefs: task.complianceRefs,
       },
+      projectContext: (state as any).projectContext,
       input: {
         files: (task.files || []).map((f: any) => ({
           path: f.path,
@@ -111,6 +114,7 @@ export class ContextGenerator {
         method: normalizeMethod(task.method, taskType),
         specRefs: task.specRefs || [],
         acceptanceRefs: task.acceptanceRefs || [],
+        complianceRefs: task.complianceRefs,
       },
       verification: {
         commands: task.verification?.commands || [],

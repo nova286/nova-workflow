@@ -23,6 +23,7 @@ export interface ValidationResult {
 export interface ValidationOptions {
   cwd?: string;
   checkFiles?: boolean;
+  requireProjectContext?: boolean;
 }
 
 const PHASES = ['propose', 'design', 'implement', 'verify', 'archive'] as const;
@@ -236,6 +237,221 @@ function pushQualityErrors(
   }
 }
 
+function hasStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string');
+}
+
+function validateProjectContextContract(contract: any, errors: ValidationIssue[]) {
+  if (!contract || typeof contract !== 'object' || Array.isArray(contract)) {
+    errors.push(issue('project-context.missing', 'projectContext contract is missing', 'projectContext'));
+    return;
+  }
+
+  if (!contract.rules || typeof contract.rules !== 'object' || Array.isArray(contract.rules)) {
+    errors.push(issue('project-context.rules.missing', 'projectContext.rules is missing', 'projectContext.rules'));
+  } else {
+    for (const field of ['sources', 'must', 'mustNot', 'verificationCommands']) {
+      if (!hasStringArray(contract.rules[field])) {
+        errors.push(issue('project-context.rules.invalid', `projectContext.rules.${field} must be a string array`, `projectContext.rules.${field}`));
+      }
+    }
+    if (hasStringArray(contract.rules.sources) && contract.rules.sources.length === 0) {
+      errors.push(issue('project-context.rules.sources.empty', 'projectContext.rules.sources must record at least one source', 'projectContext.rules.sources'));
+    }
+  }
+
+  if (!contract.bestPractices || typeof contract.bestPractices !== 'object' || Array.isArray(contract.bestPractices)) {
+    errors.push(issue('project-context.best-practices.missing', 'projectContext.bestPractices is missing', 'projectContext.bestPractices'));
+  } else {
+    if (!hasText(contract.bestPractices.projectType)) {
+      errors.push(issue('project-context.best-practices.project-type.missing', 'projectContext.bestPractices.projectType is missing', 'projectContext.bestPractices.projectType'));
+    }
+    for (const field of ['sources', 'must', 'should', 'risks']) {
+      if (!hasStringArray(contract.bestPractices[field])) {
+        errors.push(issue('project-context.best-practices.invalid', `projectContext.bestPractices.${field} must be a string array`, `projectContext.bestPractices.${field}`));
+      }
+    }
+    if (hasStringArray(contract.bestPractices.sources) && contract.bestPractices.sources.length === 0) {
+      errors.push(issue('project-context.best-practices.sources.empty', 'projectContext.bestPractices.sources must record at least one source', 'projectContext.bestPractices.sources'));
+    }
+  }
+
+  if (contract.conflicts !== undefined) {
+    if (!Array.isArray(contract.conflicts)) {
+      errors.push(issue('project-context.conflicts.invalid', 'projectContext.conflicts must be an array', 'projectContext.conflicts'));
+      return;
+    }
+    contract.conflicts.forEach((conflict: any, index: number) => {
+      const base = `projectContext.conflicts.${index}`;
+      if (!conflict || typeof conflict !== 'object' || Array.isArray(conflict)) {
+        errors.push(issue('project-context.conflict.invalid', 'projectContext conflict must be an object', base));
+        return;
+      }
+      for (const field of ['projectRule', 'bestPractice', 'resolution', 'rationale']) {
+        if (!hasText(conflict[field])) {
+          errors.push(issue('project-context.conflict.invalid', `projectContext conflict is missing ${field}`, `${base}.${field}`));
+        }
+      }
+    });
+  }
+}
+
+function taskTouchesImplementationSurface(task: any): boolean {
+  return (task.type === 'implementation' || task.type === 'testing') &&
+    Array.isArray(task.files) &&
+    task.files.length > 0;
+}
+
+function validateTaskComplianceRefs(tasks: any[], errors: ValidationIssue[]) {
+  tasks.forEach((task, index) => {
+    if (!taskTouchesImplementationSurface(task)) return;
+    const refs = task.complianceRefs;
+    const hasProjectRules = hasStringArray(refs?.projectRules) && refs.projectRules.length > 0;
+    const hasBestPractices = hasStringArray(refs?.bestPractices) && refs.bestPractices.length > 0;
+    if (!hasProjectRules || !hasBestPractices) {
+      errors.push(issue(
+        'task.compliance-refs.missing',
+        `${task.id || `task ${index + 1}`}: implementation/testing task must reference project rules and best practices`,
+        `phases.design.tasks.${index}.complianceRefs`
+      ));
+    }
+  });
+}
+
+function validDeviationRationale(deviation: any): boolean {
+  return deviation &&
+    typeof deviation === 'object' &&
+    !Array.isArray(deviation) &&
+    hasText(deviation.ref) &&
+    hasText(deviation.reason);
+}
+
+function hasComplianceEvidence(result: any): boolean {
+  const compliance = result?.compliance;
+  if (!compliance || typeof compliance !== 'object' || Array.isArray(compliance)) return false;
+  if (hasStringArray(compliance.followed) && compliance.followed.length > 0) return true;
+  if (Array.isArray(compliance.deviations) && compliance.deviations.length > 0) {
+    return compliance.deviations.every(validDeviationRationale);
+  }
+  return hasText(compliance.noOpRationale);
+}
+
+function validateImplementCompliance(tasks: any[], taskResults: Record<string, any>, errors: ValidationIssue[]) {
+  for (const task of tasks.filter(taskTouchesImplementationSurface)) {
+    const result = taskResults[task.id];
+    if (result?.status === 'done' && !hasComplianceEvidence(result)) {
+      errors.push(issue(
+        'implement.task.compliance.missing',
+        `${task.id}: done task must record compliance evidence or a no-op rationale`,
+        `phases.implement.tasks.${task.id}.compliance`
+      ));
+    }
+  }
+}
+
+function normalizeVerdict(verdict: unknown): { status?: string; deviations: any[] } {
+  if (typeof verdict === 'string') return { status: verdict, deviations: [] };
+  if (verdict && typeof verdict === 'object' && !Array.isArray(verdict)) {
+    const value = verdict as any;
+    return {
+      status: value.status,
+      deviations: Array.isArray(value.deviations) ? value.deviations : [],
+    };
+  }
+  return { deviations: [] };
+}
+
+function validateComplianceVerdict(verdict: unknown, label: string, path: string, errors: ValidationIssue[]) {
+  if (verdict === undefined || verdict === null) {
+    errors.push(issue('verify.compliance-verdict.missing', `verify is done but ${label} verdict is missing`, path));
+    return;
+  }
+  const normalized = normalizeVerdict(verdict);
+  if (normalized.status !== 'PASS') {
+    errors.push(issue('verify.compliance-verdict.failed', `${label} verdict must be PASS before verify can be marked done`, path));
+  }
+  for (const [index, deviation] of normalized.deviations.entries()) {
+    if (!validDeviationRationale(deviation) || deviation.accepted !== true) {
+      errors.push(issue(
+        'verify.compliance-deviation.unaccepted',
+        `${label} deviation ${index + 1} must include an accepted rationale`,
+        `${path}.deviations.${index}`
+      ));
+    }
+  }
+}
+
+function validateReviewIndependence(review: any, errors: ValidationIssue[]) {
+  if (!review || typeof review !== 'object' || Array.isArray(review)) {
+    errors.push(issue('verify.review-independence.missing', 'verify is done but reviewIndependence is missing', 'phases.verify.reviewIndependence'));
+    return;
+  }
+
+  if (review.mode !== 'subagent' && review.mode !== 'fresh-context' && review.mode !== 'same-session-fallback') {
+    errors.push(issue(
+      'verify.review-independence.invalid',
+      'reviewIndependence.mode must be subagent, fresh-context, or same-session-fallback',
+      'phases.verify.reviewIndependence.mode'
+    ));
+    return;
+  }
+
+  if (review.mode === 'same-session-fallback' && !hasText(review.rationale)) {
+    errors.push(issue(
+      'verify.review-independence.rationale.missing',
+      'same-session-fallback review requires a rationale explaining why independent review was unavailable',
+      'phases.verify.reviewIndependence.rationale'
+    ));
+  }
+}
+
+function validateVerificationCommands(requiredCommands: unknown, commandResults: any, errors: ValidationIssue[]) {
+  const required = Array.isArray(requiredCommands)
+    ? requiredCommands.filter((command): command is string => hasText(command))
+    : [];
+  if (required.length === 0) return;
+
+  if (!Array.isArray(commandResults) || commandResults.length === 0) {
+    errors.push(issue(
+      'verify.commands.missing',
+      'verify is done but required verification command results are missing',
+      'phases.verify.verificationCommands'
+    ));
+    return;
+  }
+
+  const byCommand = new Map<string, any>();
+  commandResults.forEach((result: any, index: number) => {
+    const base = `phases.verify.verificationCommands.${index}`;
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      errors.push(issue('verify.commands.invalid', 'verification command result must be an object', base));
+      return;
+    }
+    if (!hasText(result.command)) {
+      errors.push(issue('verify.commands.invalid', 'verification command result is missing command', `${base}.command`));
+      return;
+    }
+    if (result.status !== 'PASS' && result.status !== 'FAIL' && result.status !== 'SKIPPED') {
+      errors.push(issue('verify.commands.invalid', `${result.command}: status must be PASS, FAIL, or SKIPPED`, `${base}.status`));
+    }
+    if (result.status === 'SKIPPED' && !hasText(result.rationale)) {
+      errors.push(issue('verify.commands.skip-rationale.missing', `${result.command}: skipped verification command requires rationale`, `${base}.rationale`));
+    }
+    byCommand.set(result.command, result);
+  });
+
+  for (const command of required) {
+    const result = byCommand.get(command);
+    if (!result) {
+      errors.push(issue('verify.commands.required.missing', `${command}: required verification command result is missing`, 'phases.verify.verificationCommands'));
+      continue;
+    }
+    if (result.status !== 'PASS') {
+      errors.push(issue('verify.commands.failed', `${command}: required verification command must PASS before verify can be marked done`, 'phases.verify.verificationCommands'));
+    }
+  }
+}
+
 export function validateState(state: any, options: ValidationOptions = {}): ValidationResult {
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
@@ -301,6 +517,9 @@ export function validateState(state: any, options: ValidationOptions = {}): Vali
   }
   validateFigmaTraceability(state, proposalContent, errors);
   validateChangeModeAndLegacyPreflight(state, errors);
+  if (state.projectContext || options.requireProjectContext) {
+    validateProjectContextContract(state.projectContext, errors);
+  }
 
   const design = phases.design || {};
   const tasks = design.tasks || [];
@@ -328,6 +547,9 @@ export function validateState(state: any, options: ValidationOptions = {}): Vali
     pushQualityErrors(errors, 'task.files.invalid', 'phases.design.tasks', files.errors);
     pushQualityErrors(errors, 'task.acceptance.invalid', 'phases.design.tasks', acceptance.errors);
     pushQualityErrors(errors, 'task.spec.invalid', 'phases.design.tasks', spec.errors);
+    if (state.projectContext || options.requireProjectContext) {
+      validateTaskComplianceRefs(tasks, errors);
+    }
   }
 
   validateTestStrategy(state, Array.isArray(tasks) ? tasks : [], errors);
@@ -361,6 +583,9 @@ export function validateState(state: any, options: ValidationOptions = {}): Vali
           errors.push(issue('implement.task.evidence.missing', `${task.id}: done task has no evidence`, `phases.implement.tasks.${task.id}`));
         }
       }
+      if (state.projectContext) {
+        validateImplementCompliance(tasks, taskResults, errors);
+      }
     }
   }
 
@@ -370,6 +595,15 @@ export function validateState(state: any, options: ValidationOptions = {}): Vali
   }
   if (verify.status === 'done' && state.artifacts?.verificationReport && checkFiles && !artifactExists(state.artifacts.verificationReport, cwd)) {
     errors.push(issue('verify.report.not-found', `verification report not found: ${state.artifacts.verificationReport}`, 'artifacts.verificationReport'));
+  }
+  if (verify.status === 'done' && state.projectContext) {
+    const projectRulesVerdict = verify.projectRulesVerdict ?? verify.pipelineResult?.projectRulesVerdict;
+    const bestPracticesVerdict = verify.bestPracticesVerdict ?? verify.pipelineResult?.bestPracticesVerdict;
+    const verificationCommands = verify.verificationCommands ?? verify.pipelineResult?.verificationCommands;
+    validateComplianceVerdict(projectRulesVerdict, 'projectRulesVerdict', 'phases.verify.projectRulesVerdict', errors);
+    validateComplianceVerdict(bestPracticesVerdict, 'bestPracticesVerdict', 'phases.verify.bestPracticesVerdict', errors);
+    validateReviewIndependence(verify.reviewIndependence ?? verify.pipelineResult?.reviewIndependence, errors);
+    validateVerificationCommands(state.projectContext.rules?.verificationCommands, verificationCommands, errors);
   }
 
   return { pass: errors.length === 0, errors, warnings };

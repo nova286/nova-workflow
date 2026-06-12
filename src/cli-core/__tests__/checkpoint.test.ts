@@ -17,6 +17,10 @@ describe('checkpoint', () => {
     files: [{ path: 'src/task.ts', action: 'modify' }],
     specRefs: ['spec.task-one'],
     acceptanceRefs: ['accept.task-one'],
+    complianceRefs: {
+      projectRules: ['rules.must.0'],
+      bestPractices: ['bestPractices.must.0'],
+    },
     acceptance: ['Task works'],
     verification: { commands: ['npm test'] },
   };
@@ -33,6 +37,23 @@ describe('checkpoint', () => {
       archive: { status: 'pending' },
     },
     metadata: { stateVersion: 0, lastModified: '', history: [] },
+  };
+
+  const projectContext = {
+    rules: {
+      sources: ['AGENTS.md'],
+      must: ['Use structured logging'],
+      mustNot: ['Use fmt.Println'],
+      verificationCommands: ['npm test'],
+    },
+    bestPractices: {
+      projectType: 'node',
+      sources: ['package.json'],
+      must: ['Keep TypeScript strict'],
+      should: ['Keep modules focused'],
+      risks: ['ESM interop'],
+    },
+    conflicts: [],
   };
 
   beforeEach(async () => {
@@ -67,6 +88,9 @@ describe('checkpoint', () => {
       filesChanged: ['src/task.ts'],
       tests: ['npm test'],
       traceId: 'trace-1',
+      compliance: {
+        followed: ['rules.must.0'],
+      },
     });
     await checkpointTask({
       taskId: 'task-one',
@@ -75,6 +99,10 @@ describe('checkpoint', () => {
       tests: ['npx tsc --noEmit'],
       traceId: 'trace-2',
       note: 'verified',
+      compliance: {
+        followed: ['bestPractices.must.0'],
+        deviations: [{ ref: 'bestPractices.should.0', reason: 'Existing module boundary forces this placement' }],
+      },
     });
 
     const state = await StateManager.load();
@@ -84,6 +112,10 @@ describe('checkpoint', () => {
     expect(result.tests).toEqual(['npm test', 'npx tsc --noEmit']);
     expect(result.traceIds).toEqual(['trace-1', 'trace-2']);
     expect(result.notes).toEqual(['verified']);
+    expect(result.compliance.followed).toEqual(['rules.must.0', 'bestPractices.must.0']);
+    expect(result.compliance.deviations).toEqual([
+      { ref: 'bestPractices.should.0', reason: 'Existing module boundary forces this placement' },
+    ]);
     expect(result.updatedAt).toBeTruthy();
   });
 
@@ -129,6 +161,45 @@ describe('checkpoint', () => {
     expect(state.legacyPreflight).toEqual(legacyPreflight);
     expect(state.phases.design.legacyPreflight).toEqual(legacyPreflight);
     expect(state.artifacts?.legacyPreflight).toEqual(legacyPreflight);
+  });
+
+  test('checkpointArtifacts records project context contract and artifact path', async () => {
+    await writeState(baseState);
+
+    await checkpointArtifacts({
+      projectContext,
+      projectContextPath: 'docs/project-context.md',
+    });
+
+    const state = await StateManager.load();
+    expect(state.projectContext?.rules.must).toEqual(['Use structured logging']);
+    expect(state.projectContext?.updatedAt).toBeTruthy();
+    expect(state.artifacts?.projectContext).toBe('docs/project-context.md');
+  });
+
+  test('checkpointArtifacts records verify compliance verdicts', async () => {
+    await writeState(baseState);
+
+    await checkpointArtifacts({
+      verificationReport: 'docs/reports/verification-report.md',
+      projectRulesVerdict: 'PASS',
+      bestPracticesVerdict: { status: 'PASS', deviations: [] },
+      reviewIndependence: { mode: 'subagent', agent: 'codex-reviewer', traceId: 'review-1' },
+      verificationCommands: [{ command: 'npm test', status: 'PASS', exitCode: 0 }],
+    });
+
+    const state = await StateManager.load();
+    expect(state.artifacts?.verificationReport).toBe('docs/reports/verification-report.md');
+    expect(state.phases.verify.projectRulesVerdict).toBe('PASS');
+    expect(state.phases.verify.bestPracticesVerdict).toEqual({ status: 'PASS', deviations: [] });
+    expect(state.phases.verify.reviewIndependence).toEqual({
+      mode: 'subagent',
+      agent: 'codex-reviewer',
+      traceId: 'review-1',
+    });
+    expect(state.phases.verify.verificationCommands).toEqual([
+      { command: 'npm test', status: 'PASS', exitCode: 0 },
+    ]);
   });
 
   test('checkpointPhase refuses done when validation fails', async () => {

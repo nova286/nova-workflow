@@ -78,6 +78,19 @@ const TRANSITION_RULES: Record<string, GuardCheck[]> = {
       label: 'Implementation tasks are spec-bound',
       check: (s) => validateSpecBoundExecution(s.phases.design?.tasks || []),
     },
+    {
+      label: 'Project context contract is valid',
+      check: (s) => {
+        const result = validateState(s, { cwd: process.cwd(), requireProjectContext: true });
+        const errors = result.errors
+          .filter(error =>
+            error.path?.startsWith('projectContext') ||
+            error.path?.startsWith('phases.design.tasks')
+          )
+          .map(error => error.message);
+        return { pass: errors.length === 0, errors };
+      },
+    },
   ],
   'implement:verify': [
     { label: 'Implement phase is done', check: (s) => s.phases.implement?.status === 'done' },
@@ -99,9 +112,13 @@ const TRANSITION_RULES: Record<string, GuardCheck[]> = {
     {
       label: 'Verification evidence is valid',
       check: (s) => {
-        const result = validateState(s, { cwd: process.cwd() });
+        const result = validateState(s, { cwd: process.cwd(), requireProjectContext: Boolean(s.projectContext) });
         const errors = result.errors
-          .filter(error => error.path?.startsWith('phases.verify') || error.path === 'artifacts.verificationReport')
+          .filter(error =>
+            error.path?.startsWith('phases.verify') ||
+            error.path === 'artifacts.verificationReport' ||
+            error.path?.startsWith('projectContext')
+          )
           .map(error => error.message);
         return { pass: errors.length === 0, errors };
       },

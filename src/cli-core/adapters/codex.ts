@@ -196,6 +196,10 @@ source files.
 Clarify the problem, alternatives, risks, success criteria, change mode, and test
 strategy. For Figma links, run \`nova detect --agent codex --json\` and record
 traceability or limitations.
+Do lightweight Project Context discovery: record likely rule sources,
+projectType, primary stack, and obvious risks in the proposal. Do not write the
+formal \`.nova.yaml.projectContext\` yet; design generates or refreshes the
+Project Context Contract.
 
 ## Step 4: Write Artifacts
 Write compatible artifacts:
@@ -245,18 +249,25 @@ performance considerations for this project type. Include a
 project rule conflicts with a generic best practice, follow the project rule and
 record the rationale.
 
+Generate or refresh the Project Context Contract in \`.nova.yaml.projectContext\`
+with \`rules.sources/must/mustNot/verificationCommands\`,
+\`bestPractices.projectType/sources/must/should/risks\`, and \`conflicts[]\`.
+Optionally write a readable copy and record it as \`artifacts.projectContext\`.
+
 ## Step 3: Plan
 Produce \`docs/designs/design.md\` and
 \`docs/superpowers/plans/<change-id>.md\`. Tasks must include concrete files,
 method, specRefs, acceptanceRefs, acceptance criteria, and verification commands.
 Tasks must also reference the relevant project rules/conventions they must obey
-when touching code, plus the project type best practices they must follow. Any
-planned deviation from either must include a clear rationale.
+when touching code, plus the project type best practices they must follow, using
+\`complianceRefs.projectRules\` and \`complianceRefs.bestPractices\`. Any planned
+deviation from either must include a clear rationale.
 For existing changes, perform and record legacyPreflight before task planning.
 
 ## Step 4: Update State
 Run \`nova checkpoint artifacts --design-doc docs/designs/design.md\`, include
-\`--legacy-preflight '<json>'\` when required, then run \`nova validate\` and
+\`--project-context '<json>'\` and optionally \`--project-context-path <path>\`;
+include \`--legacy-preflight '<json>'\` when required, then run \`nova validate\` and
 \`nova checkpoint phase design --status done\`.
 `,
 
@@ -281,17 +292,19 @@ target paths: \`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`,
 files. If these rules conflict with generic Nova instructions, follow the
 project rules.
 
-Also read the design document's \`Project Type Best Practices\` section and
-apply the best practices for the current \`.nova.yaml.projectType\` and detected
-stack. If implementation must deviate from a project rule or best practice,
-record a specific rationale in the task evidence; weak or missing rationale
-will be rejected in verify.
+Also read \`context.projectContext\` (Project Context Contract) and the task's
+\`complianceRefs\`. Apply the contract rules and best practices for the current
+\`.nova.yaml.projectType\` and detected stack. Project Type Best Practices apply here. If implementation must deviate from a project rule
+or best practice, record a specific rationale in \`compliance.deviations\`; weak
+or missing rationale will be rejected in verify.
 
 Implement only the scoped work, run the task verification commands, confirm the
 work follows applicable project rules/conventions and project type best
 practices, and record evidence with \`nova checkpoint task <task-id>\`. Include
 in the task summary/evidence which project rules, project type best practices,
-and verification commands were followed. List any deviations with rationale.
+and verification commands were followed. Use \`--compliance '<json>'\` to record
+\`compliance.followed\` and \`compliance.deviations\`. List any deviations with
+rationale.
 
 ## Step 3: Finish
 Run project checks, \`nova guard implement verify\`, then
@@ -312,35 +325,57 @@ nova checkpoint phase verify --status in-progress
 \`\`\`
 
 ## Step 2: Review
-Review task evidence against specRefs/acceptanceRefs, inspect changed files for
-correctness, and perform a security review. Also read applicable project-local
-instruction files and the design document's \`Project Rules / Conventions\` and
-\`Project Type Best Practices\` sections.
+Start an independent verification reviewer before judging the work. Prefer a
+subagent or separate reviewer context that receives only \`.nova.yaml\`, Project
+Context Contract, design tasks, implementation evidence, changed files, and the
+expected report format. The main agent orchestrates commands and checkpoints but
+must not grant PASS from its own implementation context.
 
-For each changed file and task, verify conformance with project-local rules
+If subagents are unavailable, use a fresh-context review: reread artifacts and
+changed files without relying on implementation-stage explanations. Only use
+\`same-session-fallback\` when no independent path exists, and record a concrete
+rationale in \`reviewIndependence\`.
+
+The reviewer must inspect task evidence against specRefs/acceptanceRefs, inspect
+changed files for correctness, and perform a security review. Also read
+applicable project-local instruction files and the design document's
+\`Project Rules / Conventions\` and \`Project Type Best Practices\` sections.
+Treat \`.nova.yaml.projectContext\` as the Project Context Contract source of
+truth.
+
+For each changed file and task, verify conformance with the Project Context
+Contract: project-local rules
 (\`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`, \`.cursorrules\`,
 \`.cursor/rules/\`, and closer directory-specific rules) and project type best
 practices from \`.nova.yaml.projectType\`, project metadata, existing code
 patterns, and the design document.
 
 If code deviates from project rules or best practices, accept it only when the
-task evidence or implementation notes provide a specific, sufficient rationale.
+task compliance evidence or implementation notes provide a specific, sufficient rationale.
 Weak, missing, or convenience-only rationale is \`CHANGES_REQUESTED\`; do not
 allow verify to pass.
+
+Run every command in \`projectContext.rules.verificationCommands\`, including
+build, compile, typecheck, and test commands. Any required command that fails or
+is skipped blocks PASS and must be reported as CHANGES_REQUESTED or BLOCKED.
 
 ## Step 3: Report
 Write \`docs/reports/verification-report.md\`, then run:
 
 \`\`\`bash
-nova checkpoint artifacts --verification-report docs/reports/verification-report.md
+nova checkpoint artifacts --verification-report docs/reports/verification-report.md \\
+  --project-rules-verdict PASS --best-practices-verdict PASS \\
+  --review-independence '{"mode":"subagent","agent":"codex-reviewer"}' \\
+  --verification-commands '[{"command":"npm test","status":"PASS","exitCode":0}]'
 nova validate
 nova checkpoint phase verify --status done
 \`\`\`
 
 Only mark verify done when spec conformance, project rules conformance, project
-type best-practice conformance, code review, and security review all pass or
-have sufficient documented rationale for every deviation. The report must list
-every deviation, the stated rationale, and whether it was accepted.
+type best-practice conformance, code review, and security review all pass. The
+report must include Project Context Contract \`projectRulesVerdict\` and
+\`bestPracticesVerdict\`, \`reviewIndependence\`, \`verificationCommands\`, and
+list every deviation, the stated rationale, and whether it was accepted.
 `,
 
   'nova-archive': `---

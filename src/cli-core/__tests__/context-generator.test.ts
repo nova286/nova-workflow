@@ -55,6 +55,23 @@ describe("ContextGenerator", () => {
           refactorPolicy: "minimal",
           userDecision: "做最小必要重构，只处理会阻塞本次需求的部分",
         },
+        projectContext: "docs/project-context.md",
+      },
+      projectContext: {
+        rules: {
+          sources: ["AGENTS.md"],
+          must: ["Use parameterized SQL"],
+          mustNot: ["Concatenate SQL strings"],
+          verificationCommands: ["npm test"],
+        },
+        bestPractices: {
+          projectType: "node",
+          sources: ["package.json"],
+          must: ["Keep TypeScript strict"],
+          should: ["Prefer small modules"],
+          risks: ["ESM interop"],
+        },
+        conflicts: [],
       },
       phases: {
         propose: {
@@ -112,6 +129,10 @@ describe("ContextGenerator", () => {
       method: "tdd",
       specRefs: ["auth.requirements.valid-credential-login"],
       acceptanceRefs: ["auth.acceptance.valid-login-returns-token"],
+      complianceRefs: {
+        projectRules: ["rules.must.0"],
+        bestPractices: ["bestPractices.must.0"],
+      },
       files: [{ path: "src/login.ts", action: "create" }],
       verification: {
         commands: ["npm test -- login", "npx tsc --noEmit"],
@@ -147,6 +168,13 @@ describe("ContextGenerator", () => {
     expect(context.designContext.architectureNotes).toContain("minimal");
     expect(context.implementation.specRefs).toEqual(["auth.requirements.valid-credential-login"]);
     expect(context.implementation.acceptanceRefs).toEqual(["auth.acceptance.valid-login-returns-token"]);
+    expect(context.implementation.complianceRefs).toEqual({
+      projectRules: ["rules.must.0"],
+      bestPractices: ["bestPractices.must.0"],
+    });
+    expect(context.designContext.complianceRefs?.projectRules).toEqual(["rules.must.0"]);
+    expect(context.projectContext?.rules.must).toContain("Use parameterized SQL");
+    expect(context.change.artifacts.projectContext).toBe("docs/project-context.md");
     expect(context.verification.commands).toEqual(["npm test -- login", "npx tsc --noEmit"]);
     expect(context.verification.testStrategy?.automatedUiTesting).toBe(true);
     expect(context.verification.testStrategy?.unitTesting).toBe(true);

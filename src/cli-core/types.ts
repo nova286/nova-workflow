@@ -14,6 +14,9 @@ export type ImplementationMethod = 'tdd' | 'implementation' | 'refactor' | 'docs
 export type DesignTaskType = 'design' | 'implementation' | 'review' | 'testing' | 'security' | 'docs' | 'other';
 export type ChangeMode = 'existing' | 'incremental' | 'new';
 export type RefactorPolicy = 'none' | 'minimal' | 'full';
+export type ComplianceVerdictStatus = 'PASS' | 'CHANGES_REQUESTED' | 'BLOCKED';
+export type ReviewIndependenceMode = 'subagent' | 'fresh-context' | 'same-session-fallback';
+export type VerificationCommandStatus = 'PASS' | 'FAIL' | 'SKIPPED';
 
 export interface DesignTaskFile {
   path: string;
@@ -56,6 +59,78 @@ export interface LegacyPreflight {
   rationale?: string;
 }
 
+export interface ComplianceRefs {
+  projectRules?: string[];
+  bestPractices?: string[];
+}
+
+export interface DeviationRationale {
+  ref: string;
+  reason: string;
+  impact?: string;
+  mitigation?: string;
+  accepted?: boolean;
+}
+
+export interface ComplianceEvidence {
+  followed?: string[];
+  deviations?: DeviationRationale[];
+  noOpRationale?: string;
+}
+
+export interface ComplianceVerdict {
+  status: ComplianceVerdictStatus;
+  deviations?: DeviationRationale[];
+  rationale?: string;
+}
+
+export interface ReviewIndependence {
+  mode: ReviewIndependenceMode;
+  agent?: string;
+  reviewer?: string;
+  traceId?: string;
+  rationale?: string;
+}
+
+export interface VerificationCommandResult {
+  command: string;
+  status: VerificationCommandStatus;
+  exitCode?: number;
+  summary?: string;
+  rationale?: string;
+}
+
+export interface ProjectContextRules {
+  sources: string[];
+  must: string[];
+  mustNot: string[];
+  verificationCommands: string[];
+}
+
+export interface ProjectContextBestPractices {
+  projectType: string;
+  sources: string[];
+  must: string[];
+  should: string[];
+  risks: string[];
+}
+
+export interface ProjectContextConflict {
+  projectRule: string;
+  bestPractice: string;
+  resolution: 'project-rule' | 'best-practice' | 'case-by-case' | string;
+  rationale: string;
+}
+
+export interface ProjectContextContract {
+  rules: ProjectContextRules;
+  bestPractices: ProjectContextBestPractices;
+  conflicts?: ProjectContextConflict[];
+  stack?: string[];
+  risks?: string[];
+  updatedAt?: string;
+}
+
 export interface DesignTask {
   id: string;
   title: string;
@@ -72,6 +147,7 @@ export interface DesignTask {
   expectedArtifacts?: Array<{ type: string; description: string; pathHint?: string; validation?: unknown }>;
   constraints?: { maxFilesChanged?: number; mustPassTests: boolean; codeStyle?: string };
   evidence?: { required?: string[]; tests?: string[]; filesChanged?: string[]; traceIds?: string[] };
+  complianceRefs?: ComplianceRefs;
   priority?: string;
   estimatedComplexity?: number;
   blocking?: boolean;
@@ -111,6 +187,7 @@ export interface WorkflowArtifacts {
   specDelta: string;
   implementationPlan: string;
   verificationReport: string;
+  projectContext?: string;
   figmaTraceability?: FigmaTraceability;
   testStrategy?: TestStrategy;
   changeMode?: ChangeMode;
@@ -128,7 +205,9 @@ export interface TaskContext {
     relevantSpecs: string[];
     architectureNotes: string;
     legacyPreflight?: LegacyPreflight;
+    complianceRefs?: ComplianceRefs;
   };
+  projectContext?: ProjectContextContract;
   input: {
     files: { path: string; content?: string; action: string }[];
     dependencies: string[];
@@ -147,6 +226,7 @@ export interface TaskContext {
     method: ImplementationMethod;
     specRefs: string[];
     acceptanceRefs: string[];
+    complianceRefs?: ComplianceRefs;
   };
   verification: {
     commands: string[];
@@ -185,6 +265,7 @@ export interface NovaState {
   integrations?: MethodologyIntegrations;
   mcpServers?: McpServers;
   artifacts?: WorkflowArtifacts;
+  projectContext?: ProjectContextContract;
   testStrategy?: TestStrategy;
   legacyPreflight?: LegacyPreflight;
   phases: Record<string, any>;

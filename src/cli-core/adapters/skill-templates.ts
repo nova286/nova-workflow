@@ -33,6 +33,25 @@ export const MOBILE_STEP = `
 4. Flag discrepancies as UI findings with severity
 `;
 
+export const UI_UX_PRO_MAX_WORKFLOW = `
+## UI/UX Pro Max Gate
+
+When the user's request changes UI, UX, visual design, layout, interaction,
+frontend components, screens, flows, accessibility, or design-system behavior:
+
+1. Run \`nova detect --json\` for the active Agent and check \`ui-ux-pro-max\`.
+2. If UI UX Pro Max is missing or partial:
+   - Show the install guidance from \`nova detect\`.
+   - Ask whether the user wants to install it now.
+   - If they install it, rerun \`nova detect --json\` before continuing.
+   - If they continue without it, record this limitation in the current Nova artifact.
+3. If UI UX Pro Max is available, use the **UI UX Pro Max skill** before
+   finalizing UI requirements, design tasks, implementation, or verification.
+4. Capture UI/UX decisions as concrete acceptance criteria: screen states,
+   responsive behavior, accessibility, visual hierarchy, interaction states,
+   design-system alignment, and regression risks.
+`;
+
 export type SkillTemplateFn = (mcp?: McpServers) => string;
 
 export function genericAgentInstructions(agentId: string): string {
@@ -58,6 +77,7 @@ Always read it first.
 帮我为"{你的需求描述}"创建 OpenSpec-compatible change。
 1. 先读 .nova.yaml 和已有代码了解项目
 2. 问 3-4 个澄清问题
+   - 如果需求涉及 UI/UX、页面、组件、交互、视觉、可访问性或设计系统，先运行 nova detect --agent ${agentId} --json 检查 UI UX Pro Max；可用时必须激活该 skill，缺失时提示安装 nextlevelbuilder/ui-ux-pro-max-skill（npx uipro-cli init --ai ${agentId === 'claude-code' ? 'claude' : agentId}）并记录限制
    - 如果需求里有 Figma 链接，先运行 nova detect --agent ${agentId} --json 检查 Figma MCP
    - 如果 Figma MCP 未配置，提示用户现在配置，并在用户配置后重新检测
    - Figma MCP 可用后，必须确认这是存量页面修改还是增量新页面
@@ -106,9 +126,10 @@ Always read it first.
 5. method=tdd 时先写失败测试，再实现，再重构
 6. 如果 context.designContext.legacyPreflight 存在，严格遵守 refactorPolicy，不临时扩大重构范围
 7. 根据 testStrategy 编写被选择的单元测试或自动化 UI 脚本；未选择的测试类型不强制补写
-8. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence，并用 --compliance '<json>' 记录 compliance.followed 和 compliance.deviations；列出所有偏离及理由
-9. 失败时问用户：abort / skip / retry
-10. 全部完成后运行 nova guard implement verify，再用 nova checkpoint phase implement --status done
+8. 如果任务涉及 UI/UX、页面、组件、交互、视觉、可访问性或设计系统，先运行 nova detect --agent ${agentId} --json 检查 UI UX Pro Max；可用时必须使用该 skill 指导实现，缺失时记录限制和安装提示
+9. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence，并用 --compliance '<json>' 记录 compliance.followed 和 compliance.deviations；列出所有偏离及理由
+10. 失败时问用户：abort / skip / retry
+11. 全部完成后运行 nova guard implement verify，再用 nova checkpoint phase implement --status done
 \`\`\`
 
 ### Phase 4: Verify (验证)
@@ -123,9 +144,10 @@ Always read it first.
 7. Security review: 注入、密钥暴露、路径遍历
 8. 必须执行 Project Context Contract 中 rules.verificationCommands 的所有命令（包括 build/compile/typecheck/test）；任一命令失败或跳过，都不得 PASS
 9. 根据 testStrategy 执行已选择的测试：自动化 UI 测试优先用 Mobile MCP 或项目 E2E runner，单元测试运行对应命令；未选择的测试类型不作为失败条件
-10. 写入 docs/reports/verification-report.md，包含 reviewIndependence、verificationCommands、Project Context Contract verdicts: projectRulesVerdict 和 bestPracticesVerdict（PASS / CHANGES_REQUESTED / BLOCKED），以及所有偏离、理由和是否接受
-11. 只有当 spec、本地项目规范、项目类型最佳实践、required verification commands、代码审查、安全审查都 PASS，才能用 nova checkpoint phase verify --status done；否则不要标记完成
-12. 用 nova checkpoint artifacts --verification-report 记录验证报告，并记录 --project-rules-verdict PASS、--best-practices-verdict PASS（或包含 deviations 的 JSON verdict）、--review-independence '<json>' 和 --verification-commands '<json>'
+10. 如果改动涉及 UI/UX，运行 nova detect --agent ${agentId} --json 检查 UI UX Pro Max；可用时必须用该 skill 做 UI/UX 验证 verdict（视觉层级、响应式、交互状态、可访问性、设计系统一致性），缺失时在报告中记录限制
+11. 写入 docs/reports/verification-report.md，包含 reviewIndependence、verificationCommands、Project Context Contract verdicts: projectRulesVerdict 和 bestPracticesVerdict（PASS / CHANGES_REQUESTED / BLOCKED），以及所有偏离、理由和是否接受
+12. 只有当 spec、本地项目规范、项目类型最佳实践、required verification commands、代码审查、安全审查都 PASS，才能用 nova checkpoint phase verify --status done；否则不要标记完成
+13. 用 nova checkpoint artifacts --verification-report 记录验证报告，并记录 --project-rules-verdict PASS、--best-practices-verdict PASS（或包含 deviations 的 JSON verdict）、--review-independence '<json>' 和 --verification-commands '<json>'
 \`\`\`
 
 ### Phase 5: Archive (归档)
@@ -156,5 +178,5 @@ export const SKILL_DESCRIPTIONS: Record<string, string> = {
   'nova-archive.md': 'Nova archive phase — finalize specs and clean source artifacts',
   'nova-iterate.md': 'Nova iterate — roll back to a previous phase for iteration',
   'nova-status.md': 'Nova status — display phase progress, task completion, and stuck detection',
-  'nova-detect.md': 'Nova detect — check installation status of CodeGraph, OpenSpec, Figma-mcp, Superpowers, affaan-m/ECC, mobile-mcp and provide install instructions',
+  'nova-detect.md': 'Nova detect — check installation status of CodeGraph, OpenSpec, UI UX Pro Max, Figma-mcp, Superpowers, affaan-m/ECC, mobile-mcp and provide install instructions',
 };

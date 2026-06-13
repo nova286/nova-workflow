@@ -66,6 +66,7 @@ export async function detectNovaEnvironment(options: DetectOptions = {}): Promis
   tools.push(await detectOpenSpec(cwd, commandExists));
   const agentId = agent.active.id;
   tools.push(await detectSuperpowers(homeDir, agentId));
+  tools.push(await detectUiUxProMax(cwd, homeDir, commandExists, agentId));
   tools.push(await detectEcc(cwd, homeDir, commandExists, agentId));
   tools.push(await detectFigmaMcp(cwd, homeDir, agentId));
   tools.push(await detectMobileMcp(cwd, homeDir, agentId));
@@ -270,6 +271,57 @@ async function detectSuperpowers(homeDir: string, agentId?: string | null): Prom
   };
 }
 
+async function detectUiUxProMax(cwd: string, homeDir: string, commandExists: (cmd: string) => Promise<boolean>, agentId?: string | null): Promise<ToolDetection> {
+  const skillMatches = await findSkillInstallations(cwd, homeDir, agentId, [
+    'ui-ux-pro-max',
+    'uiux-pro-max',
+    'ui-ux-pro',
+    'uiux-pro',
+    'UI UX Pro Max',
+  ], 'ui ux pro max');
+  const uiproCli = await commandExists('uipro');
+  const npxCli = await commandExists('npx');
+  const claudePlugin = await hasClaudePlugin(cwd, homeDir, ['ui-ux-pro-max', 'ui-ux-pro-max-skill', 'nextlevelbuilder/ui-ux-pro-max-skill']);
+  const codexConfig = await hasCodexConfig(homeDir, ['ui-ux-pro-max', 'ui-ux-pro-max-skill', 'uipro-cli']);
+  const agentSpecificConfigured =
+    agentId === 'codex'
+      ? codexConfig
+      : agentId === 'claude-code'
+      ? claudePlugin
+      : claudePlugin || codexConfig;
+  const installed = skillMatches.length > 0 || agentSpecificConfigured;
+  const status = installed ? 'available' : uiproCli || npxCli ? 'partial' : 'missing';
+  const summary = installed
+    ? 'UI/UX skill found for active Agent'
+    : agentId === 'codex' && claudePlugin
+    ? 'installed for Claude; missing for Codex'
+    : agentId === 'claude-code' && codexConfig
+    ? 'installed for Codex; missing for Claude Code'
+    : status === 'partial'
+    ? 'installer available; skill not installed for active Agent'
+    : 'UI work will use baseline Nova guidance';
+
+  return {
+    id: 'ui-ux-pro-max',
+    name: 'UI UX Pro Max',
+    category: 'recommended',
+    status,
+    summary,
+    install: installHint(agentId, 'ui-ux-pro-max'),
+    details: [
+      ...(
+        skillMatches.length > 0
+          ? skillMatches.map(match => `${match} found`)
+          : skillSearchRoots(cwd, homeDir, agentId).map(root => `${displayPath(root, cwd, homeDir)}/ui-ux-pro-max missing`)
+      ),
+      uiproCli ? 'uipro CLI found' : 'uipro CLI missing',
+      npxCli ? 'npx CLI found' : 'npx CLI missing',
+      claudePlugin ? 'Claude UI UX Pro Max plugin config found' : 'Claude UI UX Pro Max plugin config missing',
+      codexConfig ? 'Codex UI UX Pro Max config found' : 'Codex UI UX Pro Max config missing',
+    ],
+  };
+}
+
 async function detectEcc(cwd: string, homeDir: string, commandExists: (cmd: string) => Promise<boolean>, agentId?: string | null): Promise<ToolDetection> {
   const eccCli = await commandExists('ecc');
   const installCli = await commandExists('ecc-install');
@@ -396,18 +448,103 @@ async function pathExists(filePath: string): Promise<boolean> {
   }
 }
 
+function skillSearchRoots(cwd: string, homeDir: string, agentId?: string | null): string[] {
+  const roots: string[] = [];
+  const add = (root: string) => {
+    if (!roots.includes(root)) roots.push(root);
+  };
+
+  if (agentId === 'codex') {
+    add(path.join(homeDir, '.codex', 'skills'));
+    add(path.join(homeDir, '.agents', 'skills'));
+    add(path.join(cwd, '.codex', 'skills'));
+    add(path.join(cwd, '.agents', 'skills'));
+  } else if (agentId === 'claude-code') {
+    add(path.join(homeDir, '.claude', 'skills'));
+    add(path.join(homeDir, '.agents', 'skills'));
+    add(path.join(cwd, '.claude', 'skills'));
+    add(path.join(cwd, '.agents', 'skills'));
+  } else {
+    add(path.join(homeDir, '.agents', 'skills'));
+    add(path.join(homeDir, '.codex', 'skills'));
+    add(path.join(homeDir, '.claude', 'skills'));
+    add(path.join(cwd, '.agents', 'skills'));
+    add(path.join(cwd, '.claude', 'skills'));
+  }
+
+  return roots;
+}
+
+async function findSkillInstallations(
+  cwd: string,
+  homeDir: string,
+  agentId: string | null | undefined,
+  candidates: string[],
+  titleNeedle: string
+): Promise<string[]> {
+  const roots = skillSearchRoots(cwd, homeDir, agentId);
+  const matches: string[] = [];
+  const normalizedCandidates = candidates.map(normalizeSkillName);
+
+  for (const root of roots) {
+    try {
+      const entries = await fs.readdir(root, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const skillDir = path.join(root, entry.name);
+        const normalizedName = normalizeSkillName(entry.name);
+        if (normalizedCandidates.includes(normalizedName) || await skillFileDeclares(skillDir, normalizedCandidates, titleNeedle)) {
+          matches.push(displayPath(skillDir, cwd, homeDir));
+        }
+      }
+    } catch {}
+  }
+
+  return matches;
+}
+
+async function skillFileDeclares(skillDir: string, normalizedCandidates: string[], titleNeedle: string): Promise<boolean> {
+  try {
+    const raw = await fs.readFile(path.join(skillDir, 'SKILL.md'), 'utf-8');
+    const firstLines = raw.split(/\r?\n/).slice(0, 20).join('\n');
+    const nameMatch = firstLines.match(/^name:\s*["']?([^"'\n]+)["']?$/m);
+    if (nameMatch && normalizedCandidates.includes(normalizeSkillName(nameMatch[1]))) {
+      return true;
+    }
+    const headingMatch = firstLines.match(/^#\s+(.+)$/m);
+    return Boolean(headingMatch && headingMatch[1].trim().toLowerCase() === titleNeedle);
+  } catch {
+    return false;
+  }
+}
+
+function normalizeSkillName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function displayPath(filePath: string, cwd: string, homeDir: string): string {
+  if (filePath.startsWith(homeDir)) return `~${filePath.slice(homeDir.length)}`;
+  if (filePath.startsWith(cwd)) return `.${filePath.slice(cwd.length)}`;
+  return filePath;
+}
+
 function defaultCommandExists(cmd: string): Promise<boolean> {
   return new Promise((resolve) => {
     execFile('which', [cmd], (err) => resolve(!err));
   });
 }
 
-function installHint(agentId: string | null | undefined, tool: 'superpowers' | 'figma-mcp' | 'mobile-mcp'): string {
+function installHint(agentId: string | null | undefined, tool: 'superpowers' | 'ui-ux-pro-max' | 'figma-mcp' | 'mobile-mcp'): string {
   const hints: Record<typeof tool, Record<string, string>> = {
     'superpowers': {
       codex: 'Install Superpowers skills into ~/.codex/skills, or into ~/.agents/skills if your Codex setup imports shared skills',
       'claude-code': 'Install Superpowers skills into ~/.agents/skills and symlink to ~/.claude/skills',
       default: 'Install Superpowers skills for your active Agent, or use compatible mode',
+    },
+    'ui-ux-pro-max': {
+      codex: 'Run: npx uipro-cli init --ai codex. Repo: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill. Then rerun nova detect --agent codex',
+      'claude-code': 'Run: npx uipro-cli init --ai claude, or in Claude Code: /plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill && /plugin install ui-ux-pro-max@ui-ux-pro-max-skill. Then rerun nova detect --agent claude-code',
+      default: 'Run: npx uipro-cli init --ai <your-assistant>. Repo: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill. Then rerun nova detect',
     },
     'figma-mcp': {
       codex: 'Enable the Figma connector/plugin in Codex, or add a Figma MCP server in ~/.codex/config.toml',

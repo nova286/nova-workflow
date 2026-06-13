@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import { AdapterSetupOptions, EnvironmentAdapter } from '../types';
-import { genericAgentInstructions } from './skill-templates';
+import { UI_UX_PRO_MAX_WORKFLOW, genericAgentInstructions } from './skill-templates';
 
 const CODEX_INSTRUCTIONS = `# Nova Workflow
 
@@ -196,6 +196,7 @@ source files.
 Clarify the problem, alternatives, risks, success criteria, change mode, and test
 strategy. For Figma links, run \`nova detect --agent codex --json\` and record
 traceability or limitations.
+${UI_UX_PRO_MAX_WORKFLOW}
 Do lightweight Project Context discovery: record likely rule sources,
 projectType, primary stack, and obvious risks in the proposal. Do not write the
 formal \`.nova.yaml.projectContext\` yet; design generates or refreshes the
@@ -258,6 +259,7 @@ Optionally write a readable copy and record it as \`artifacts.projectContext\`.
 Produce \`docs/designs/design.md\` and
 \`docs/superpowers/plans/<change-id>.md\`. Tasks must include concrete files,
 method, specRefs, acceptanceRefs, acceptance criteria, and verification commands.
+${UI_UX_PRO_MAX_WORKFLOW}
 Tasks must also reference the relevant project rules/conventions they must obey
 when touching code, plus the project type best practices they must follow, using
 \`complianceRefs.projectRules\` and \`complianceRefs.bestPractices\`. Any planned
@@ -291,6 +293,8 @@ target paths: \`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`, \`README.md\`,
 \`.cursorrules\`, \`.cursor/rules/\`, and any closer directory-specific rule
 files. If these rules conflict with generic Nova instructions, follow the
 project rules.
+
+${UI_UX_PRO_MAX_WORKFLOW}
 
 Also read \`context.projectContext\` (Project Context Contract) and the task's
 \`complianceRefs\`. Apply the contract rules and best practices for the current
@@ -358,6 +362,8 @@ allow verify to pass.
 Run every command in \`projectContext.rules.verificationCommands\`, including
 build, compile, typecheck, and test commands. Any required command that fails or
 is skipped blocks PASS and must be reported as CHANGES_REQUESTED or BLOCKED.
+
+${UI_UX_PRO_MAX_WORKFLOW}
 
 ## Step 3: Report
 Write \`docs/reports/verification-report.md\`, then run:
@@ -446,10 +452,34 @@ description: Nova detect — check installation status of tools and integrations
 Run:
 
 \`\`\`bash
-nova detect --agent codex
+nova detect --agent codex --json
 \`\`\`
 
-Use \`--json\` when structured output helps. Report required, recommended, and
-optional tool status without auto-installing anything.
+Parse the JSON yourself and guide installation from inside this Codex Agent
+context. Do not send the user back to an interactive CLI flow unless they
+explicitly ask for it.
+
+Report required, recommended (including UI UX Pro Max), and optional tool
+status. This skill is an explicit user request to detect and repair the Nova
+helper environment. When recommended integrations are missing or partial, show
+the commands you are about to run, then install the items Nova can safely
+automate without asking for a second confirmation:
+
+- OpenSpec: \`npm install -g @fission-ai/openspec@latest\`, then \`openspec init\`
+- UI UX Pro Max: \`npx uipro-cli init --ai codex\`
+- ECC: \`npm install -g ecc-universal\`, then \`ecc-install typescript\`
+
+After installs, rerun \`nova detect --agent codex --json\` and report the
+updated status.
+
+For manual integrations, report the guidance from \`nova detect\`:
+- Superpowers: open Codex \`/plugins\`, search for \`superpowers\`, install the
+  plugin, then rerun \`nova detect --agent codex\`.
+- Figma MCP and Mobile MCP: enable the Codex connector/plugin or configure the
+  MCP server, then rerun detection.
+
+Treat running \`/nova-detect\` as confirmation to install known safe recommended
+helpers listed above. Always show commands first, respect existing
+configuration files, and do not attempt to automate manual plugin/MCP setup.
 `,
 };

@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as yaml from 'yaml';
 import inquirer from 'inquirer';
 import { InitManager } from '../init-manager';
+import { assistRecommendedIntegrationInstall, relocateProjectUiUxSkillIfNeeded } from '../integration-installer';
 
 describe('InitManager', () => {
   let testDir: string;
@@ -183,6 +184,17 @@ describe('InitManager', () => {
       await expect(fs.access(path.join(testDir, '.agents', 'skills', 'nova', 'SKILL.md'))).resolves.toBeUndefined();
     });
 
+    test('uses Codex-specific user skills prompt label when agent is explicit', async () => {
+      promptMock.mockResolvedValueOnce({ skillsDir: 'project' });
+
+      const mgr = new InitManager(testDir, { force: false, agent: 'codex', homeDir });
+      await mgr.run();
+
+      expect(promptMock).toHaveBeenCalledTimes(1);
+      expect(promptMock.mock.calls[0][0][0].choices[0].name).toContain('~/.codex/skills/');
+      expect(promptMock.mock.calls[0][0][0].choices[0].name).toContain('shared ~/.agents/skills/');
+    });
+
     test('rejects empty AI tool selection', async () => {
       promptMock
         .mockResolvedValueOnce({ skillsDir: 'project' })
@@ -324,6 +336,11 @@ describe('InitManager', () => {
         const content = await fs.readFile(path.join(skillsDir, skill, 'SKILL.md'), 'utf-8');
         expect(content).toContain('description:');
       }
+
+      const propose = await fs.readFile(path.join(skillsDir, 'nova-propose', 'SKILL.md'), 'utf-8');
+      const design = await fs.readFile(path.join(skillsDir, 'nova-design', 'SKILL.md'), 'utf-8');
+      expect(propose).toContain('UI UX Pro Max');
+      expect(design).toContain('ui-ux-pro-max');
     });
   });
 
@@ -372,6 +389,7 @@ describe('InitManager', () => {
         expect(output).toContain('ECC: available');
         expect(output).toContain('OpenSpec:');
         expect(output).toContain('Superpowers:');
+        expect(output).toContain('UI UX Pro Max:');
         expect(output).toContain('CodeGraph:');
         expect(output).toContain('Figma MCP:');
         expect(output).toContain('Mobile MCP:');
@@ -381,6 +399,88 @@ describe('InitManager', () => {
         logSpy.mockRestore();
         await fs.rm(homeDir, { recursive: true, force: true });
       }
+    });
+
+    test('reports UI UX Pro Max install guidance during init when missing', async () => {
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      try {
+        const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex', homeDir });
+        await mgr.run();
+
+        const output = logSpy.mock.calls.flat().join('\n');
+        expect(output).toContain('UI UX Pro Max:');
+        expect(output).toContain('nextlevelbuilder/ui-ux-pro-max-skill');
+        expect(output).toContain('npx uipro-cli init --ai codex');
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    test('shows missing installable recommended integrations as a default-checked checkbox panel', async () => {
+      promptMock.mockResolvedValueOnce({ integrations: [] });
+      const stdinTTY = process.stdin.isTTY;
+      const stdoutTTY = process.stdout.isTTY;
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+      Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+
+      try {
+        const tools = [
+          {
+            id: 'ui-ux-pro-max',
+            name: 'UI UX Pro Max',
+            category: 'recommended',
+            status: 'missing',
+            summary: 'missing',
+            install: 'Run: npx uipro-cli init --ai codex',
+            details: [],
+          },
+          {
+            id: 'ecc',
+            name: 'ECC',
+            category: 'recommended',
+            status: 'missing',
+            summary: 'missing',
+            install: 'npm install -g ecc-universal && ecc-install typescript',
+            details: [],
+          },
+        ];
+
+        await assistRecommendedIntegrationInstall({
+          cwd: testDir,
+          homeDir,
+          agent: 'codex',
+          envs: ['codex'],
+          tools: tools as any,
+        });
+
+        const prompt = promptMock.mock.calls[0][0][0];
+        expect(prompt).toMatchObject({ type: 'checkbox', name: 'integrations' });
+        expect(prompt.choices.map((choice: any) => choice.value)).toEqual(['ui-ux-pro-max:codex', 'ecc']);
+        expect(prompt.choices.every((choice: any) => choice.checked)).toBe(true);
+        expect(prompt.default).toEqual(['ui-ux-pro-max:codex', 'ecc']);
+      } finally {
+        Object.defineProperty(process.stdin, 'isTTY', { value: stdinTTY, configurable: true });
+        Object.defineProperty(process.stdout, 'isTTY', { value: stdoutTTY, configurable: true });
+      }
+    });
+
+    test('moves project-installed UI UX Pro Max to user Codex skills when skillsDir is user', async () => {
+      const projectSkill = path.join(testDir, '.codex', 'skills', 'ui-ux-pro-max');
+      const userSkill = path.join(homeDir, '.codex', 'skills', 'ui-ux-pro-max');
+      await fs.mkdir(projectSkill, { recursive: true });
+      await fs.writeFile(path.join(projectSkill, 'SKILL.md'), '# UI UX Pro Max\n', 'utf-8');
+
+      await relocateProjectUiUxSkillIfNeeded({
+        cwd: testDir,
+        homeDir,
+        agent: 'codex',
+        tools: [],
+        skillsDir: 'user',
+      }, 'codex');
+
+      await expect(fs.access(path.join(userSkill, 'SKILL.md'))).resolves.toBeUndefined();
+      await expect(fs.access(projectSkill)).rejects.toThrow();
     });
   });
 

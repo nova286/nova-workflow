@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import { EnvironmentAdapter, AdapterSetupOptions, McpServers } from '../types';
-import { FIGMA_STEP, MOBILE_STEP, SkillTemplateFn } from './skill-templates';
+import { FIGMA_STEP, MOBILE_STEP, UI_UX_PRO_MAX_WORKFLOW, SkillTemplateFn } from './skill-templates';
 
 const SKILL_TEMPLATES: Record<string, SkillTemplateFn> = {
   'nova.md': () => `---
@@ -73,6 +73,8 @@ understand the project.
 Use the **brainstorming skill** to explore the problem space: clarify the problem,
 explore alternatives, identify risks, define success criteria. Summarize for the
 user and ask them to confirm before proceeding.
+
+${UI_UX_PRO_MAX_WORKFLOW}
 
 ## Step 3.5: Handle Figma Links
 If the user's request contains a Figma URL:
@@ -196,6 +198,7 @@ Optionally write a readable copy and record it as \`artifacts.projectContext\`.
 Use the **brainstorming skill** to explore at least 2 architectural approaches.
 For each: architecture pattern, tech stack rationale, component structure, data
 flow, key trade-offs. Present alternatives to the user for selection.
+${UI_UX_PRO_MAX_WORKFLOW}
 ${mcp?.figma ? FIGMA_STEP : ''}
 
 ## Step 3.5: Legacy Preflight for Existing Changes
@@ -272,6 +275,8 @@ Show task summary (id, title, method, specRefs, priority). Ask user to confirm b
 proceeding. For each task, use \`nova context --task-id <id>\`; if
 \`designContext.legacyPreflight\` is present, keep implementation and refactoring
 within its \`refactorPolicy\`.
+
+${UI_UX_PRO_MAX_WORKFLOW}
 
 Before editing files for a task, read and obey the project-local instruction
 files that apply to the repository and target paths: \`AGENTS.md\`,
@@ -368,6 +373,8 @@ is present.
 Use the **ecc:code-reviewer** skill to review each task's changed files:
 correctness, conventions, error handling, test coverage, type safety.
 Verdict: PASS / CHANGES_REQUESTED / COMMENT.
+
+${UI_UX_PRO_MAX_WORKFLOW}
 
 ## Step 4.5: Run Project Rules and Best-Practice Review
 For each changed file and task, verify conformance with the Project Context
@@ -508,21 +515,44 @@ description: Nova detect — check installation status of tools and provide inst
 
 # Nova Detect
 
-Run \`nova detect --agent claude-code\` to check required, recommended, and
-optional Nova-enhancing tools from a Claude Code session. Use
-\`nova detect --agent claude-code --json\` when the user wants structured output.
+Run \`nova detect --agent claude-code --json\` to check required, recommended,
+and optional Nova-enhancing tools from a Claude Code session. Parse the JSON
+yourself and guide installation from inside this Agent context; do not send the
+user back to an interactive CLI flow unless they explicitly ask for it.
 
 ## What To Report
 
 - **Required**: Nova project state such as \`.nova.yaml\`. Missing required items
   block the current project until fixed.
-- **Recommended**: OpenSpec, Superpowers, and affaan-m/ECC. Missing recommended items do
+- **Recommended**: OpenSpec, Superpowers, UI UX Pro Max, and affaan-m/ECC. Missing recommended items do
   not block Nova; compatible mode will be used.
 - **Optional**: CodeGraph, Figma MCP, and Mobile MCP. Missing optional items only
   limit enhanced context, design, or UI verification workflows.
 
 For each missing or partial item, show the install guidance from \`nova detect\`.
 Do not imply that every tool must be installed before Nova can be used.
+
+## Install Guidance
+
+This skill is an explicit user request to detect and repair the Nova helper
+environment. When recommended integrations are missing or partial, show the
+commands you are about to run, then install the items Nova can safely automate
+without asking for a second confirmation:
+
+- OpenSpec: \`npm install -g @fission-ai/openspec@latest\`, then \`openspec init\`
+- UI UX Pro Max: \`npx uipro-cli init --ai claude\`
+- ECC: \`npm install -g ecc-universal\`, then \`ecc-install typescript\`
+
+After installs, rerun \`nova detect --agent claude-code --json\` and report the
+updated status.
+
+For helpers that require manual Agent/plugin setup, report the guidance from
+\`nova detect\` instead of improvising:
+- Superpowers: install via the Agent-specific plugin flow; for Claude Code this
+  is typically a Claude plugin/marketplace command such as
+  \`/plugin install superpowers@claude-plugins-official\` when supported.
+- Figma MCP and Mobile MCP: configure the Agent connector/plugin or MCP server,
+  then rerun \`nova detect --agent claude-code\`.
 
 ## Fallback
 
@@ -531,9 +561,12 @@ deterministic check and ask the user to run \`npm install -g @nova286/nova-workf
 or use the local project build.
 
 ## Constraints
-- Never auto-install without user confirmation
+- Treat running \`/nova-detect\` as confirmation to install known safe
+  recommended helpers listed above; do not ask for a second confirmation
 - Always show what will be installed before running commands
 - Respect existing configurations — don't overwrite
+- After installation, rerun \`nova detect --agent claude-code\` and report any
+  remaining manual setup
 `,
 };
 

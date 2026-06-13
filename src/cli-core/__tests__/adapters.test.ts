@@ -100,6 +100,17 @@ describe('Environment Adapters', () => {
     expect(content).toContain('same-session-fallback');
   }
 
+  function expectDetectInstallGuidance(content: string, agent: string) {
+    expect(content).toContain(`nova detect --agent ${agent}`);
+    expect(content).toContain(`nova detect --agent ${agent} --json`);
+    expect(content).toContain('without asking for a second confirmation');
+    expect(content).toMatch(/show\s+commands|show\s+the commands/i);
+    expect(content).toContain('npm install -g @fission-ai/openspec@latest');
+    expect(content).toContain('ecc-install typescript');
+    expect(content).toContain('Superpowers');
+    expect(content).toMatch(/manual|手动|plugin|插件/i);
+  }
+
   const expectedNovaSkills = [
     'nova',
     'nova-propose',
@@ -177,6 +188,15 @@ describe('Environment Adapters', () => {
         const content = await fs.readFile(path.join(testDir, '.agents', 'skills', skill, 'SKILL.md'), 'utf-8');
         expect(content).toContain('description:');
       }
+    });
+
+    test('nova-detect guides detect install flow for Codex', async () => {
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const content = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-detect', 'SKILL.md'), 'utf-8');
+      expectDetectInstallGuidance(content, 'codex');
+      expect(content).toContain('/plugins');
     });
 
     test('design, implement, and verify skills enforce project rules and best practices', async () => {
@@ -379,6 +399,9 @@ describe('Environment Adapters', () => {
       const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-detect', 'SKILL.md'), 'utf-8');
       expect(content).toContain('nova detect');
       expect(content).toContain('--agent claude-code');
+      expect(content).toContain('Superpowers');
+      expect(content).toContain('manual Agent/plugin setup');
+      expect(content).toContain('npx uipro-cli init --ai claude');
       expect(content).toContain('Recommended');
       expect(content).toContain('Optional');
       expect(content).not.toContain('which openspec');

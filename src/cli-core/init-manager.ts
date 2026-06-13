@@ -14,6 +14,7 @@ import { HermesAgentAdapter } from './adapters/hermes-agent';
 import { OpenCodeAdapter } from './adapters/opencode';
 import { PiCodingAgentAdapter } from './adapters/pi-coding-agent';
 import { DetectResult, ToolDetection, detectNovaEnvironment, mcpServersFromDetections } from './detect';
+import { assistRecommendedIntegrationInstall } from './integration-installer';
 
 const NOVA_SKILL_DIRS = [
   'nova',
@@ -79,6 +80,7 @@ export class InitManager {
       { name: 'Prepare shared skills directories', run: () => this.prepareSharedSkillsDirs(), rollback: () => Promise.resolve() },
       { name: 'Generate .nova.yaml', run: () => this.generateConfig(envs, mcpServers), rollback: () => this.removeFile('.nova.yaml') },
       { name: 'Detect integrations', run: () => this.detectIntegrations(), rollback: () => Promise.resolve(), spinner: false },
+      { name: 'Assist recommended integration install', run: () => this.assistRecommendedIntegrationInstall(envs), rollback: () => Promise.resolve(), spinner: false },
       { name: 'Prepare local skill assets', run: () => this.prepareLocalSkillAssets(), rollback: () => this.removeDir('.nova/ecc') },
       { name: 'Generate environment commands', run: async () => {
         for (const adapter of envAdapters) await adapter.setup(this.cwd, adapterOptions);
@@ -118,17 +120,29 @@ export class InitManager {
   }
 
   private async promptSkillsDir(): Promise<'project' | 'user'> {
+    const userChoiceLabel = this.userSkillsChoiceLabel();
     const { skillsDir } = await inquirer.prompt([{
       type: 'list',
       name: 'skillsDir',
       message: 'Where to install Nova skills?',
       choices: [
-        { name: 'User (~/.agents/skills/) - shared across AI tools', value: 'user' },
+        { name: userChoiceLabel, value: 'user' },
         { name: 'Project (project-local skills) - project-specific', value: 'project' },
       ],
       default: 'user',
     }]);
     return skillsDir;
+  }
+
+  private userSkillsChoiceLabel(): string {
+    switch (this.options.agent) {
+      case 'codex':
+        return 'User (~/.codex/skills/ via shared ~/.agents/skills/) - shared across AI tools';
+      case 'claude-code':
+        return 'User (~/.claude/skills/ via shared ~/.agents/skills/) - shared across AI tools';
+      default:
+        return 'User (~/.agents/skills/) - shared across AI tools';
+    }
   }
 
   private async backup() {
@@ -289,12 +303,31 @@ export class InitManager {
     const result = await this.detectEnvironment();
     this.detectedTools = result.tools;
 
-    const order = ['openspec', 'superpowers', 'ecc', 'codegraph', 'figma-mcp', 'mobile-mcp'];
+    const order = ['openspec', 'superpowers', 'ui-ux-pro-max', 'ecc', 'codegraph', 'figma-mcp', 'mobile-mcp'];
     for (const id of order) {
       const tool = this.detectedTools.find(item => item.id === id);
       if (!tool) continue;
       ui.info(`  ${tool.name}: ${tool.status} - ${tool.summary}`);
+      if (tool.status !== 'available' && tool.install) {
+        ui.info(`    Install: ${tool.install}`);
+      }
     }
+  }
+
+  private async assistRecommendedIntegrationInstall(envs: string[]) {
+    const result = await assistRecommendedIntegrationInstall({
+      cwd: this.cwd,
+      homeDir: this.homeDir(),
+      agent: this.options.agent,
+      envs,
+      tools: this.detectedTools,
+      skillsDir: this.resolvedSkillsDir,
+      commandExists: (cmd) => this.commandExists(cmd),
+    });
+    if (!result) return;
+    this.detectionResult = result;
+    this.detectedTools = result.tools;
+    await this.detectIntegrations();
   }
 
   private async detectEnvironment(): Promise<DetectResult> {

@@ -1,30 +1,31 @@
 import { detectNovaEnvironment, ToolDetection } from '../../cli-core/detect';
+import { assistRecommendedIntegrationInstall } from '../../cli-core/integration-installer';
 import { ui } from '../ui';
 import { withErrorHandling } from '../error-handler';
 
-export const detectCommand = withErrorHandling(async (options: { json?: boolean; agent?: string } = {}) => {
-  const result = await detectNovaEnvironment({ agent: options.agent });
+export const detectCommand = withErrorHandling(async (options: { json?: boolean; agent?: string; install?: boolean } = {}) => {
+  let result = await detectNovaEnvironment({ agent: options.agent });
 
   if (options.json) {
     console.log(JSON.stringify(result, null, 2));
   } else {
-    ui.step('Nova Environment Detection');
-    ui.info('');
-    ui.info(`Active Agent: ${result.agent.active.name} (${result.agent.active.source})`);
-    ui.info(`  ${result.agent.active.summary}`);
-    if (result.agent.configured.length > 0) {
-      ui.info(`Configured agents: ${result.agent.configured.join(', ')}`);
-    }
-    const availableAgents = result.agent.available.filter(agent => agent.available);
-    if (availableAgents.length > 0) {
-      ui.info(`Available agent CLIs: ${availableAgents.map(agent => agent.id).join(', ')}`);
-    }
-    for (const category of ['required', 'recommended', 'optional'] as const) {
-      const tools = result.tools.filter(tool => tool.category === category);
+    printDetectResult(result);
+
+    if (options.install) {
       ui.info('');
-      ui.info(categoryLabel(category));
-      for (const tool of tools) {
-        printTool(tool);
+      ui.step('Install Recommended Integrations');
+      const updated = await assistRecommendedIntegrationInstall({
+        cwd: process.cwd(),
+        agent: options.agent,
+        tools: result.tools,
+      });
+      if (updated) {
+        result = updated;
+        ui.success('Install Recommended Integrations');
+        ui.info('');
+        printDetectResult(result);
+      } else {
+        ui.success('Install Recommended Integrations');
       }
     }
 
@@ -43,6 +44,28 @@ export const detectCommand = withErrorHandling(async (options: { json?: boolean;
 
   if (!result.pass) process.exit(1);
 });
+
+function printDetectResult(result: Awaited<ReturnType<typeof detectNovaEnvironment>>) {
+  ui.step('Nova Environment Detection');
+  ui.info('');
+  ui.info(`Active Agent: ${result.agent.active.name} (${result.agent.active.source})`);
+  ui.info(`  ${result.agent.active.summary}`);
+  if (result.agent.configured.length > 0) {
+    ui.info(`Configured agents: ${result.agent.configured.join(', ')}`);
+  }
+  const availableAgents = result.agent.available.filter(agent => agent.available);
+  if (availableAgents.length > 0) {
+    ui.info(`Available agent CLIs: ${availableAgents.map(agent => agent.id).join(', ')}`);
+  }
+  for (const category of ['required', 'recommended', 'optional'] as const) {
+    const tools = result.tools.filter(tool => tool.category === category);
+    ui.info('');
+    ui.info(categoryLabel(category));
+    for (const tool of tools) {
+      printTool(tool);
+    }
+  }
+}
 
 function categoryLabel(category: ToolDetection['category']): string {
   switch (category) {

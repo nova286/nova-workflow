@@ -55,6 +55,7 @@ src/
 | Command | Purpose |
 |---------|---------|
 | `nova init` | Initialize Nova in a project |
+| `nova upgrade` | Update Nova through npm, then refresh installed Agent skills |
 | `nova archive` | Merge artifacts and clean up |
 | `nova status` | Display phase progress and task completion |
 | `nova context --task-id <id>` | Print TaskContext JSON for a task |

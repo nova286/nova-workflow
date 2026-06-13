@@ -175,4 +175,114 @@ describe('detectNovaEnvironment', () => {
     expect(result.tools.find(t => t.id === 'figma-mcp')?.install).not.toContain('.claude');
     expect(result.tools.find(t => t.id === 'mobile-mcp')?.install).not.toContain('.claude');
   });
+
+  test('detects UI UX Pro Max skill installations and install hints', async () => {
+    await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\n', 'utf-8');
+
+    const missing = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      agent: 'codex',
+      commandExists: commandExists(['npx']),
+      env: {},
+    });
+
+    const missingTool = missing.tools.find(t => t.id === 'ui-ux-pro-max');
+    expect(missingTool?.status).toBe('partial');
+    expect(missingTool?.install).toContain('npx uipro-cli init --ai codex');
+    expect(missingTool?.install).toContain('nextlevelbuilder/ui-ux-pro-max-skill');
+
+    await fs.mkdir(path.join(homeDir, '.codex', 'skills', 'ui-ux-pro-max'), { recursive: true });
+    await fs.writeFile(
+      path.join(homeDir, '.codex', 'skills', 'ui-ux-pro-max', 'SKILL.md'),
+      '# UI UX Pro Max\n',
+      'utf-8'
+    );
+
+    const available = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      agent: 'codex',
+      commandExists: commandExists([]),
+      env: {},
+    });
+
+    expect(available.tools.find(t => t.id === 'ui-ux-pro-max')?.status).toBe('available');
+    expect(available.tools.find(t => t.id === 'ui-ux-pro-max')?.details.join('\n')).toContain('~/.codex/skills/ui-ux-pro-max found');
+  });
+
+  test('does not treat Nova workflow mentions as UI UX Pro Max installation', async () => {
+    await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\n', 'utf-8');
+    await fs.mkdir(path.join(homeDir, '.codex', 'skills', 'nova-design'), { recursive: true });
+    await fs.writeFile(
+      path.join(homeDir, '.codex', 'skills', 'nova-design', 'SKILL.md'),
+      [
+        '---',
+        'description: Nova design',
+        '---',
+        '',
+        '# Nova Design',
+        '',
+        '## UI/UX Pro Max Gate',
+        'Run nova detect and check ui-ux-pro-max.',
+      ].join('\n'),
+      'utf-8'
+    );
+
+    const result = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      agent: 'codex',
+      commandExists: commandExists([]),
+      env: {},
+    });
+
+    expect(result.tools.find(t => t.id === 'ui-ux-pro-max')?.status).toBe('missing');
+  });
+
+  test('reports Claude-only UI UX Pro Max as missing for Codex', async () => {
+    await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\n', 'utf-8');
+    await fs.mkdir(path.join(homeDir, '.claude'), { recursive: true });
+    await fs.writeFile(
+      path.join(homeDir, '.claude', 'settings.json'),
+      JSON.stringify({ enabledPlugins: ['nextlevelbuilder/ui-ux-pro-max-skill'] }),
+      'utf-8'
+    );
+
+    const result = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      agent: 'codex',
+      commandExists: commandExists(['npx']),
+      env: {},
+    });
+
+    const tool = result.tools.find(t => t.id === 'ui-ux-pro-max');
+    expect(tool?.status).toBe('partial');
+    expect(tool?.summary).toContain('installed for Claude; missing for Codex');
+    expect(tool?.details.join('\n')).toContain('Claude UI UX Pro Max plugin config found');
+    expect(tool?.details.join('\n')).toContain('Codex UI UX Pro Max config missing');
+  });
+
+  test('detects project-local Codex UI UX Pro Max skill installed by uipro-cli', async () => {
+    await fs.writeFile(path.join(cwd, '.nova.yaml'), 'version: 1\n', 'utf-8');
+    await fs.mkdir(path.join(cwd, '.codex', 'skills', 'ui-ux-pro-max'), { recursive: true });
+    await fs.writeFile(
+      path.join(cwd, '.codex', 'skills', 'ui-ux-pro-max', 'SKILL.md'),
+      '# UI UX Pro Max\n',
+      'utf-8'
+    );
+
+    const result = await detectNovaEnvironment({
+      cwd,
+      homeDir,
+      agent: 'codex',
+      commandExists: commandExists([]),
+      env: {},
+    });
+
+    const tool = result.tools.find(t => t.id === 'ui-ux-pro-max');
+    expect(tool?.status).toBe('available');
+    expect(tool?.details.join('\n')).toContain('./.codex/skills/ui-ux-pro-max found');
+  });
 });

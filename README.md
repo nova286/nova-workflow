@@ -160,6 +160,7 @@ And you can always iterate back — real development is not a waterfall.
 |---------|-------------|
 | `nova` | Equivalent to `nova next`; shows the recommended next action |
 | `nova init [--agent <id>] [--skills-dir <user\|project>]` | Initialize Nova: creates `.nova.yaml`, installs selected Agent files |
+| `nova upgrade [--agent <id>] [--skills-dir <user\|project>]` | Update the global Nova npm package, then refresh installed Agent skills |
 | `nova next` | Decide the next action without running long Agent work |
 | `nova validate` | Validate `.nova.yaml`, artifacts, task shape, and evidence |
 | `nova detect` | Check required, recommended, and optional Nova-enhancing tools |

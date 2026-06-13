@@ -8,6 +8,7 @@ import { guardCommand } from './commands/guard';
 import { validateCommand } from './commands/validate';
 import { nextCommand } from './commands/next';
 import { detectCommand } from './commands/detect';
+import { upgradeCommand } from './commands/upgrade';
 import { registerCheckpointCommand } from './commands/checkpoint';
 import pkg from '../../package.json';
 
@@ -49,7 +50,31 @@ program
   .command('detect')
   .option('--json', 'Print structured JSON')
   .option('--agent <id>', 'Active Agent id when the CLI cannot infer it')
+  .option('--install', 'Interactively install missing recommended integrations with known installers')
   .action(detectCommand);
+
+program
+  .command('upgrade')
+  .description('Upgrade Nova: update the global npm package, then refresh installed Agent skills')
+  .addHelpText('after', `
+
+Default behavior:
+  1. npm install -g @nova286/nova-workflow@latest
+  2. Re-run the updated CLI to refresh installed Nova Agent skills
+
+Most users should run:
+  nova upgrade
+
+Examples:
+  nova upgrade
+  nova upgrade --agent codex
+  nova upgrade --agent codex --skills-dir user
+  nova upgrade --skip-npm --agent codex --skills-dir user
+`)
+  .option('--agent <id>', 'Upgrade skills for a specific Agent id')
+  .option('--skills-dir <dir>', 'Upgrade skills in "user", "project", or detected installed locations')
+  .option('--skip-npm', 'Advanced: only refresh installed Agent skills; skip npm package update')
+  .action(upgradeCommand);
 
 program
   .command('context')

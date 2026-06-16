@@ -409,13 +409,16 @@ nova archive
 \`\`\`
 
 The CLI copies proposal, design, OpenSpec change, and verification artifacts into
-\`docs/specs/\`, updates \`.nova.yaml\` to point at archived copies, removes
-source artifacts recorded in state, removes recorded OpenSpec/Superpowers
-planning artifacts, and clears temporary Nova contexts.
+\`Docs/specs/completed/\`, records archived paths in \`.nova.yaml\`
+\`metadata.history\`, removes source artifacts recorded in state, removes
+recorded or activeChange-derived OpenSpec/Superpowers planning artifacts, clears
+temporary Nova contexts, and resets current workflow state so the next change
+does not point at old task documents.
 
 ## Step 3: Confirm Completion
-Run \`nova next\` or read \`.nova.yaml\` to confirm the workflow is complete.
-Summarize the archived files and cleaned artifacts from the CLI output.
+Run \`nova next\` or read \`.nova.yaml\` to confirm Nova is ready for the next
+change. Summarize the archived files, cleaned artifacts, and reset result from
+the CLI output.
 
 ## Constraints
 - Do not manually delete source code files.

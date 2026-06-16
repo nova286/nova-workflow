@@ -6,6 +6,9 @@ import { StateManager } from '../../cli-core/state';
 import { guardPhaseTransition } from '../../cli-core/guard';
 import { withErrorHandling } from '../error-handler';
 
+const ARCHIVE_DIR_RELATIVE = 'Docs/specs/completed';
+const LEGACY_ARCHIVE_DIR_RELATIVE = 'docs/specs';
+
 function requireArtifact(cwd: string, label: string, relativePath?: string) {
   if (!relativePath) {
     throw new Error(`${label} artifact is missing from .nova.yaml. Run nova validate for details.`);
@@ -29,8 +32,16 @@ function toProjectRelative(cwd: string, absolutePath: string) {
   return path.relative(cwd, absolutePath).split(path.sep).join('/');
 }
 
+function isArchivedPath(relativePath: string) {
+  const normalized = relativePath.split(path.sep).join('/');
+  return normalized === ARCHIVE_DIR_RELATIVE ||
+    normalized.startsWith(`${ARCHIVE_DIR_RELATIVE}/`) ||
+    normalized === LEGACY_ARCHIVE_DIR_RELATIVE ||
+    normalized.startsWith(`${LEGACY_ARCHIVE_DIR_RELATIVE}/`);
+}
+
 function addPath(paths: Set<string>, relativePath?: string) {
-  if (!relativePath || relativePath.startsWith('docs/specs/')) return;
+  if (!relativePath || isArchivedPath(relativePath)) return;
   paths.add(relativePath);
 }
 
@@ -41,8 +52,13 @@ function archiveCleanupTargets(state: any) {
   addPath(files, state.phases.propose?.proposal);
   addPath(files, state.artifacts?.proposal);
   addPath(files, state.phases.design?.designDoc);
+  addPath(files, state.artifacts?.projectContext);
   addPath(files, state.artifacts?.implementationPlan);
   addPath(files, state.artifacts?.verificationReport);
+
+  if (!state.artifacts?.implementationPlan && state.activeChange) {
+    addPath(files, path.posix.join('docs', 'superpowers', 'plans', `${state.activeChange}.md`));
+  }
 
   if (state.artifacts?.openspecChange) {
     addPath(directories, state.artifacts.openspecChange);
@@ -86,7 +102,7 @@ async function cleanArchiveSources(cwd: string, state: any) {
 async function archiveOpenSpecChange(cwd: string, specsDir: string, state: any) {
   const source = state.artifacts?.openspecChange ||
     (state.activeChange ? path.posix.join('.openspec', 'changes', state.activeChange) : '');
-  if (!source || source.startsWith('docs/specs/')) return undefined;
+  if (!source || isArchivedPath(source)) return undefined;
 
   const sourcePath = resolveProjectPath(cwd, source);
   try {
@@ -145,8 +161,8 @@ export const archiveCommand = withErrorHandling(async (options: { rollback?: boo
   const originalOpenSpecChange = state.artifacts?.openspecChange ||
     (state.activeChange ? path.posix.join('.openspec', 'changes', state.activeChange) : undefined);
 
-  // 合并规格到 docs/specs/ 归档
-  const specsDir = path.join(cwd, 'docs', 'specs');
+  // 合并规格到 Docs/specs/completed/ 归档
+  const specsDir = path.join(cwd, 'Docs', 'specs', 'completed');
   await fs.mkdir(specsDir, { recursive: true });
 
   let mergedCount = 0;
@@ -169,16 +185,17 @@ export const archiveCommand = withErrorHandling(async (options: { rollback?: boo
   if (openSpecDest) mergedCount++;
 
   // 归档 verify 结果
-  let verificationReportDest: string | undefined;
+  let verificationArtifactDest: string | undefined;
   if (state.artifacts?.verificationReport) {
     const verifyContent = await requireArtifact(cwd, 'Verification report', state.artifacts.verificationReport);
     const dest = path.join(specsDir, `verification-report-${Date.now()}.md`);
     await fs.writeFile(dest, verifyContent);
-    verificationReportDest = dest;
+    verificationArtifactDest = dest;
     mergedCount++;
   } else if (state.phases.verify?.pipelineResult) {
     const dest = path.join(specsDir, `verify-result-${Date.now()}.json`);
     await fs.writeFile(dest, JSON.stringify(state.phases.verify.pipelineResult, null, 2));
+    verificationArtifactDest = dest;
     mergedCount++;
   } else {
     throw new Error('Verification artifact is missing. Run nova validate for details.');
@@ -196,30 +213,52 @@ export const archiveCommand = withErrorHandling(async (options: { rollback?: boo
   await StateManager.update((s) => {
     const archivedProposal = toProjectRelative(cwd, proposalDest);
     const archivedDesign = toProjectRelative(cwd, designDest);
-    s.phases.propose.proposal = archivedProposal;
-    s.phases.design.designDoc = archivedDesign;
-    s.artifacts = s.artifacts || {
+    const archivedOpenSpecChange = openSpecDest ? toProjectRelative(cwd, openSpecDest) : '';
+    const archivedVerificationArtifact = verificationArtifactDest ? toProjectRelative(cwd, verificationArtifactDest) : '';
+    const archivedSpec = openSpecDest
+      ? archivedSpecDelta(cwd, originalOpenSpecChange, openSpecDest, state.artifacts?.specDelta)
+      : '';
+
+    s.metadata = s.metadata || { stateVersion: 0, lastModified: '', history: [] };
+    s.metadata.history = Array.isArray(s.metadata.history) ? s.metadata.history : [];
+    s.metadata.history.push({
+      type: 'archive',
+      activeChange: state.activeChange || '',
+      archivedAt: new Date().toISOString(),
+      artifacts: {
+        proposal: archivedProposal,
+        designDoc: archivedDesign,
+        openspecChange: archivedOpenSpecChange,
+        specDelta: archivedSpec,
+        verificationReport: archivedVerificationArtifact,
+      },
+      cleanedSourceArtifacts: removedCount,
+    });
+
+    s.activeChange = '';
+    delete s.changeMode;
+    delete s.projectContext;
+    delete s.testStrategy;
+    delete s.legacyPreflight;
+
+    s.artifacts = {
       openspecChange: '',
       proposal: '',
       specDelta: '',
       implementationPlan: '',
       verificationReport: '',
     };
-    s.artifacts.proposal = archivedProposal;
-    s.artifacts.implementationPlan = '';
-    if (openSpecDest) {
-      s.artifacts.openspecChange = toProjectRelative(cwd, openSpecDest);
-      s.artifacts.specDelta = archivedSpecDelta(cwd, originalOpenSpecChange, openSpecDest, state.artifacts?.specDelta);
-    }
-    if (verificationReportDest) {
-      s.artifacts.verificationReport = toProjectRelative(cwd, verificationReportDest);
-    }
-    s.phases.archive = s.phases.archive || {};
-    s.phases.archive.status = 'done';
+    s.phases = {
+      propose: { status: 'pending', proposal: '' },
+      design: { status: 'pending', designDoc: '', tasks: [] },
+      implement: { status: 'pending', tasks: {} },
+      verify: { status: 'pending', pipelineResult: null },
+      archive: { status: 'pending' },
+    };
     return s;
   });
 
-  ui.success('Project archived. All phases complete.');
-  ui.info(`Merged ${mergedCount} artifact(s) to docs/specs/.`);
+  ui.success('Project archived. Workflow state reset for the next change.');
+  ui.info(`Merged ${mergedCount} artifact(s) to ${ARCHIVE_DIR_RELATIVE}/.`);
   ui.info(`Cleaned ${removedCount} source artifact(s) and temporary context files.`);
 });

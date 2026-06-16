@@ -441,14 +441,17 @@ Read \`.nova.yaml\`. Require \`phases.verify.status: done\`. Run
 
 ## Step 2: Archive
 Run \`nova archive\`. This copies proposal, design, and verification artifacts
-into \`docs/specs/\`, updates \`.nova.yaml\` to point at the archived copies,
-removes source artifacts recorded in state, removes the active OpenSpec change
-directory when recorded, removes the Superpowers implementation plan when
-recorded, and clears temporary Nova contexts.
+into \`Docs/specs/completed/\`, records archived paths in \`.nova.yaml\`
+\`metadata.history\`, removes source artifacts recorded in state, removes the
+active OpenSpec change directory when recorded or derivable from activeChange,
+removes the Superpowers implementation plan when recorded or derivable from
+activeChange, clears temporary Nova contexts, and resets current workflow state
+so the next change does not point at old task documents.
 
 ## Step 3: Report
-Summarize the archived files and cleaned source artifacts from the CLI output.
-Then run \`nova next\` or read \`.nova.yaml\` to confirm the workflow is complete.
+Summarize the archived files, cleaned source artifacts, and reset result from
+the CLI output. Then run \`nova next\` or read \`.nova.yaml\` to confirm Nova is
+ready for the next change.
 
 ## Constraints
 - Do not manually delete code files.

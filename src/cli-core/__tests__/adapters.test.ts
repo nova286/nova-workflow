@@ -413,7 +413,7 @@ describe('Environment Adapters', () => {
 
       const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-archive', 'SKILL.md'), 'utf-8');
       expect(content).toContain('nova archive');
-      expect(content).toContain('docs/specs/');
+      expect(content).toContain('Docs/specs/completed/');
       expect(content).toContain('source artifacts');
     });
 
@@ -550,7 +550,7 @@ describe('Environment Adapters', () => {
 
       const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-archive', 'SKILL.md'), 'utf-8');
       expect(content).toContain('nova archive');
-      expect(content).toContain('docs/specs/');
+      expect(content).toContain('Docs/specs/completed/');
       expect(content).toContain('Superpowers');
     });
   });

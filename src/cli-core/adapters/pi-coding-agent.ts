@@ -296,12 +296,13 @@ Read \`.nova.yaml\`. Require phases.verify.status = done. Run \`nova guard verif
 
 ## Step 2: Archive
 Run \`nova archive\`. It copies proposal, design, and verification artifacts into
-\`docs/specs/\`, updates state to point at archived copies, deletes source
-artifacts recorded in state, deletes recorded OpenSpec/Superpowers planning
-artifacts, and clears temporary contexts.
+\`Docs/specs/completed/\`, records archived paths in metadata.history, deletes
+source artifacts recorded in state, deletes recorded or activeChange-derived
+OpenSpec/Superpowers planning artifacts, clears temporary contexts, and resets
+current workflow state so the next change does not point at old task documents.
 
 ## Step 3: Confirm Completion
-Run \`nova next\` or read \`.nova.yaml\` and report the workflow is complete.
+Run \`nova next\` or read \`.nova.yaml\` and report Nova is ready for the next change.
 `,
 
   'nova-iterate.md': () => `---

@@ -152,7 +152,7 @@ Always read it first.
 
 ### Phase 5: Archive (归档)
 \`\`\`
-运行 /nova-archive 或 nova archive 合并产物并清理。archive 会把 proposal、design、verification 复制到 docs/specs/，更新 .nova.yaml 指向归档副本，并删除 state 中记录的源文档、OpenSpec change、Superpowers plan 和临时 contexts。
+运行 /nova-archive 或 nova archive 合并产物并清理。archive 会把 proposal、design、verification 复制到 Docs/specs/completed/，把归档路径写入 .nova.yaml 的 metadata.history，删除 state 中记录或可由 activeChange 推导的源文档、OpenSpec change、Superpowers plan 和临时 contexts，然后重置当前 workflow 状态，避免下一轮继续指向旧任务文档。
 \`\`\`
 
 ## Key Rules

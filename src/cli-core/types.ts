@@ -37,6 +37,7 @@ export interface TestStrategy {
   automatedUiTesting: boolean;
   unitTesting: boolean;
   uiFlows?: TestFlow[];
+  unitTargets?: string[];
   unitTestTargets?: string[];
   rationale?: string;
 }

@@ -11,10 +11,16 @@ import {
   TestStrategy,
   VerificationCommandResult,
 } from '../../cli-core/types';
+import { normalizeUnitTestTargetsForStrategy } from '../../cli-core/test-strategy';
 import { ui } from '../ui';
 import { withErrorHandling } from '../error-handler';
 
 const STATUSES = new Set(['pending', 'in-progress', 'done', 'failed', 'skipped']);
+let warnedLegacyUnitTargets = false;
+type ParsedTestStrategyResult = {
+  testStrategy: TestStrategy;
+  migratedLegacyUnitTargets: boolean;
+};
 
 function parseStatus(status?: string): CheckpointStatus {
   if (!status || !STATUSES.has(status)) {
@@ -28,7 +34,7 @@ function csv(value?: string): string[] | undefined {
   return value.split(',').map(s => s.trim()).filter(Boolean);
 }
 
-function parseTestStrategy(value?: string): TestStrategy | undefined {
+function parseTestStrategy(value?: string): ParsedTestStrategyResult | undefined {
   if (!value) return undefined;
   let parsed: unknown;
   try {
@@ -45,8 +51,15 @@ function parseTestStrategy(value?: string): TestStrategy | undefined {
   if (typeof strategy.automatedUiTesting !== 'boolean' || typeof strategy.unitTesting !== 'boolean') {
     throw new Error('--test-strategy must include boolean automatedUiTesting and unitTesting');
   }
-
-  return strategy;
+  const normalized = normalizeUnitTestTargetsForStrategy(strategy);
+  if (!warnedLegacyUnitTargets && normalized.hadUnitTargetsField) {
+    ui.warn('检测到已废弃字段 unitTargets：已自动迁移为 unitTestTargets，请后续改用 unitTestTargets。');
+    warnedLegacyUnitTargets = true;
+  }
+  return {
+    testStrategy: normalized.normalized,
+    migratedLegacyUnitTargets: normalized.migratedFromUnitTargets,
+  };
 }
 
 function parseChangeMode(value?: string): ChangeMode | undefined {
@@ -233,9 +246,11 @@ export function registerCheckpointCommand(program: Command) {
       reviewIndependence?: string;
       verificationCommands?: string;
     }) => {
+      const parsedTestStrategy = parseTestStrategy(options.testStrategy);
+      const migratedLegacyUnitTargets = parsedTestStrategy?.migratedLegacyUnitTargets || false;
       await checkpointArtifacts({
         ...options,
-        testStrategy: parseTestStrategy(options.testStrategy),
+        testStrategy: parsedTestStrategy?.testStrategy,
         changeMode: parseChangeMode(options.changeMode),
         legacyPreflight: parseLegacyPreflight(options.legacyPreflight),
         projectContext: parseProjectContext(options.projectContext),
@@ -245,6 +260,9 @@ export function registerCheckpointCommand(program: Command) {
         reviewIndependence: parseReviewIndependence(options.reviewIndependence),
         verificationCommands: parseVerificationCommands(options.verificationCommands),
       });
+      if (migratedLegacyUnitTargets) {
+        ui.success('已完成字段迁移：unitTargets 已自动转写到 unitTestTargets。');
+      }
       ui.success('Checkpointed workflow artifacts.');
     }));
 }

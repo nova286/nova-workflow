@@ -142,6 +142,22 @@ describe('checkpoint', () => {
     expect(state.artifacts?.testStrategy).toEqual(testStrategy);
   });
 
+  test('checkpointArtifacts normalizes legacy unitTargets to unitTestTargets', async () => {
+    await writeState(baseState);
+    await checkpointArtifacts({
+      testStrategy: {
+        automatedUiTesting: false,
+        unitTesting: true,
+        unitTargets: ['src/task.ts'],
+      } as any,
+    });
+
+    const state = await StateManager.load();
+    expect(state.phases.propose.testStrategy?.unitTestTargets).toEqual(['src/task.ts']);
+    expect(state.phases.propose.testStrategy).not.toHaveProperty('unitTargets');
+    expect(state.artifacts?.testStrategy?.unitTestTargets).toEqual(['src/task.ts']);
+  });
+
   test('checkpointArtifacts records change mode and legacy preflight', async () => {
     await writeState(baseState);
     const legacyPreflight = {

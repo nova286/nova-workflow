@@ -649,6 +649,33 @@ describe('validateState', () => {
     expect(result.errors.some(e => e.code.startsWith('test-strategy.'))).toBe(false);
   });
 
+  test('supports legacy unitTargets field for backward compatibility', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          changeMode: 'new',
+          testStrategy: {
+            automatedUiTesting: false,
+            unitTesting: true,
+            unitTargets: ['src/task.ts'],
+          },
+        },
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [{ ...validTask, verification: { commands: ['npm test'] } }],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.pass).toBe(true);
+    expect(result.warnings.some(e => e.code === 'test-strategy.unit-targets.deprecated')).toBe(true);
+  });
+
   test('passes selected UI and unit testing when flows and commands exist', () => {
     const result = validateState({
       ...baseState,

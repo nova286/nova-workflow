@@ -11,6 +11,7 @@ import {
   TestStrategy,
   VerificationCommandResult,
 } from './types';
+import { normalizeUnitTestTargetsForStrategy } from './test-strategy';
 
 export type CheckpointStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped';
 
@@ -123,8 +124,9 @@ export async function checkpointArtifacts(input: ArtifactCheckpointInput) {
       state.phases.propose.proposal = input.proposal;
     }
     if (input.testStrategy !== undefined) {
-      state.artifacts.testStrategy = input.testStrategy;
-      state.phases.propose.testStrategy = input.testStrategy;
+      const normalizedTestStrategy = normalizeUnitTestTargetsForStrategy(input.testStrategy).normalized;
+      state.artifacts.testStrategy = normalizedTestStrategy;
+      state.phases.propose.testStrategy = normalizedTestStrategy;
     }
     if (input.changeMode !== undefined) {
       state.changeMode = input.changeMode;

@@ -5,6 +5,7 @@ import {
   validateTaskIds,
   validateTaskSchema,
 } from './quality-check';
+import { normalizeUnitTestTargetsForStrategy } from './test-strategy';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -113,7 +114,7 @@ function taskHasCommand(task: any, predicate: (command: unknown) => boolean): bo
   return Array.isArray(task.verification?.commands) && task.verification.commands.some(predicate);
 }
 
-function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[]) {
+function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[], warnings: ValidationIssue[]) {
   const strategy = resolveTestStrategy(state);
   if (state.phases?.propose?.status === 'done' && !strategy) {
     errors.push(issue('test-strategy.missing', 'propose is done but testStrategy is missing', 'phases.propose.testStrategy'));
@@ -165,7 +166,11 @@ function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[
   }
 
   if (strategy.unitTesting === true && state.phases?.design?.status === 'done') {
-    const targets = Array.isArray(strategy.unitTestTargets) ? strategy.unitTestTargets : [];
+    const normalizedTestStrategy = normalizeUnitTestTargetsForStrategy(strategy);
+    if (normalizedTestStrategy.migratedFromUnitTargets) {
+      warnings.push(issue('test-strategy.unit-targets.deprecated', 'unitTargets is deprecated; use unitTestTargets', 'phases.propose.testStrategy.unitTargets'));
+    }
+    const targets = Array.isArray(normalizedTestStrategy.normalized.unitTestTargets) ? normalizedTestStrategy.normalized.unitTestTargets : [];
     const hasUnitCommand = tasks.some(task =>
       (task.type === 'implementation' || task.type === 'testing') && taskHasCommand(task, commandLooksLikeUnitTest)
     );
@@ -552,7 +557,7 @@ export function validateState(state: any, options: ValidationOptions = {}): Vali
     }
   }
 
-  validateTestStrategy(state, Array.isArray(tasks) ? tasks : [], errors);
+  validateTestStrategy(state, Array.isArray(tasks) ? tasks : [], errors, warnings);
 
   const implement = phases.implement || {};
   const taskResults = implement.tasks || {};

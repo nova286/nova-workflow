@@ -80,10 +80,10 @@ export function validateSpecBoundExecution(tasks: any[]): QualityReport {
       errors.push(`${id}: method must be one of ${Array.from(methods).join(', ')}`);
     }
     if (!Array.isArray(task.specRefs) || task.specRefs.length === 0) {
-      errors.push(`${id}: specRefs is empty or missing`);
+      errors.push(`${id}: specRefs is empty or missing; include OpenSpec requirement ids such as specs.<capability>.requirements.<requirement-id>`);
     }
     if (!Array.isArray(task.acceptanceRefs) || task.acceptanceRefs.length === 0) {
-      errors.push(`${id}: acceptanceRefs is empty or missing`);
+      errors.push(`${id}: acceptanceRefs is empty or missing; include OpenSpec acceptance ids such as specs.<capability>.acceptance.<acceptance-id>`);
     }
     if (!Array.isArray(task.verification?.commands) || task.verification.commands.length === 0) {
       errors.push(`${id}: verification.commands is empty or missing`);

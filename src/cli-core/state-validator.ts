@@ -294,7 +294,11 @@ function validateProjectContextContract(contract: any, errors: ValidationIssue[]
       }
       for (const field of ['projectRule', 'bestPractice', 'resolution', 'rationale']) {
         if (!hasText(conflict[field])) {
-          errors.push(issue('project-context.conflict.invalid', `projectContext conflict is missing ${field}`, `${base}.${field}`));
+          errors.push(issue(
+            'project-context.conflict.invalid',
+            `projectContext conflict is missing ${field}; each conflict must include projectRule, bestPractice, resolution, and rationale. Use resolution: project-rule | best-practice | case-by-case`,
+            `${base}.${field}`
+          ));
         }
       }
     });

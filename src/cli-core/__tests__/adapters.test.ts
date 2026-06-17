@@ -48,6 +48,9 @@ describe('Environment Adapters', () => {
     expect(content).toContain('projectContext');
     expect(content).toContain('--project-context');
     expect(content).toContain('complianceRefs');
+    expect(content).toContain('resolution');
+    expect(content).toMatch(/project-rule.*best-practice.*case-by-case/s);
+    expect(content).toMatch(/OpenSpec-compatible requirement|OpenSpec-compatible requirement\/acceptance|OpenSpec-compatible requirement and acceptance/);
   }
 
   function expectProjectRulesInImplement(content: string) {

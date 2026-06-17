@@ -67,7 +67,7 @@ export class ContextGenerator {
       expectedArtifacts.push({
         type: 'figma-assets',
         description: figmaTraceability.assetRequirements.join(', '),
-        pathHint: 'src/assets or project asset directory',
+        pathHint: 'project asset directory, such as Assets.xcassets, Resources, public/assets, or app-specific assets',
       });
     }
 

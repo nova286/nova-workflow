@@ -40,9 +40,9 @@ Always read it first.
 ### Phase 2: Design (设计)
 \`\`\`
 读取 activeChange 对应的 OpenSpec-compatible change，生成执行计划。
-1. 读 proposal/spec delta 和 src/ 了解架构
+1. 读 proposal/spec delta 和实际源码/工程结构了解架构；不要假设一定存在 src/，iOS/Swift/XcodeGen 项目应读取 project.yml、*.xcodeproj、Sources/、App/、Tests/ 等真实目录
 2. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md
-3. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands
+3. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands；specRefs/acceptanceRefs 必须引用 OpenSpec-compatible requirement/acceptance id，不能留空或只写自然语言
 4. 运行 nova validate
 5. 用 nova checkpoint phase design --status done 记录完成
 \`\`\`
@@ -189,8 +189,9 @@ nova checkpoint phase propose --status in-progress
 \`\`\`
 
 ## Step 2: Gather Context
-Read \`AGENTS.md\`, \`CODEX.md\`, \`README.md\`, package metadata, and relevant
-source files.
+Read \`AGENTS.md\`, \`CODEX.md\`, \`README.md\`, package/project metadata, and
+the actual source tree. Do not assume \`src/\` exists or that \`package.json\`
+means the project is Node.
 
 ## Step 3: Explore Requirements
 Clarify the problem, alternatives, risks, success criteria, change mode, and test
@@ -231,7 +232,8 @@ nova checkpoint phase design --status in-progress
 
 ## Step 2: Load Context
 Read the proposal/spec delta, \`AGENTS.md\`, \`CODEX.md\`, \`CLAUDE.md\`,
-\`README.md\`, package metadata, and relevant source files. Also read
+\`README.md\`, package/project metadata, and the actual source tree. Do not
+assume \`src/\` exists or that \`package.json\` means the project is Node. Also read
 project-local rule files when present, including \`.cursorrules\`,
 \`.cursor/rules/\`, and closer directory-specific \`AGENTS.md\` or instruction
 files for affected areas.
@@ -242,8 +244,10 @@ generic Nova guidance. Include a \`## Project Rules / Conventions\` summary in
 \`docs/designs/design.md\`.
 
 Also identify project type best practices from \`.nova.yaml.projectType\`,
-project metadata such as \`package.json\`, \`go.mod\`, \`pyproject.toml\`, or
-equivalent files, and the existing codebase. Capture architecture boundaries,
+project metadata such as \`package.json\`, \`go.mod\`, \`pyproject.toml\`,
+\`project.yml\`, \`Package.swift\`, \`*.xcodeproj\`, \`pubspec.yaml\`, or
+equivalent files, and the existing codebase. Do not treat a non-Node project as
+Node just because tooling uses \`package.json\`. Capture architecture boundaries,
 framework idioms, error handling, test strategy, security defaults, and
 performance considerations for this project type. Include a
 \`## Project Type Best Practices\` summary in \`docs/designs/design.md\`. If a
@@ -252,13 +256,20 @@ record the rationale.
 
 Generate or refresh the Project Context Contract in \`.nova.yaml.projectContext\`
 with \`rules.sources/must/mustNot/verificationCommands\`,
-\`bestPractices.projectType/sources/must/should/risks\`, and \`conflicts[]\`.
+\`bestPractices.projectType/sources/must/should/risks\`, and \`conflicts\`.
+\`conflicts\` must be an array; use \`[]\` when there are no conflicts. Each
+conflict item must include \`projectRule\`, \`bestPractice\`, \`resolution\`, and
+\`rationale\`; \`resolution\` must be \`project-rule\`, \`best-practice\`, or
+\`case-by-case\`.
 Optionally write a readable copy and record it as \`artifacts.projectContext\`.
 
 ## Step 3: Plan
 Produce \`docs/designs/design.md\` and
 \`docs/superpowers/plans/<change-id>.md\`. Tasks must include concrete files,
 method, specRefs, acceptanceRefs, acceptance criteria, and verification commands.
+specRefs and acceptanceRefs must point to OpenSpec-compatible requirement and
+acceptance ids from the proposal/spec delta; do not leave them empty or replace
+them with prose.
 ${UI_UX_PRO_MAX_WORKFLOW}
 Tasks must also reference the relevant project rules/conventions they must obey
 when touching code, plus the project type best practices they must follow, using
@@ -372,7 +383,7 @@ Write \`docs/reports/verification-report.md\`, then run:
 nova checkpoint artifacts --verification-report docs/reports/verification-report.md \\
   --project-rules-verdict PASS --best-practices-verdict PASS \\
   --review-independence '{"mode":"subagent","agent":"codex-reviewer"}' \\
-  --verification-commands '[{"command":"npm test","status":"PASS","exitCode":0}]'
+  --verification-commands '<json-results-from-actual-project-commands>'
 nova validate
 nova checkpoint phase verify --status done
 \`\`\`

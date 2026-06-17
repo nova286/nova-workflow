@@ -52,7 +52,11 @@ description: Nova propose phase — generate a feature proposal
 Read \`.nova.yaml\`. Check \`phases.propose.status\`. If pending, update to \`in-progress\` with \`nova checkpoint phase propose --status in-progress\` when available.
 
 ## Step 2: Gather Context
-Read \`AGENTS.md\`, \`README.md\`, \`package.json\`, \`src/\` to understand the project.
+Read \`AGENTS.md\`, \`README.md\`, package/project metadata, and the actual
+source tree to understand the project. Do not assume every project has \`src/\`;
+for iOS/Swift/XcodeGen projects, inspect \`project.yml\`, \`*.xcodeproj\`,
+\`*.xcworkspace\`, \`Package.swift\`, app target folders, \`Sources/\`, and
+\`Tests/\` when present.
 
 ## Step 3: Explore Requirements
 Clarify the problem, explore alternatives, identify risks, define success criteria.
@@ -122,7 +126,10 @@ Read \`.nova.yaml\`. Require phases.propose.status = done. Update phases.design.
 
 ## Step 2: Load Context
 Read proposal, \`AGENTS.md\`, \`CLAUDE.md\`, \`CODEX.md\`, \`README.md\`,
-package metadata, and \`src/\`. Also read project-local rule files when present,
+package/project metadata, and the actual source tree. Do not assume \`src/\`
+exists; for iOS/Swift/XcodeGen projects, inspect \`project.yml\`,
+\`*.xcodeproj\`, \`*.xcworkspace\`, \`Package.swift\`, app target folders,
+\`Sources/\`, and \`Tests/\` when present. Also read project-local rule files when present,
 including \`.cursorrules\`, \`.cursor/rules/\`, and closer directory-specific
 \`AGENTS.md\` or instruction files for affected areas.
 
@@ -132,8 +139,10 @@ generic Nova guidance. Include a \`## Project Rules / Conventions\` summary in
 \`docs/designs/design.md\`.
 
 Also identify project type best practices from \`.nova.yaml.projectType\`,
-project metadata such as \`package.json\`, \`go.mod\`, \`pyproject.toml\`, or
-equivalent files, and the existing codebase. Capture architecture boundaries,
+project metadata such as \`package.json\`, \`go.mod\`, \`pyproject.toml\`,
+\`project.yml\`, \`Package.swift\`, \`*.xcodeproj\`, \`pubspec.yaml\`, or
+equivalent files, and the existing codebase. Do not treat a non-Node project as
+Node just because tooling uses \`package.json\`. Capture architecture boundaries,
 framework idioms, error handling, test strategy, security defaults, and
 performance considerations for this project type. Include a
 \`## Project Type Best Practices\` summary in \`docs/designs/design.md\`. If a
@@ -142,7 +151,11 @@ record the rationale.
 
 Generate or refresh the Project Context Contract in \`.nova.yaml.projectContext\`
 with \`rules.sources/must/mustNot/verificationCommands\`,
-\`bestPractices.projectType/sources/must/should/risks\`, and \`conflicts[]\`.
+\`bestPractices.projectType/sources/must/should/risks\`, and \`conflicts\`.
+\`conflicts\` must be an array; use \`[]\` when there are no conflicts. Each
+conflict item must include \`projectRule\`, \`bestPractice\`, \`resolution\`, and
+\`rationale\`; \`resolution\` must be \`project-rule\`, \`best-practice\`, or
+\`case-by-case\`.
 Optionally write a readable copy and record it as \`artifacts.projectContext\`.
 
 ## Step 3: Explore Architecture
@@ -167,7 +180,11 @@ record \`userDecision\`.
 Write \`docs/designs/design.md\` with architecture, tech stack, components, data flow, and task list in YAML.
 Tasks must reference the relevant project rules/conventions they must obey when
 touching code, plus the project type best practices they must follow, using
-\`complianceRefs.projectRules\` and \`complianceRefs.bestPractices\`. Any planned
+\`complianceRefs.projectRules\` and \`complianceRefs.bestPractices\`. Each
+implementation/testing task must include \`method\`, non-empty \`specRefs\`,
+non-empty \`acceptanceRefs\`, and \`verification.commands\`; refs must point to
+OpenSpec-compatible requirement/acceptance ids from the proposal/spec delta, not
+free-form prose. Any planned
 deviation from either must include a clear rationale.
 Follow the proposal test strategy: automated UI testing requires UI flows plus
 a testing task or UI verification command; unit testing requires unit targets
@@ -215,7 +232,8 @@ its refactorPolicy and record regression evidence for existing behavior.
 On failure: abort, skip, or retry.
 
 ## Step 4: Final Verification
-Run full test suite and type check.
+Run the required project verification commands recorded in the Project Context
+Contract or task list.
 
 ## Step 5: Update State
 Run \`nova guard implement verify\`, then set phases.implement.status = done with \`nova checkpoint phase implement --status done\`.
@@ -282,7 +300,7 @@ Write docs/reports/verification-report.md with Project Context Contract
 was accepted.
 
 ## Step 6: Update State
-Run \`nova checkpoint artifacts --verification-report docs/reports/verification-report.md --project-rules-verdict PASS --best-practices-verdict PASS --review-independence '{"mode":"subagent","agent":"pi-reviewer"}' --verification-commands '[{"command":"npm test","status":"PASS","exitCode":0}]'\`, then \`nova validate\`. Only set phases.verify.status = done with \`nova checkpoint phase verify --status done\` when spec conformance, project rules conformance, project type best-practice conformance, required verification commands, code review, and security review all pass.
+Run \`nova checkpoint artifacts --verification-report docs/reports/verification-report.md --project-rules-verdict PASS --best-practices-verdict PASS --review-independence '{"mode":"subagent","agent":"pi-reviewer"}' --verification-commands '<json-results-from-actual-project-commands>'\`, then \`nova validate\`. Only set phases.verify.status = done with \`nova checkpoint phase verify --status done\` when spec conformance, project rules conformance, project type best-practice conformance, required verification commands, code review, and security review all pass.
 `,
 
   'nova-archive.md': () => `---

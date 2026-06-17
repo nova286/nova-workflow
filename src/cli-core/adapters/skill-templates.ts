@@ -98,19 +98,19 @@ Always read it first.
 ### Phase 2: Design (设计)
 \`\`\`
 读取 activeChange 对应的 OpenSpec-compatible change，生成执行计划。
-1. 读 proposal/spec delta 和 src/ 了解架构
+1. 读 proposal/spec delta 和实际源码/工程结构了解架构；不要假设一定存在 src/，iOS/Swift/XcodeGen 项目应读取 project.yml、*.xcodeproj、Sources/、App/、Tests/ 等真实目录
 2. 必须读取当前项目目录声明的规范文件（如 AGENTS.md、CLAUDE.md、CODEX.md、README.md、.cursorrules、.cursor/rules/），以及将要触碰子目录内更近的 AGENTS.md/规范文件；提取强制规则、禁止事项、验证命令和编码约定
-3. 必须根据 .nova.yaml 的 projectType、package/go.mod/pyproject 等项目元数据和现有代码，识别当前项目类型的最佳实践（架构边界、框架惯例、错误处理、测试策略、性能/安全默认项）；如果本地项目规范和通用最佳实践冲突，本地项目规范优先，但需要记录理由
+3. 必须根据 .nova.yaml 的 projectType、package/go.mod/pyproject/project.yml/Package.swift/*.xcodeproj/pubspec.yaml 等项目元数据和现有代码，识别当前项目类型的最佳实践（架构边界、框架惯例、错误处理、测试策略、性能/安全默认项）；不得因为存在 package.json 就把非 Node 工程按前端/Node 项目处理；如果本地项目规范和通用最佳实践冲突，本地项目规范优先，但需要记录理由
 4. 如果 changeMode=existing，先对 affectedAreas 做 legacyPreflight：检查架构边界、职责拆分、数据流、可测试性、验证命令、设计系统/项目规范、项目类型最佳实践、会影响本次需求的技术债
 5. 如果 legacyPreflight.hasIssues=true，用 Markdown checklist 询问用户重构策略：
    - [ ] 仅完成本次需求，不做重构
    - [ ] 做最小必要重构，只处理会阻塞本次需求的部分
    - [ ] 将相关模块一起重构到项目规范
    并映射 refactorPolicy: none|minimal|full
-6. 生成/刷新 Project Context Contract（.nova.yaml.projectContext，可同时引用 artifacts.projectContext），包含 rules.sources/must/mustNot/verificationCommands、bestPractices.projectType/sources/must/should/risks 和 conflicts[]
+6. 生成/刷新 Project Context Contract（.nova.yaml.projectContext，可同时引用 artifacts.projectContext），必须包含 rules.sources/must/mustNot/verificationCommands、bestPractices.projectType/sources/must/should/risks 和 conflicts；conflicts 必须是数组，空则写 []，每项必须含 projectRule、bestPractice、resolution、rationale，resolution 只能用 project-rule、best-practice 或 case-by-case
 7. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Project Rules/Conventions、Project Type Best Practices 摘要、Project Context Contract 摘要和 Legacy Preflight 结论
 8. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
-9. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands, complianceRefs.projectRules, complianceRefs.bestPractices，并遵守项目规范、项目类型最佳实践和 refactorPolicy；任何偏离必须写明理由
+9. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands, complianceRefs.projectRules, complianceRefs.bestPractices；specRefs/acceptanceRefs 必须引用 OpenSpec-compatible requirement/acceptance id，不能留空或只写自然语言；任务必须遵守项目规范、项目类型最佳实践和 refactorPolicy，任何偏离必须写明理由
 10. 用 nova checkpoint artifacts --design-doc 记录设计产物，并用 --project-context '<json>' 记录 Project Context Contract；existing 场景还要加 --legacy-preflight '<json>'
 11. 运行 nova validate
 12. 用 nova checkpoint phase design --status done 记录完成

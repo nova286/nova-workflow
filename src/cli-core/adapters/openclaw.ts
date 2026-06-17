@@ -38,9 +38,9 @@ Always read it first.
 ### Phase 2: Design (设计)
 \`\`\`
 读取 activeChange 对应的 OpenSpec-compatible change，生成执行计划。
-1. 读 proposal/spec delta 和 src/ 了解架构
+1. 读 proposal/spec delta 和实际源码/工程结构了解架构；不要假设一定存在 src/，iOS/Swift/XcodeGen 项目应读取 project.yml、*.xcodeproj、Sources/、App/、Tests/ 等真实目录
 2. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md
-3. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands
+3. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands；specRefs/acceptanceRefs 必须引用 OpenSpec-compatible requirement/acceptance id，不能留空或只写自然语言
 4. 运行 nova validate
 5. 用 nova checkpoint phase design --status done 记录完成
 \`\`\`

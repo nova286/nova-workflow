@@ -147,6 +147,18 @@ describe('InitManager', () => {
       expect(state.projectType).toBeTruthy();
     });
 
+    test('prefers iOS XcodeGen project type over package.json tooling during init', async () => {
+      await fs.writeFile('package.json', JSON.stringify({ name: 'ios-tooling' }), 'utf-8');
+      await fs.writeFile('project.yml', 'name: App\ntargets:\n  App:\n    type: application\n', 'utf-8');
+
+      const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', homeDir });
+      await mgr.run();
+
+      const raw = await fs.readFile('.nova.yaml', 'utf-8');
+      const state = yaml.parse(raw);
+      expect(state.projectType).toBe('ios-xcodegen');
+    });
+
     test('uses explicit agent option instead of auto-detecting all installed agents', async () => {
       const mgr = new InitManager(testDir, { force: false, skillsDir: 'project', agent: 'codex', homeDir });
       await mgr.run();

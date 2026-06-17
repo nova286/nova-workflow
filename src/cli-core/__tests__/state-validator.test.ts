@@ -218,6 +218,31 @@ describe('validateState', () => {
     expect(result.errors.some(e => e.code === 'project-context.best-practices.project-type.missing')).toBe(true);
   });
 
+  test('explains required projectContext conflict fields and resolution values', () => {
+    const result = validateState({
+      ...baseState,
+      projectContext: {
+        ...validProjectContext,
+        conflicts: [{
+          projectRule: 'Follow local AGENTS.md',
+          bestPractice: 'Use framework default',
+          rationale: 'Local rule is stricter',
+        }],
+      },
+      phases: {
+        ...baseState.phases,
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false, requireProjectContext: true });
+
+    const resolutionError = result.errors.find(e => e.path === 'projectContext.conflicts.0.resolution');
+    expect(resolutionError?.message).toContain('project-rule | best-practice | case-by-case');
+  });
+
   test('fails implementation task missing complianceRefs when projectContext is required', () => {
     const taskWithoutRefs = { ...validTask, complianceRefs: undefined };
     const result = validateState({

@@ -16,6 +16,33 @@
 
 <!-- How data moves through the system, key interfaces -->
 
+## Project Context Contract
+
+<!-- Required before marking design done. Record the exact JSON passed to
+nova checkpoint artifacts --project-context '<json>'.
+
+Required shape:
+projectContext:
+  rules:
+    sources: string[]              # e.g. AGENTS.md, README.md, .cursor/rules/api.md
+    must: string[]                 # mandatory project rules
+    mustNot: string[]              # forbidden project patterns
+    verificationCommands: string[] # actual project commands required for verify
+  bestPractices:
+    projectType: string            # .nova.yaml projectType, e.g. ios-xcodegen, go, node-cli
+    sources: string[]              # metadata/code sources used to infer practices
+    must: string[]                 # best practices required for this project type
+    should: string[]               # recommended practices
+    risks: string[]                # project-type risks to verify
+  conflicts:
+    - projectRule: string
+      bestPractice: string
+      resolution: project-rule | best-practice | case-by-case
+      rationale: string
+
+Use conflicts: [] when there are no conflicts.
+-->
+
 ## Legacy Preflight
 
 <!-- Required when proposal changeMode=existing.
@@ -52,11 +79,12 @@ tasks:
   - id: task-1
     title: Example task
     type: implementation
+    method: implementation
     description: What needs to be done
     files:
-      - {path: src/example.ts, action: create}
+      - {path: path/to/project/file.ext, action: create}
     expectedArtifacts:
-      - {type: file, description: Example module, pathHint: src/example.ts}
+      - {type: file, description: Example project module, pathHint: project-specific source path}
     specRefs:
       - specs.example.requirement
     acceptanceRefs:
@@ -65,7 +93,12 @@ tasks:
       - Acceptance criterion 1
     verification:
       commands:
-        - npm test
+        - project-specific test or build command
+    complianceRefs:
+      projectRules:
+        - rules.must.0
+      bestPractices:
+        - bestPractices.must.0
     priority: medium
     estimatedComplexity: 3
 ```
@@ -81,8 +114,8 @@ tasks:
     type: implementation
     description: Create the shared data layer and business logic
     files:
-      - {path: src/shared/core.ts, action: create}
-      - {path: src/shared/types.ts, action: create}
+      - {path: shared/core-or-domain-file.ext, action: create}
+      - {path: shared/types-or-models-file.ext, action: create}
     acceptance:
       - Shared module compiles and exports correctly
     priority: high

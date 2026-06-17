@@ -214,11 +214,11 @@ break down. Nova solves this with `TaskContext` — a structured JSON contract:
     "acceptanceRefs": ["auth.acceptance.valid-login-returns-token"]
   },
   "input": {
-    "files": [{ "path": "src/login.ts", "action": "create" }],
-    "environment": { "language": "TypeScript", "framework": "Express.js" }
+    "files": [{ "path": "path/to/login-file.ext", "action": "create" }],
+    "environment": { "language": "project language", "framework": "project framework" }
   },
   "verification": {
-    "commands": ["npm test -- login", "npx tsc --noEmit"]
+    "commands": ["project-specific test command", "project-specific build or typecheck command"]
   },
   "acceptanceCriteria": ["Returns JWT on success"],
   "guardConditions": { "requireReview": true, "requireTests": true }
@@ -310,8 +310,8 @@ phases:
         specRefs: [auth.requirements.valid-credential-login]
         acceptanceRefs: [auth.acceptance.valid-login-returns-token]
         evidence:
-          tests: [npm test -- login]
-          filesChanged: [src/auth/login.ts]
+          tests: [project-specific test command]
+          filesChanged: [path/to/login-file.ext]
           traceIds: [nova-xxx]
   verify:  { status: pending }
   archive: { status: pending }

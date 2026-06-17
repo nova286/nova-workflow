@@ -196,6 +196,7 @@ describe('validateSpecBoundExecution', () => {
     const r = validateSpecBoundExecution(tasks);
     expect(r.pass).toBe(false);
     expect(r.errors[0]).toContain('specRefs');
+    expect(r.errors[0]).toContain('OpenSpec requirement ids');
   });
 
   test('skips non-implementation tasks', () => {

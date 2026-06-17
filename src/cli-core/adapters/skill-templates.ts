@@ -21,16 +21,19 @@ export const MOBILE_STEP = `
 ## Step 5.5: UI Verification (Mobile MCP detected)
 
 1. Build and launch app in simulator via Mobile MCP
-2. For each key user flow:
+2. Do not hardcode an iOS simulator model such as iPhone 16 unless the user or
+   project rules explicitly require it. Prefer the current project, XcodeBuildMCP,
+   or Mobile MCP simulator default; otherwise choose an available compatible simulator.
+3. For each key user flow:
    - Navigate to screen
    - Take screenshot
    - Query accessibility tree (element labels, states)
    - Compare against design tokens from \`docs/designs/design.md\`
-3. Fill \`## UI Verification\` section in \`docs/reports/verification-report.md\`:
+4. Fill \`## UI Verification\` section in \`docs/reports/verification-report.md\`:
    - Screenshot gallery with captions
    - Element state audit (missing labels, wrong states)
    - Design token compliance check
-4. Flag discrepancies as UI findings with severity
+5. Flag discrepancies as UI findings with severity
 `;
 
 export const UI_UX_PRO_MAX_WORKFLOW = `

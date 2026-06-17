@@ -393,6 +393,9 @@ describe('Environment Adapters', () => {
       const content = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
       expect(content).toContain('Mobile MCP detected');
       expect(content).toContain('UI Verification');
+      expect(content).toContain('Do not hardcode an iOS simulator model');
+      expect(content).toContain('iPhone 16');
+      expect(content).toContain('available compatible simulator');
     });
 
     test('nova-detect delegates to nova detect CLI', async () => {

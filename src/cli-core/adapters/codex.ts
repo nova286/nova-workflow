@@ -32,19 +32,25 @@ Always read it first.
    - Figma MCP 可用后，必须确认这是存量页面修改还是增量新页面
    - 存量页面要确认现有 route/screen/component；增量页面要确认新页面入口和跳转路径
    - spec 必须记录 Figma URL、node IDs、页面模式、入口路径，以及实现阶段需要按当前项目导出的切图/图片/icon 资产
-3. 写入 .openspec/changes/<change-id>/proposal.md 和 specs
-4. 运行 nova validate
-5. 用 nova checkpoint phase propose --status done 记录完成
+3. 在生成 proposal 前，用 Markdown checklist 让用户确认本次测试策略：
+   - [ ] 自动化 UI 测试
+   - [ ] UI 还原度测试
+   - [ ] 单元测试
+   自动化 UI 测试用于和改版前/基线页面对比，适合逻辑修改时防止 UI 被改坏；UI 还原度测试用于和设计稿/Figma/参考图对比，适合视觉还原。把 automatedUiTesting、uiFidelityTesting、unitTesting 写入 testStrategy。
+4. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并用 nova checkpoint artifacts --test-strategy '<json>' 记录 testStrategy
+5. 运行 nova validate
+6. 用 nova checkpoint phase propose --status done 记录完成
 \`\`\`
 
 ### Phase 2: Design (设计)
 \`\`\`
 读取 activeChange 对应的 OpenSpec-compatible change，生成执行计划。
 1. 读 proposal/spec delta 和实际源码/工程结构了解架构；不要假设一定存在 src/，iOS/Swift/XcodeGen 项目应读取 project.yml、*.xcodeproj、Sources/、App/、Tests/ 等真实目录
-2. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md
-3. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands；specRefs/acceptanceRefs 必须引用 OpenSpec-compatible requirement/acceptance id，不能留空或只写自然语言
-4. 运行 nova validate
-5. 用 nova checkpoint phase design --status done 记录完成
+2. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md；UI 任务必须按 screen/major component/state/asset-or-token/verification 拆细，控件/组件选择优先级为项目规范 > 既有相邻代码偏好 > 平台最佳实践。iOS 重复列表/网格/feeds 默认优先 UICollectionView、UITableView、SwiftUI List、LazyVStack 或 LazyVGrid，除非项目规范或明确技术原因要求 UIScrollView。
+3. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；UI 还原度测试要有 uiFidelityTargets 和 design/visual fidelity testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
+4. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands；specRefs/acceptanceRefs 必须引用 OpenSpec-compatible requirement/acceptance id，不能留空或只写自然语言
+5. 运行 nova validate
+6. 用 nova checkpoint phase design --status done 记录完成
 \`\`\`
 
 ### Phase 3: Implement (实现)
@@ -210,6 +216,14 @@ Write compatible artifacts:
 - \`.openspec/changes/<change-id>/specs/...\`
 - \`docs/proposals/proposal.md\`
 
+Before writing, confirm test strategy with a Markdown checklist:
+
+- [ ] 自动化 UI 测试
+- [ ] UI 还原度测试
+- [ ] 单元测试
+
+Automated UI testing compares the current behavior with the baseline/version-before-change UI for logic changes that should not alter UI. UI fidelity testing compares implementation against design sources such as Figma, design specs, or reference screenshots. Include \`automatedUiTesting\`, \`uiFidelityTesting\`, and \`unitTesting\` in testStrategy.
+
 Include change mode and test strategy.
 
 ## Step 5: Update State
@@ -271,6 +285,16 @@ specRefs and acceptanceRefs must point to OpenSpec-compatible requirement and
 acceptance ids from the proposal/spec delta; do not leave them empty or replace
 them with prose.
 ${UI_UX_PRO_MAX_WORKFLOW}
+For UI work, split tasks by screen, major component, state/interaction,
+asset/token mapping, and verification instead of bundling layout, data wiring,
+styling, and tests into one coarse task. Choose UI implementation patterns by
+priority: project UI rules first, nearby existing code preference second,
+platform best practices third. For iOS repeated lists/grids/feeds, prefer
+UICollectionView, UITableView, SwiftUI List, LazyVStack, or LazyVGrid. Use
+hand-rolled UIScrollView for reusable/repeating content only when a project
+convention or documented technical reason justifies it.
+If \`uiFidelityTesting=true\`, include uiFidelityTargets and a design/visual
+fidelity testing task or verification command.
 Tasks must also reference the relevant project rules/conventions they must obey
 when touching code, plus the project type best practices they must follow, using
 \`complianceRefs.projectRules\` and \`complianceRefs.bestPractices\`. Any planned

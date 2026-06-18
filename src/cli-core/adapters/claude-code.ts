@@ -122,12 +122,20 @@ Before generating the proposal, confirm the test strategy with the user using
 this Markdown checklist:
 
 - [ ] 自动化 UI 测试
+- [ ] UI 还原度测试
 - [ ] 单元测试
 
 If automated UI testing is selected, determine the user flow early: entry point,
-route/screen, navigation steps, and success assertion. Infer this from code,
-Figma, or existing navigation when possible; ask the user only when it cannot be
-determined confidently.
+route/screen, navigation steps, and success assertion. This option compares the
+current behavior with the baseline/version-before-change UI to catch unintended
+regressions during logic changes. Infer this from code, Figma, or existing
+navigation when possible; ask the user only when it cannot be determined confidently.
+
+If UI fidelity testing is selected, determine design fidelity targets early:
+designRef, routeOrScreen, key states, acceptanceThreshold, and whether Mobile MCP
+or Figma MCP is required. This option compares implementation against design
+sources such as Figma, design specs, or reference screenshots to verify visual
+reconstruction quality.
 
 Write \`.openspec/changes/<change-id>/proposal.md\`, compatible spec files under
 \`.openspec/changes/<change-id>/specs/\`, and \`docs/proposals/proposal.md\` as
@@ -136,8 +144,8 @@ When a Figma link is present, the spec MUST include Figma traceability, whether
 the work is an existing-page modification or incremental page, the navigation
 entry point for incremental pages, and requirements for exporting/using suitable
 cut assets from the current project's implementation context.
-Always include \`## Test Strategy\` with \`automatedUiTesting\`, \`unitTesting\`,
-UI flows when selected, unit test targets when selected, and rationale for
+Always include \`## Test Strategy\` with \`automatedUiTesting\`, \`uiFidelityTesting\`, and \`unitTesting\`,
+UI flows when selected, UI fidelity targets when selected, unit test targets when selected, and rationale for
 omitted or blocked test types.
 Always include \`## Change Mode\` with \`changeMode\`, affected areas, and
 whether \`legacyPreflight.required\` is expected during design.
@@ -146,7 +154,7 @@ whether \`legacyPreflight.required\` is expected during design.
 Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
 \`artifacts.specDelta\`, \`phases.propose.proposal\`, \`phases.propose.changeMode\`, and
 \`phases.propose.testStrategy\`. Use \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>'\`,
-where \`<json>\` includes \`automatedUiTesting\` and \`unitTesting\`; also pass
+where \`<json>\` includes \`automatedUiTesting\`, \`uiFidelityTesting\`, and \`unitTesting\`; also pass
 \`--change-mode existing|incremental|new\`.
 Run \`nova validate\`, then mark completion with \`nova checkpoint phase propose --status done\`
 when validation passes.
@@ -235,6 +243,14 @@ record \`userDecision\`. Do not expand refactoring scope later beyond this polic
 ## Step 4: Generate Design Document
 Based on the user-selected approach, use the **writing-plans skill** to produce
 \`docs/designs/design.md\` and \`docs/superpowers/plans/<change-id>.md\`.
+For UI work, split tasks by screen, major component, state/interaction,
+asset/token mapping, and verification instead of bundling layout, data wiring,
+styling, and tests into one coarse task. Choose UI implementation patterns by
+priority: project UI rules first, nearby existing code preference second,
+platform best practices third. For iOS repeated lists/grids/feeds, prefer
+UICollectionView, UITableView, SwiftUI List, LazyVStack, or LazyVGrid. Use
+hand-rolled UIScrollView for reusable/repeating content only when a project
+convention or documented technical reason justifies it.
 Tasks must include \`method\`, \`specRefs\`, \`acceptanceRefs\`, and
 \`verification.commands\`. \`specRefs\` and \`acceptanceRefs\` must reference the
 OpenSpec-compatible requirement and acceptance ids from the proposal/spec delta;
@@ -247,6 +263,9 @@ Follow the proposal test strategy:
 - If \`automatedUiTesting=true\`, define UI test cases with entry point,
   route/screen, steps, expected result, and Mobile MCP/E2E runner needs. Add a
   testing task or UI verification command.
+- If \`uiFidelityTesting=true\`, define UI fidelity targets with designRef,
+  routeOrScreen, key states, and acceptanceThreshold. Add a design/visual
+  fidelity testing task or verification command.
 - If \`unitTesting=true\`, define unit test targets and include unit test
   commands/files in implementation or testing tasks.
 - If a test type was not selected, do not force it; keep a concise rationale
@@ -318,7 +337,7 @@ For each task in priority order:
 1. Run \`task.verification.commands\` if present
 2. Run the applicable compile/typecheck command from \`projectContext.rules.verificationCommands\` or the detected project environment when present
 3. Run selected tests from \`testStrategy\`: unit tests if selected, automated
-   UI scripts if selected
+   UI scripts if selected, UI fidelity/design comparison if selected
 4. For existing changes, run or record regression checks for affected legacy behavior
 5. Confirm specRefs and acceptanceRefs have evidence before marking complete
 6. Confirm the implementation follows the applicable project rules/conventions

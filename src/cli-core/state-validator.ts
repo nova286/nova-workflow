@@ -104,6 +104,11 @@ function commandLooksLikeUiTest(command: unknown): boolean {
   return /\b(playwright|cypress|detox|maestro|appium|mobile|simulator|xcodebuild|e2e|ui[-:]?test)\b/i.test(command);
 }
 
+function commandLooksLikeUiFidelityTest(command: unknown): boolean {
+  if (typeof command !== 'string') return false;
+  return /\b(ui[-:]?fidelity|design[-:]?fidelity|visual[-:]?regression|visual[-:]?test|snapshot|screenshot|golden|figma|percy|applitools|pixelmatch|looks-same|reg-suit)\b/i.test(command);
+}
+
 function commandLooksLikeUnitTest(command: unknown): boolean {
   if (typeof command !== 'string') return false;
   if (commandLooksLikeUiTest(command)) return false;
@@ -112,6 +117,20 @@ function commandLooksLikeUnitTest(command: unknown): boolean {
 
 function taskHasCommand(task: any, predicate: (command: unknown) => boolean): boolean {
   return Array.isArray(task.verification?.commands) && task.verification.commands.some(predicate);
+}
+
+function taskLooksLikeUiFidelityTest(task: any): boolean {
+  const candidates = [
+    task.id,
+    task.title,
+    task.type,
+    task.testKind,
+    task.testType,
+    task.uiFidelityTargetRef,
+  ]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ');
+  return /\b(ui[-:]?fidelity|design[-:]?fidelity|visual|snapshot|screenshot|golden|figma|pixel|percy|applitools)\b/i.test(candidates);
 }
 
 function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[], warnings: ValidationIssue[]) {
@@ -131,6 +150,10 @@ function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[
   }
   if (typeof strategy.unitTesting !== 'boolean') {
     errors.push(issue('test-strategy.invalid', 'testStrategy.unitTesting must be a boolean', 'phases.propose.testStrategy.unitTesting'));
+  }
+  const uiFidelityTesting = strategy.uiFidelityTesting ?? false;
+  if (typeof uiFidelityTesting !== 'boolean') {
+    errors.push(issue('test-strategy.invalid', 'testStrategy.uiFidelityTesting must be a boolean when provided', 'phases.propose.testStrategy.uiFidelityTesting'));
   }
   if (typeof strategy.automatedUiTesting !== 'boolean' || typeof strategy.unitTesting !== 'boolean') {
     return;
@@ -161,6 +184,32 @@ function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[
       ) || tasks.some(task => taskHasCommand(task, commandLooksLikeUiTest));
       if (!hasUiTaskOrCommand) {
         errors.push(issue('test-strategy.ui-task.missing', 'automated UI testing is selected but design has no UI testing task or UI verification command', 'phases.design.tasks'));
+      }
+    }
+  }
+
+  if (uiFidelityTesting === true) {
+    const targets = Array.isArray(strategy.uiFidelityTargets) ? strategy.uiFidelityTargets : [];
+    const hasBlockedReason = typeof strategy.rationale === 'string' && strategy.rationale.trim().length > 0;
+    if (targets.length === 0 && !hasBlockedReason) {
+      errors.push(issue('test-strategy.ui-fidelity-targets.missing', 'UI fidelity testing is selected but no design fidelity target or rationale is recorded', 'phases.propose.testStrategy.uiFidelityTargets'));
+    }
+    for (const [index, target] of targets.entries()) {
+      const base = `phases.propose.testStrategy.uiFidelityTargets.${index}`;
+      if (!hasText(target?.name)) errors.push(issue('test-strategy.ui-fidelity-target.invalid', 'UI fidelity target is missing name', `${base}.name`));
+      if (!hasText(target?.designRef)) errors.push(issue('test-strategy.ui-fidelity-target.invalid', 'UI fidelity target is missing designRef', `${base}.designRef`));
+      if (!hasText(target?.routeOrScreen)) errors.push(issue('test-strategy.ui-fidelity-target.invalid', 'UI fidelity target is missing routeOrScreen', `${base}.routeOrScreen`));
+    }
+
+    if (state.phases?.design?.status === 'done') {
+      const hasUiFidelityTaskOrCommand = tasks.some(task =>
+        task.type === 'testing' && (
+          taskLooksLikeUiFidelityTest(task) ||
+          taskHasCommand(task, commandLooksLikeUiFidelityTest)
+        )
+      ) || tasks.some(task => taskHasCommand(task, commandLooksLikeUiFidelityTest));
+      if (!hasUiFidelityTaskOrCommand) {
+        errors.push(issue('test-strategy.ui-fidelity-task.missing', 'UI fidelity testing is selected but design has no design/visual fidelity testing task or verification command', 'phases.design.tasks'));
       }
     }
   }

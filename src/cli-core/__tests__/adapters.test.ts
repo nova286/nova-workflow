@@ -14,8 +14,10 @@ describe('Environment Adapters', () => {
 
   function expectTestStrategyChecklist(content: string) {
     expect(content).toContain('[ ] 自动化 UI 测试');
+    expect(content).toContain('[ ] UI 还原度测试');
     expect(content).toContain('[ ] 单元测试');
     expect(content).toContain('testStrategy');
+    expect(content).toContain('uiFidelityTesting');
   }
 
   function expectLegacyPreflightRules(content: string) {
@@ -51,6 +53,16 @@ describe('Environment Adapters', () => {
     expect(content).toContain('resolution');
     expect(content).toMatch(/project-rule.*best-practice.*case-by-case/s);
     expect(content).toMatch(/OpenSpec-compatible requirement|OpenSpec-compatible requirement\/acceptance|OpenSpec-compatible requirement and acceptance/);
+  }
+
+  function expectUiPlanningRulesInDesign(content: string) {
+    expect(content).toMatch(/screen.*major component.*state|screen\/major component\/state/s);
+    expect(content).toContain('UICollectionView');
+    expect(content).toContain('UITableView');
+    expect(content).toContain('UIScrollView');
+    expect(content).toMatch(/project UI rules|项目规范/);
+    expect(content).toMatch(/existing code preference|既有相邻代码偏好/);
+    expect(content).toMatch(/platform best practices|平台最佳实践/);
   }
 
   function expectProjectRulesInImplement(content: string) {
@@ -212,6 +224,7 @@ describe('Environment Adapters', () => {
       expectProjectRulesInDesign(design);
       expectBestPracticesInDesign(design);
       expectProjectContextContractInDesign(design);
+      expectUiPlanningRulesInDesign(design);
       expectProjectRulesInImplement(implement);
       expectBestPracticesInImplement(implement);
       expectProjectContextContractInImplement(implement);
@@ -455,6 +468,7 @@ describe('Environment Adapters', () => {
       expectProjectRulesInDesign(design);
       expectBestPracticesInDesign(design);
       expectProjectContextContractInDesign(design);
+      expectUiPlanningRulesInDesign(design);
       expectProjectRulesInImplement(implement);
       expectBestPracticesInImplement(implement);
       expectProjectContextContractInImplement(implement);
@@ -543,6 +557,7 @@ describe('Environment Adapters', () => {
       expectProjectRulesInDesign(design);
       expectBestPracticesInDesign(design);
       expectProjectContextContractInDesign(design);
+      expectUiPlanningRulesInDesign(design);
       expectProjectRulesInImplement(implement);
       expectBestPracticesInImplement(implement);
       expectProjectContextContractInImplement(implement);

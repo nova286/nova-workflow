@@ -138,8 +138,8 @@ describe('checkpoint', () => {
     await checkpointArtifacts({ testStrategy });
 
     const state = await StateManager.load();
-    expect(state.phases.propose.testStrategy).toEqual(testStrategy);
-    expect(state.artifacts?.testStrategy).toEqual(testStrategy);
+    expect(state.phases.propose.testStrategy).toEqual({ ...testStrategy, uiFidelityTesting: false });
+    expect(state.artifacts?.testStrategy).toEqual({ ...testStrategy, uiFidelityTesting: false });
   });
 
   test('checkpointArtifacts normalizes legacy unitTargets to unitTestTargets', async () => {
@@ -154,6 +154,7 @@ describe('checkpoint', () => {
 
     const state = await StateManager.load();
     expect(state.phases.propose.testStrategy?.unitTestTargets).toEqual(['src/task.ts']);
+    expect(state.phases.propose.testStrategy?.uiFidelityTesting).toBe(false);
     expect(state.phases.propose.testStrategy).not.toHaveProperty('unitTargets');
     expect(state.artifacts?.testStrategy?.unitTestTargets).toEqual(['src/task.ts']);
   });

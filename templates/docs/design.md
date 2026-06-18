@@ -74,6 +74,12 @@ Record:
 
 <!-- Ordered list of tasks defined in YAML below -->
 
+<!-- UI task planning guidance:
+- Split UI work by screen, major component, state/interaction, asset/token mapping, and verification. Avoid one broad task that mixes layout, data wiring, styling, and tests.
+- Choose UI implementation patterns by priority: project UI rules first, nearby existing code preference second, platform best practices third.
+- iOS repeated lists/grids/feeds should prefer UICollectionView, UITableView, SwiftUI List, LazyVStack, or LazyVGrid. Use hand-rolled UIScrollView for reusable/repeating content only when a project convention or documented technical reason justifies it.
+-->
+
 ```yaml
 tasks:
   - id: task-1
@@ -164,6 +170,13 @@ Automated UI testing:
 - Only required when automatedUiTesting=true.
 - Define each user flow with entry point, route/screen, steps, expected result, and whether Mobile MCP is required.
 - Add a testing task or verification command that can run the flow.
+- This is baseline/current-page comparison for logic changes that should not alter UI unexpectedly.
+
+UI fidelity testing:
+- Only required when uiFidelityTesting=true.
+- Define each design fidelity target with designRef, routeOrScreen, expected states, and acceptanceThreshold.
+- Add a testing task or verification command that compares implementation screenshots/rendered UI against Figma/design specs/reference screenshots.
+- This is design-source comparison for visual reconstruction and restoration fidelity.
 
 Unit testing:
 - Only required when unitTesting=true.

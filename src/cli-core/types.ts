@@ -33,10 +33,21 @@ export interface TestFlow {
   blockedReason?: string;
 }
 
+export interface UIFidelityTarget {
+  name: string;
+  designRef: string;
+  routeOrScreen: string;
+  acceptanceThreshold?: string;
+  requiresMobileMcp?: boolean;
+  blockedReason?: string;
+}
+
 export interface TestStrategy {
   automatedUiTesting: boolean;
   unitTesting: boolean;
+  uiFidelityTesting?: boolean;
   uiFlows?: TestFlow[];
+  uiFidelityTargets?: UIFidelityTarget[];
   unitTargets?: string[];
   unitTestTargets?: string[];
   rationale?: string;

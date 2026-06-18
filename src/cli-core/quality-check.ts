@@ -94,6 +94,21 @@ export function validateSpecBoundExecution(tasks: any[]): QualityReport {
 }
 
 const MAX_FILES_PER_TASK = 10;
+const UI_TASK_MAX_FILES = 4;
+
+function taskLooksLikeUiWork(task: any): boolean {
+  const text = [task.id, task.title, task.description, task.type, task.method]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ');
+  if (/\b(ui|ux|screen|view|layout|visual|figma|component|cell|collection|table|scroll)\b/i.test(text)) {
+    return true;
+  }
+  const files: any[] = Array.isArray(task.files) ? task.files : [];
+  return files.some(file =>
+    typeof file?.path === 'string' &&
+    /\b(View|Screen|ViewController|CollectionView|TableView|Cell|Storyboard|Assets\.xcassets|Composable|Component)\b|\.xib$|\.storyboard$/i.test(file.path)
+  );
+}
 
 export function validateTaskGranularity(tasks: any[]): QualityReport {
   const warnings: string[] = [];
@@ -105,6 +120,9 @@ export function validateTaskGranularity(tasks: any[]): QualityReport {
 
     if (files.length > MAX_FILES_PER_TASK) {
       warnings.push(`${id}: has ${files.length} files (recommended ≤${MAX_FILES_PER_TASK}). Consider splitting into smaller tasks.`);
+    }
+    if (taskLooksLikeUiWork(task) && files.length > UI_TASK_MAX_FILES) {
+      warnings.push(`${id}: UI work touches ${files.length} files (recommended ≤${UI_TASK_MAX_FILES}). Split by screen, major component, state/interaction, assets/tokens, and verification to preserve fidelity.`);
     }
   }
 

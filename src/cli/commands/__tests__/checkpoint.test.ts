@@ -62,5 +62,9 @@ describe('checkpoint command', () => {
     expect(warnSpy).toHaveBeenCalledWith('检测到已废弃字段 unitTargets：已自动迁移为 unitTestTargets，请后续改用 unitTestTargets。');
     expect(logSpy).toHaveBeenCalledWith('已完成字段迁移：unitTargets 已自动转写到 unitTestTargets。');
     expect(logSpy).toHaveBeenCalledWith('Checkpointed workflow artifacts.');
+
+    const state = yaml.parse(await fs.readFile('.nova.yaml', 'utf-8'));
+    expect(state.phases.propose.testStrategy.unitTestTargets).toEqual(['src/task.ts']);
+    expect(state.phases.propose.testStrategy.uiFidelityTesting).toBe(false);
   });
 });

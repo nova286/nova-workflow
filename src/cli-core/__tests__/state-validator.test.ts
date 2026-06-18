@@ -747,4 +747,103 @@ describe('validateState', () => {
 
     expect(result.errors.filter(e => e.code.startsWith('test-strategy.'))).toEqual([]);
   });
+
+  test('fails selected UI fidelity testing without design targets', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          changeMode: 'new',
+          testStrategy: {
+            automatedUiTesting: false,
+            uiFidelityTesting: true,
+            unitTesting: false,
+          },
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.errors.some(e => e.code === 'test-strategy.ui-fidelity-targets.missing')).toBe(true);
+  });
+
+  test('fails selected UI fidelity testing without design testing task after design', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          changeMode: 'new',
+          testStrategy: {
+            automatedUiTesting: false,
+            uiFidelityTesting: true,
+            unitTesting: false,
+            uiFidelityTargets: [{
+              name: 'Home visual match',
+              designRef: 'figma://home',
+              routeOrScreen: 'HomeScreen',
+            }],
+          },
+        },
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [validTask],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.errors.some(e => e.code === 'test-strategy.ui-fidelity-task.missing')).toBe(true);
+  });
+
+  test('passes selected UI fidelity testing with design target and visual task', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          changeMode: 'new',
+          testStrategy: {
+            automatedUiTesting: false,
+            uiFidelityTesting: true,
+            unitTesting: false,
+            uiFidelityTargets: [{
+              name: 'Home visual match',
+              designRef: 'figma://home',
+              routeOrScreen: 'HomeScreen',
+              acceptanceThreshold: 'No critical visual mismatch; <= 1% pixel diff',
+            }],
+          },
+        },
+        design: {
+          status: 'done',
+          designDoc: 'docs/design.md',
+          tasks: [
+            validTask,
+            {
+              id: 'home-ui-fidelity',
+              title: 'Verify Home UI fidelity',
+              type: 'testing',
+              method: 'tdd',
+              testKind: 'ui-fidelity',
+              uiFidelityTargetRef: 'Home visual match',
+              files: [{ path: 'tests/home-fidelity.md', action: 'create' }],
+              specRefs: ['spec.home-ui'],
+              acceptanceRefs: ['accept.home-ui'],
+              acceptance: ['Home screen matches design reference'],
+              verification: { commands: ['mobile screenshot && pixelmatch home.png figma-home.png'] },
+            },
+          ],
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.errors.filter(e => e.code.startsWith('test-strategy.'))).toEqual([]);
+  });
 });

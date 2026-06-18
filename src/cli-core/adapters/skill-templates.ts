@@ -90,9 +90,11 @@ Always read it first.
 4. 做轻量 Project Context discovery：记录规则来源、projectType、主要技术栈和明显风险到 proposal；不要在 propose 阶段写正式 .nova.yaml.projectContext，正式 Project Context Contract 由 design 生成/刷新
 5. 在生成 proposal 前，用 Markdown checklist 让用户确认本次测试策略：
    - [ ] 自动化 UI 测试
+   - [ ] UI 还原度测试
    - [ ] 单元测试
-   如果选择自动化 UI 测试，先确定入口、跳转路径、关键步骤和成功断言；AI 能从代码/Figma/导航确定就自行确定，不能确定就问用户。
-6. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 changeMode、affectedAreas、testStrategy
+   自动化 UI 测试用于和改版前/基线页面对比，适合逻辑修改时防止 UI 被改坏；如果选择它，先确定入口、跳转路径、关键步骤和成功断言；AI 能从代码/Figma/导航确定就自行确定，不能确定就问用户。
+   UI 还原度测试用于和设计稿/Figma/参考图对比，适合视觉还原；如果选择它，先确定 designRef、routeOrScreen、关键状态、acceptanceThreshold，以及是否需要 Mobile MCP/Figma MCP。
+6. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 changeMode、affectedAreas、testStrategy（必须包含 automatedUiTesting、uiFidelityTesting、unitTesting）
 7. 用 nova checkpoint artifacts --change-mode existing|incremental|new --test-strategy '<json>' 记录 proposal、specDelta、activeChange、changeMode 和 testStrategy
 8. 运行 nova validate
 9. 用 nova checkpoint phase propose --status done 记录完成
@@ -111,8 +113,8 @@ Always read it first.
    - [ ] 将相关模块一起重构到项目规范
    并映射 refactorPolicy: none|minimal|full
 6. 生成/刷新 Project Context Contract（.nova.yaml.projectContext，可同时引用 artifacts.projectContext），必须包含 rules.sources/must/mustNot/verificationCommands、bestPractices.projectType/sources/must/should/risks 和 conflicts；conflicts 必须是数组，空则写 []，每项必须含 projectRule、bestPractice、resolution、rationale，resolution 只能用 project-rule、best-practice 或 case-by-case
-7. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Project Rules/Conventions、Project Type Best Practices 摘要、Project Context Contract 摘要和 Legacy Preflight 结论
-8. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
+7. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Project Rules/Conventions、Project Type Best Practices 摘要、Project Context Contract 摘要和 Legacy Preflight 结论；UI 任务必须按 screen/major component/state/asset-or-token/verification 拆细，控件/组件选择优先级为项目规范 > 既有相邻代码偏好 > 平台最佳实践。iOS 重复列表/网格/feeds 默认优先 UICollectionView、UITableView、SwiftUI List、LazyVStack 或 LazyVGrid，除非项目规范或明确技术原因要求 UIScrollView。
+8. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；UI 还原度测试要有 uiFidelityTargets 和 design/visual fidelity testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
 9. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands, complianceRefs.projectRules, complianceRefs.bestPractices；specRefs/acceptanceRefs 必须引用 OpenSpec-compatible requirement/acceptance id，不能留空或只写自然语言；任务必须遵守项目规范、项目类型最佳实践和 refactorPolicy，任何偏离必须写明理由
 10. 用 nova checkpoint artifacts --design-doc 记录设计产物，并用 --project-context '<json>' 记录 Project Context Contract；existing 场景还要加 --legacy-preflight '<json>'
 11. 运行 nova validate
@@ -128,7 +130,7 @@ Always read it first.
 4. 必须读取 context.projectContext（Project Context Contract）和 task complianceRefs，遵守 project rules 与 project type best practices；如果确实需要偏离，必须在 compliance.deviations/evidence/总结中写明充分理由
 5. method=tdd 时先写失败测试，再实现，再重构
 6. 如果 context.designContext.legacyPreflight 存在，严格遵守 refactorPolicy，不临时扩大重构范围
-7. 根据 testStrategy 编写被选择的单元测试或自动化 UI 脚本；未选择的测试类型不强制补写
+7. 根据 testStrategy 编写被选择的单元测试、自动化 UI 脚本或 UI 还原度测试；未选择的测试类型不强制补写
 8. 如果任务涉及 UI/UX、页面、组件、交互、视觉、可访问性或设计系统，先运行 nova detect --agent ${agentId} --json 检查 UI UX Pro Max；可用时必须使用该 skill 指导实现，缺失时记录限制和安装提示
 9. 跑 verification.commands，用 nova checkpoint task 记录 tests/filesChanged/traceIds evidence，并用 --compliance '<json>' 记录 compliance.followed 和 compliance.deviations；列出所有偏离及理由
 10. 失败时问用户：abort / skip / retry
@@ -146,7 +148,7 @@ Always read it first.
 6. Code review: 正确性、错误处理、类型安全、测试覆盖
 7. Security review: 注入、密钥暴露、路径遍历
 8. 必须执行 Project Context Contract 中 rules.verificationCommands 的所有命令（包括 build/compile/typecheck/test）；任一命令失败或跳过，都不得 PASS
-9. 根据 testStrategy 执行已选择的测试：自动化 UI 测试优先用 Mobile MCP 或项目 E2E runner，单元测试运行对应命令；未选择的测试类型不作为失败条件
+9. 根据 testStrategy 执行已选择的测试：自动化 UI 测试优先用 Mobile MCP 或项目 E2E runner 做基线/当前页面回归对比；UI 还原度测试对比设计稿/Figma/参考图；单元测试运行对应命令；未选择的测试类型不作为失败条件
 10. 如果改动涉及 UI/UX，运行 nova detect --agent ${agentId} --json 检查 UI UX Pro Max；可用时必须用该 skill 做 UI/UX 验证 verdict（视觉层级、响应式、交互状态、可访问性、设计系统一致性），缺失时在报告中记录限制
 11. 写入 docs/reports/verification-report.md，包含 reviewIndependence、verificationCommands、Project Context Contract verdicts: projectRulesVerdict 和 bestPracticesVerdict（PASS / CHANGES_REQUESTED / BLOCKED），以及所有偏离、理由和是否接受
 12. 只有当 spec、本地项目规范、项目类型最佳实践、required verification commands、代码审查、安全审查都 PASS，才能用 nova checkpoint phase verify --status done；否则不要标记完成

@@ -95,24 +95,31 @@ Context Contract.
 Before generating the proposal, confirm the test strategy with:
 
 - [ ] 自动化 UI 测试
+- [ ] UI 还原度测试
 - [ ] 单元测试
 
 If automated UI testing is selected, determine the entry point, route/screen,
-navigation steps, and success assertion. Infer from code, Figma, or existing
-navigation when possible; ask the user when it cannot be determined.
+navigation steps, and success assertion. This option compares the current behavior
+with the baseline/version-before-change UI for logic changes that should not alter UI.
+Infer from code, Figma, or existing navigation when possible; ask the user when it cannot be determined.
+
+If UI fidelity testing is selected, determine designRef, routeOrScreen, key states,
+acceptanceThreshold, and whether Mobile MCP or Figma MCP is required. This option
+compares implementation against design sources such as Figma, design specs, or
+reference screenshots.
 
 Write \`docs/proposals/proposal.md\` with problem, solution, user stories, scope, success criteria.
 When a Figma link is present, include Figma traceability and cut-asset
 requirements so implementation can export and use suitable assets for the
 current project.
-Always include \`## Test Strategy\` with automatedUiTesting, unitTesting, UI
-flows when selected, unit targets when selected, and rationale for omitted or
+Always include \`## Test Strategy\` with automatedUiTesting, uiFidelityTesting, and unitTesting, UI
+flows when selected, UI fidelity targets when selected, unit targets when selected, and rationale for omitted or
 blocked test types.
 Always include \`## Change Mode\` with changeMode, affected areas, and whether
 legacyPreflight is required.
 
 ## Step 5: Update State
-Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>' --change-mode existing|incremental|new\`, where \`<json>\` includes automatedUiTesting and unitTesting and is written to \`phases.propose.testStrategy\`. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
+Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>' --change-mode existing|incremental|new\`, where \`<json>\` includes automatedUiTesting, uiFidelityTesting, and unitTesting and is written to \`phases.propose.testStrategy\`. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
 `,
 
   'nova-design.md': (mcp) => `---
@@ -178,6 +185,15 @@ record \`userDecision\`.
 
 ## Step 4: Generate Design
 Write \`docs/designs/design.md\` with architecture, tech stack, components, data flow, and task list in YAML.
+Tasks must be fine-grained enough to preserve implementation quality. For UI work,
+split by screen, major component, state/interaction, asset/token mapping, and
+verification instead of bundling layout, data wiring, styling, and tests into one
+coarse task. Choose UI implementation patterns by priority: project UI rules
+first, nearby existing code preference second, platform best practices third. For
+iOS repeated lists/grids/feeds, prefer UICollectionView, UITableView, SwiftUI
+List, LazyVStack, or LazyVGrid. Use hand-rolled UIScrollView for reusable/repeating
+content only when a project convention or documented technical reason justifies it.
+
 Tasks must reference the relevant project rules/conventions they must obey when
 touching code, plus the project type best practices they must follow, using
 \`complianceRefs.projectRules\` and \`complianceRefs.bestPractices\`. Each
@@ -222,7 +238,7 @@ Also read \`context.projectContext\` (Project Context Contract) and the task's
 from a project rule or best practice, record a specific rationale in
 \`compliance.deviations\`; weak or missing rationale will be rejected in verify.
 
-Implement, write only the selected unit/UI tests from testStrategy, verify,
+Implement, write only the selected unit/UI/UI-fidelity tests from testStrategy, verify,
 confirm the work follows applicable project rules/conventions and project type
 best practices, and record evidence with \`nova checkpoint task <task-id>\`
 (tests, filesChanged) plus \`--compliance '<json>'\`. Include in the
@@ -267,8 +283,9 @@ rationale in \`reviewIndependence\`.
 
 ## Step 3: Code Review
 Review changed files for correctness, conventions, error handling, test coverage.
-Run automated UI verification only when automatedUiTesting=true. Run unit tests
-only when unitTesting=true. Unselected test types are not failure conditions.
+Run automated UI verification only when automatedUiTesting=true. Run UI fidelity
+design comparison only when uiFidelityTesting=true. Run unit tests only when
+unitTesting=true. Unselected test types are not failure conditions.
 If changeMode=existing, verify implementation stayed within refactorPolicy and
 existing behavior regression evidence is present.
 

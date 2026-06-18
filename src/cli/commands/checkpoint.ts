@@ -51,6 +51,12 @@ function parseTestStrategy(value?: string): ParsedTestStrategyResult | undefined
   if (typeof strategy.automatedUiTesting !== 'boolean' || typeof strategy.unitTesting !== 'boolean') {
     throw new Error('--test-strategy must include boolean automatedUiTesting and unitTesting');
   }
+  if (
+    Object.prototype.hasOwnProperty.call(strategy, 'uiFidelityTesting') &&
+    typeof strategy.uiFidelityTesting !== 'boolean'
+  ) {
+    throw new Error('--test-strategy.uiFidelityTesting must be a boolean when provided');
+  }
   const normalized = normalizeUnitTestTargetsForStrategy(strategy);
   if (!warnedLegacyUnitTargets && normalized.hadUnitTargetsField) {
     ui.warn('检测到已废弃字段 unitTargets：已自动迁移为 unitTestTargets，请后续改用 unitTestTargets。');

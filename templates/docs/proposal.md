@@ -45,12 +45,20 @@ Definitions:
 
 <!-- Confirm with the user before generating the proposal:
 - [ ] 自动化 UI 测试
+- [ ] UI 还原度测试
 - [ ] 单元测试
+
+Testing intent:
+- 自动化 UI 测试: compare the current behavior with the baseline/version-before-change UI for logic changes that should not alter UI.
+- UI 还原度测试: compare the implementation with design sources such as Figma, design specs, or reference screenshots.
+- 单元测试: cover isolated business logic, data transforms, and edge cases.
 
 Record the selected strategy:
 - automatedUiTesting: true | false
+- uiFidelityTesting: true | false
 - unitTesting: true | false
 - uiFlows: name, entryPoint, routeOrScreen, steps, expectedResult, requiresMobileMcp
+- uiFidelityTargets: name, designRef, routeOrScreen, acceptanceThreshold, requiresMobileMcp
 - unitTestTargets: functions/components/modules to cover
 - rationale: why omitted or blocked, if a selected test type cannot be fully defined
 -->

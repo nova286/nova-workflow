@@ -247,6 +247,26 @@ describe('validateTaskGranularity', () => {
     expect(r.warnings!.some(w => w.includes('top-level directories'))).toBe(true);
   });
 
+  test('warns when UI implementation task is too coarse', () => {
+    const tasks = [
+      {
+        id: 'build-ios-home-ui',
+        title: 'Build iOS home UI',
+        type: 'implementation',
+        files: [
+          { path: 'ios/HomeViewController.swift', action: 'modify' },
+          { path: 'ios/HomeHeaderView.swift', action: 'create' },
+          { path: 'ios/HomeCollectionViewCell.swift', action: 'create' },
+          { path: 'ios/Assets.xcassets/icon.imageset/Contents.json', action: 'create' },
+          { path: 'ios/HomeViewModel.swift', action: 'modify' },
+        ],
+      },
+    ];
+
+    const r = validateTaskGranularity(tasks);
+    expect(r.warnings!.some(w => w.includes('UI work touches 5 files'))).toBe(true);
+  });
+
   test('no warnings when tasks are well-split', () => {
     const tasks = [
       {

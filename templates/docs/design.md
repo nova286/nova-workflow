@@ -75,6 +75,7 @@ Record:
 <!-- Ordered list of tasks defined in YAML below -->
 
 <!-- UI task planning guidance:
+- For multi-page UI work, first split by page/screen/route/tab/flow. Then split each page by major component, state/interaction, asset/token mapping, data binding, navigation, and verification.
 - Split UI work by screen, major component, state/interaction, asset/token mapping, and verification. Avoid one broad task that mixes layout, data wiring, styling, and tests.
 - Choose UI implementation patterns by priority: project UI rules first, nearby existing code preference second, platform best practices third.
 - iOS repeated lists/grids/feeds should prefer UICollectionView, UITableView, SwiftUI List, LazyVStack, or LazyVGrid. Use hand-rolled UIScrollView for reusable/repeating content only when a project convention or documented technical reason justifies it.
@@ -175,6 +176,7 @@ Automated UI testing:
 UI fidelity testing:
 - Only required when uiFidelityTesting=true.
 - Define each design fidelity target with designRef, routeOrScreen, expected states, and acceptanceThreshold.
+- For multi-page UI work, each page/screen/route must have its own UI fidelity target and testing task or command.
 - Add a testing task or verification command that compares implementation screenshots/rendered UI against Figma/design specs/reference screenshots.
 - This is design-source comparison for visual reconstruction and restoration fidelity.
 

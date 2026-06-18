@@ -41,6 +41,15 @@ Definitions:
 - blockedReason: why Figma details could not be inspected, if Figma MCP is unavailable
 -->
 
+## Multi-page UI Scope
+
+<!-- If the request affects multiple pages/screens/routes/tabs/flows:
+- list every page/screen/route explicitly before finalizing requirements
+- ask the user to confirm the page list and whether any page is out of scope
+- map each page to its designRef/Figma node/reference screenshot when available
+- avoid using one generic UI requirement for several pages unless the shared behavior is truly identical
+-->
+
 ## Test Strategy
 
 <!-- Confirm with the user before generating the proposal:
@@ -59,6 +68,7 @@ Record the selected strategy:
 - unitTesting: true | false
 - uiFlows: name, entryPoint, routeOrScreen, steps, expectedResult, requiresMobileMcp
 - uiFidelityTargets: name, designRef, routeOrScreen, acceptanceThreshold, requiresMobileMcp
+  - For multi-page UI work, create one target per page/screen/route instead of one broad target.
 - unitTestTargets: functions/components/modules to cover
 - rationale: why omitted or blocked, if a selected test type cannot be fully defined
 -->

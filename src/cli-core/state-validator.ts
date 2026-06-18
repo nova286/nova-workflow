@@ -133,6 +133,10 @@ function taskLooksLikeUiFidelityTest(task: any): boolean {
   return /\b(ui[-:]?fidelity|design[-:]?fidelity|visual|snapshot|screenshot|golden|figma|pixel|percy|applitools)\b/i.test(candidates);
 }
 
+function uniqueNonEmpty(values: unknown[]): string[] {
+  return Array.from(new Set(values.filter(hasText).map(value => value.trim())));
+}
+
 function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[], warnings: ValidationIssue[]) {
   const strategy = resolveTestStrategy(state);
   if (state.phases?.propose?.status === 'done' && !strategy) {
@@ -199,6 +203,16 @@ function validateTestStrategy(state: any, tasks: any[], errors: ValidationIssue[
       if (!hasText(target?.name)) errors.push(issue('test-strategy.ui-fidelity-target.invalid', 'UI fidelity target is missing name', `${base}.name`));
       if (!hasText(target?.designRef)) errors.push(issue('test-strategy.ui-fidelity-target.invalid', 'UI fidelity target is missing designRef', `${base}.designRef`));
       if (!hasText(target?.routeOrScreen)) errors.push(issue('test-strategy.ui-fidelity-target.invalid', 'UI fidelity target is missing routeOrScreen', `${base}.routeOrScreen`));
+    }
+    const flowScreens = uniqueNonEmpty((Array.isArray(strategy.uiFlows) ? strategy.uiFlows : []).map((flow: any) => flow?.routeOrScreen));
+    const fidelityScreens = uniqueNonEmpty(targets.map((target: any) => target?.routeOrScreen));
+    const missingFidelityScreens = flowScreens.filter(screen => !fidelityScreens.includes(screen));
+    if (flowScreens.length > 1 && missingFidelityScreens.length > 0) {
+      warnings.push(issue(
+        'test-strategy.ui-fidelity-pages.incomplete',
+        `Multi-page UI work should have page-scoped UI fidelity targets; missing targets for: ${missingFidelityScreens.join(', ')}`,
+        'phases.propose.testStrategy.uiFidelityTargets',
+      ));
     }
 
     if (state.phases?.design?.status === 'done') {

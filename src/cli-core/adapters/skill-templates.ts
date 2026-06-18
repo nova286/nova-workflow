@@ -94,6 +94,7 @@ Always read it first.
    - [ ] 单元测试
    自动化 UI 测试用于和改版前/基线页面对比，适合逻辑修改时防止 UI 被改坏；如果选择它，先确定入口、跳转路径、关键步骤和成功断言；AI 能从代码/Figma/导航确定就自行确定，不能确定就问用户。
    UI 还原度测试用于和设计稿/Figma/参考图对比，适合视觉还原；如果选择它，先确定 designRef、routeOrScreen、关键状态、acceptanceThreshold，以及是否需要 Mobile MCP/Figma MCP。
+   如果需求一次涉及多个页面/screen/route/tab/flow，先列出页面清单让用户确认范围；每个页面都要有自己的 routeOrScreen 和 designRef/Figma node/reference，不能用一个宽泛 UI 目标覆盖全部页面。
 6. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 changeMode、affectedAreas、testStrategy（必须包含 automatedUiTesting、uiFidelityTesting、unitTesting）
 7. 用 nova checkpoint artifacts --change-mode existing|incremental|new --test-strategy '<json>' 记录 proposal、specDelta、activeChange、changeMode 和 testStrategy
 8. 运行 nova validate
@@ -113,7 +114,7 @@ Always read it first.
    - [ ] 将相关模块一起重构到项目规范
    并映射 refactorPolicy: none|minimal|full
 6. 生成/刷新 Project Context Contract（.nova.yaml.projectContext，可同时引用 artifacts.projectContext），必须包含 rules.sources/must/mustNot/verificationCommands、bestPractices.projectType/sources/must/should/risks 和 conflicts；conflicts 必须是数组，空则写 []，每项必须含 projectRule、bestPractice、resolution、rationale，resolution 只能用 project-rule、best-practice 或 case-by-case
-7. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Project Rules/Conventions、Project Type Best Practices 摘要、Project Context Contract 摘要和 Legacy Preflight 结论；UI 任务必须按 screen/major component/state/asset-or-token/verification 拆细，控件/组件选择优先级为项目规范 > 既有相邻代码偏好 > 平台最佳实践。iOS 重复列表/网格/feeds 默认优先 UICollectionView、UITableView、SwiftUI List、LazyVStack 或 LazyVGrid，除非项目规范或明确技术原因要求 UIScrollView。
+7. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md，包含 Project Rules/Conventions、Project Type Best Practices 摘要、Project Context Contract 摘要和 Legacy Preflight 结论；多页面 UI 任务必须先按 page/screen/route/tab/flow 拆分，再按 major component/state/asset-or-token/data-binding/navigation/verification 拆细。控件/组件选择优先级为项目规范 > 既有相邻代码偏好 > 平台最佳实践。iOS 重复列表/网格/feeds 默认优先 UICollectionView、UITableView、SwiftUI List、LazyVStack 或 LazyVGrid，除非项目规范或明确技术原因要求 UIScrollView。
 8. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；UI 还原度测试要有 uiFidelityTargets 和 design/visual fidelity testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
 9. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands, complianceRefs.projectRules, complianceRefs.bestPractices；specRefs/acceptanceRefs 必须引用 OpenSpec-compatible requirement/acceptance id，不能留空或只写自然语言；任务必须遵守项目规范、项目类型最佳实践和 refactorPolicy，任何偏离必须写明理由
 10. 用 nova checkpoint artifacts --design-doc 记录设计产物，并用 --project-context '<json>' 记录 Project Context Contract；existing 场景还要加 --legacy-preflight '<json>'

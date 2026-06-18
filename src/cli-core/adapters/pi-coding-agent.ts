@@ -108,6 +108,12 @@ acceptanceThreshold, and whether Mobile MCP or Figma MCP is required. This optio
 compares implementation against design sources such as Figma, design specs, or
 reference screenshots.
 
+If the request affects multiple pages/screens/routes/tabs/flows, list the page
+inventory before finalizing requirements and ask the user to confirm scope. Each
+page must keep its own routeOrScreen and designRef/Figma node/reference image;
+do not use one broad UI fidelity target for several pages unless the design is
+truly identical.
+
 Write \`docs/proposals/proposal.md\` with problem, solution, user stories, scope, success criteria.
 When a Figma link is present, include Figma traceability and cut-asset
 requirements so implementation can export and use suitable assets for the
@@ -193,6 +199,9 @@ first, nearby existing code preference second, platform best practices third. Fo
 iOS repeated lists/grids/feeds, prefer UICollectionView, UITableView, SwiftUI
 List, LazyVStack, or LazyVGrid. Use hand-rolled UIScrollView for reusable/repeating
 content only when a project convention or documented technical reason justifies it.
+For multi-page UI work, first split tasks by page/screen/route/tab/flow, then
+split each page by major component, state/interaction, asset/token mapping, data
+binding, navigation, and verification.
 
 Tasks must reference the relevant project rules/conventions they must obey when
 touching code, plus the project type best practices they must follow, using

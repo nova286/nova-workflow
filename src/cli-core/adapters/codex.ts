@@ -36,7 +36,7 @@ Always read it first.
    - [ ] 自动化 UI 测试
    - [ ] UI 还原度测试
    - [ ] 单元测试
-   自动化 UI 测试用于和改版前/基线页面对比，适合逻辑修改时防止 UI 被改坏；UI 还原度测试用于和设计稿/Figma/参考图对比，适合视觉还原。把 automatedUiTesting、uiFidelityTesting、unitTesting 写入 testStrategy。
+   自动化 UI 测试用于和改版前/基线页面对比，适合逻辑修改时防止 UI 被改坏；UI 还原度测试用于和设计稿/Figma/参考图对比，适合视觉还原。把 automatedUiTesting、uiFidelityTesting、unitTesting 写入 testStrategy。多页面 UI 需求必须先列出页面清单让用户确认，每个页面都要有自己的 routeOrScreen 和 designRef/Figma node/reference。
 4. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并用 nova checkpoint artifacts --test-strategy '<json>' 记录 testStrategy
 5. 运行 nova validate
 6. 用 nova checkpoint phase propose --status done 记录完成
@@ -46,7 +46,7 @@ Always read it first.
 \`\`\`
 读取 activeChange 对应的 OpenSpec-compatible change，生成执行计划。
 1. 读 proposal/spec delta 和实际源码/工程结构了解架构；不要假设一定存在 src/，iOS/Swift/XcodeGen 项目应读取 project.yml、*.xcodeproj、Sources/、App/、Tests/ 等真实目录
-2. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md；UI 任务必须按 screen/major component/state/asset-or-token/verification 拆细，控件/组件选择优先级为项目规范 > 既有相邻代码偏好 > 平台最佳实践。iOS 重复列表/网格/feeds 默认优先 UICollectionView、UITableView、SwiftUI List、LazyVStack 或 LazyVGrid，除非项目规范或明确技术原因要求 UIScrollView。
+2. 写入 docs/designs/design.md 和 docs/superpowers/plans/<change>.md；多页面 UI 任务必须先按 page/screen/route/tab/flow 拆分，再按 major component/state/asset-or-token/data-binding/navigation/verification 拆细。控件/组件选择优先级为项目规范 > 既有相邻代码偏好 > 平台最佳实践。iOS 重复列表/网格/feeds 默认优先 UICollectionView、UITableView、SwiftUI List、LazyVStack 或 LazyVGrid，除非项目规范或明确技术原因要求 UIScrollView。
 3. 根据 testStrategy 生成测试用例：自动化 UI 测试要有 flow/testing task；UI 还原度测试要有 uiFidelityTargets 和 design/visual fidelity testing task；单元测试要有 unit targets 和 test commands；未选择的测试类型不强制生成
 4. 任务必须包含 method, specRefs, acceptanceRefs, verification.commands；specRefs/acceptanceRefs 必须引用 OpenSpec-compatible requirement/acceptance id，不能留空或只写自然语言
 5. 运行 nova validate
@@ -293,6 +293,9 @@ platform best practices third. For iOS repeated lists/grids/feeds, prefer
 UICollectionView, UITableView, SwiftUI List, LazyVStack, or LazyVGrid. Use
 hand-rolled UIScrollView for reusable/repeating content only when a project
 convention or documented technical reason justifies it.
+For multi-page UI work, first split tasks by page/screen/route/tab/flow, then
+split each page by major component, state/interaction, asset/token mapping, data
+binding, navigation, and verification.
 If \`uiFidelityTesting=true\`, include uiFidelityTargets and a design/visual
 fidelity testing task or verification command.
 Tasks must also reference the relevant project rules/conventions they must obey

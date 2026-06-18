@@ -800,6 +800,48 @@ describe('validateState', () => {
     expect(result.errors.some(e => e.code === 'test-strategy.ui-fidelity-task.missing')).toBe(true);
   });
 
+  test('warns when multi-page UI fidelity targets do not cover every UI flow screen', () => {
+    const result = validateState({
+      ...baseState,
+      phases: {
+        ...baseState.phases,
+        propose: {
+          status: 'done',
+          proposal: 'docs/proposal.md',
+          changeMode: 'new',
+          testStrategy: {
+            automatedUiTesting: true,
+            uiFidelityTesting: true,
+            unitTesting: false,
+            uiFlows: [
+              {
+                name: 'Home flow',
+                entryPoint: '/home',
+                routeOrScreen: 'HomeScreen',
+                steps: ['Open home'],
+                expectedResult: 'Home is shown',
+              },
+              {
+                name: 'Profile flow',
+                entryPoint: '/profile',
+                routeOrScreen: 'ProfileScreen',
+                steps: ['Open profile'],
+                expectedResult: 'Profile is shown',
+              },
+            ],
+            uiFidelityTargets: [{
+              name: 'Home visual match',
+              designRef: 'figma://home',
+              routeOrScreen: 'HomeScreen',
+            }],
+          },
+        },
+      },
+    }, { checkFiles: false });
+
+    expect(result.warnings.some(e => e.code === 'test-strategy.ui-fidelity-pages.incomplete')).toBe(true);
+  });
+
   test('passes selected UI fidelity testing with design target and visual task', () => {
     const result = validateState({
       ...baseState,

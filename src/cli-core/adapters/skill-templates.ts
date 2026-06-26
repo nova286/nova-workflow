@@ -88,7 +88,7 @@ Always read it first.
    - spec 必须记录 Figma URL、node IDs、页面模式、入口路径，以及实现阶段需要按当前项目导出的切图/图片/icon 资产
 3. 在生成 proposal 前，确认 changeMode：existing（修改存量业务/页面/组件/API）、incremental（新增但接入现有入口/流程）、new（独立新能力）。如果是 existing，记录 affectedAreas，并标记 design 阶段必须执行 legacyPreflight
 4. 做轻量 Project Context discovery：记录规则来源、projectType、主要技术栈和明显风险到 proposal；不要在 propose 阶段写正式 .nova.yaml.projectContext，正式 Project Context Contract 由 design 生成/刷新
-5. 在生成 proposal 前，用 Markdown checklist 让用户确认本次测试策略：
+5. 在生成 proposal 前，必须用 Markdown checklist 让用户确认本次测试策略，不得自行跳过：
    - [ ] 自动化 UI 测试
    - [ ] UI 还原度测试
    - [ ] 单元测试
@@ -149,7 +149,7 @@ Always read it first.
 6. Code review: 正确性、错误处理、类型安全、测试覆盖
 7. Security review: 注入、密钥暴露、路径遍历
 8. 必须执行 Project Context Contract 中 rules.verificationCommands 的所有命令（包括 build/compile/typecheck/test）；任一命令失败或跳过，都不得 PASS
-9. 根据 testStrategy 执行已选择的测试：自动化 UI 测试优先用 Mobile MCP 或项目 E2E runner 做基线/当前页面回归对比；UI 还原度测试对比设计稿/Figma/参考图；单元测试运行对应命令；未选择的测试类型不作为失败条件
+9. 根据 testStrategy 执行已选择的测试：自动化 UI 测试优先用 Mobile MCP 或项目 E2E runner 做基线/当前页面回归对比；UI 还原度测试必须读取 testStrategy.uiFidelityTargets、testStrategy.uiFlows、task.figma、phases.propose.figma 或 artifacts.figmaTraceability 中的 designRef、routeOrScreen、entryPoint 和跳转路径，自行启动/打开应用，按入口和步骤导航到目标页面，截图当前实现并与 Figma/designRef/reference screenshot 对照；只有路径、设计引用或工具配置缺失且无法从代码/设计文档推导时，才标记 BLOCKED 并写明 blockedReason；单元测试运行对应命令；未选择的测试类型不作为失败条件
 10. 如果改动涉及 UI/UX，运行 nova detect --agent ${agentId} --json 检查 UI UX Pro Max；可用时必须用该 skill 做 UI/UX 验证 verdict（视觉层级、响应式、交互状态、可访问性、设计系统一致性），缺失时在报告中记录限制
 11. 写入 docs/reports/verification-report.md，包含 reviewIndependence、verificationCommands、Project Context Contract verdicts: projectRulesVerdict 和 bestPracticesVerdict（PASS / CHANGES_REQUESTED / BLOCKED），以及所有偏离、理由和是否接受
 12. 只有当 spec、本地项目规范、项目类型最佳实践、required verification commands、代码审查、安全审查都 PASS，才能用 nova checkpoint phase verify --status done；否则不要标记完成

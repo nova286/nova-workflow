@@ -216,13 +216,21 @@ Write compatible artifacts:
 - \`.openspec/changes/<change-id>/specs/...\`
 - \`docs/proposals/proposal.md\`
 
-Before writing, confirm test strategy with a Markdown checklist:
+Before writing, you MUST confirm test strategy with a Markdown checklist. Do not
+skip this confirmation:
 
 - [ ] 自动化 UI 测试
 - [ ] UI 还原度测试
 - [ ] 单元测试
 
-Automated UI testing compares the current behavior with the baseline/version-before-change UI for logic changes that should not alter UI. UI fidelity testing compares implementation against design sources such as Figma, design specs, or reference screenshots. Include \`automatedUiTesting\`, \`uiFidelityTesting\`, and \`unitTesting\` in testStrategy.
+Automated UI testing compares the current behavior with the baseline/version-before-change UI for logic changes that should not alter UI. If selected, determine entry point, route/screen, navigation steps, and success assertions; infer them from code, Figma, or existing navigation when possible.
+
+UI fidelity testing compares implementation against design sources such as Figma, design specs, or reference screenshots. If selected, determine designRef, routeOrScreen, key states, acceptanceThreshold, and whether Mobile MCP/Figma MCP is required.
+
+For multi-page UI work, list every page/screen/route/tab/flow for confirmation,
+and create one UI target per page. Include \`automatedUiTesting\`,
+\`uiFidelityTesting\`, and \`unitTesting\` in testStrategy, plus \`uiFlows\`,
+\`uiFidelityTargets\`, and \`unitTestTargets\` when selected.
 
 Include change mode and test strategy.
 
@@ -401,6 +409,34 @@ Run every command in \`projectContext.rules.verificationCommands\`, including
 build, compile, typecheck, and test commands. Any required command that fails or
 is skipped blocks PASS and must be reported as CHANGES_REQUESTED or BLOCKED.
 
+Run the selected \`testStrategy\` from \`phases.propose.testStrategy\` or
+\`artifacts.testStrategy\`. Unselected test types are not failure conditions.
+
+If \`automatedUiTesting=true\`, read \`testStrategy.uiFlows\` and infer launch
+commands, entry points, route/screens, navigation paths, and assertions from
+local artifacts. Use Mobile MCP, the project E2E runner, simulator, or browser
+tooling to open the app, navigate the flow, capture screenshots/logs, and compare
+against the baseline/current-page expectations. Ask the user only when the path
+cannot be inferred.
+
+If \`uiFidelityTesting=true\`, read \`testStrategy.uiFidelityTargets\`,
+\`testStrategy.uiFlows\`, task-level \`figma\`, \`phases.propose.figma\`, and
+\`artifacts.figmaTraceability\`. For each target, resolve \`designRef\`,
+\`routeOrScreen\`, \`entryPoint\`, navigation steps, key states, and
+\`acceptanceThreshold\`. Use Figma MCP when configured to inspect the referenced
+design; otherwise use the recorded design spec or reference screenshot. Launch
+or open the implementation, navigate to each target route/screen by the recorded
+entry point and jump path, capture a fresh screenshot yourself, and compare that
+screenshot against Figma/designRef/reference screenshot for layout, spacing,
+typography, color, component states, content, responsive framing, and
+accessibility-visible state. Mark this stage BLOCKED only when the route/screen,
+design reference, or required tooling is missing and cannot be inferred; include
+a concrete blockedReason.
+
+If \`unitTesting=true\`, run the unit commands recorded in tasks, Project Context
+Contract, or the project test configuration and confirm selected
+\`unitTestTargets\` are covered.
+
 ${UI_UX_PRO_MAX_WORKFLOW}
 
 ## Step 3: Report
@@ -419,7 +455,9 @@ Only mark verify done when spec conformance, project rules conformance, project
 type best-practice conformance, code review, and security review all pass. The
 report must include Project Context Contract \`projectRulesVerdict\` and
 \`bestPracticesVerdict\`, \`reviewIndependence\`, \`verificationCommands\`, and
-list every deviation, the stated rationale, and whether it was accepted.
+list every deviation, the stated rationale, and whether it was accepted. When UI
+verification was selected, include target/flow, route/screen, designRef,
+screenshot path, verdict, and discrepancies.
 `,
 
   'nova-archive': `---

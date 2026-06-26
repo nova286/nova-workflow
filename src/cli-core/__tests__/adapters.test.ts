@@ -18,6 +18,22 @@ describe('Environment Adapters', () => {
     expect(content).toContain('[ ] 单元测试');
     expect(content).toContain('testStrategy');
     expect(content).toContain('uiFidelityTesting');
+    expect(content).toContain('uiFidelityTargets');
+    expect(content).toMatch(/Do not skip|不得自行跳过|MUST/);
+  }
+
+  function expectUiFidelityVerification(content: string) {
+    expect(content).toContain('testStrategy');
+    expect(content).toContain('uiFidelityTesting');
+    expect(content).toContain('uiFidelityTargets');
+    expect(content).toContain('uiFlows');
+    expect(content).toContain('artifacts.figmaTraceability');
+    expect(content).toContain('routeOrScreen');
+    expect(content).toContain('entryPoint');
+    expect(content).toContain('designRef');
+    expect(content).toMatch(/capture a fresh screenshot|截图当前实现|截图/);
+    expect(content).toMatch(/Figma\/designRef\/reference screenshot|和 Figma|Figma\/designRef/);
+    expect(content).toContain('blockedReason');
   }
 
   function expectLegacyPreflightRules(content: string) {
@@ -195,6 +211,15 @@ describe('Environment Adapters', () => {
       expectLegacyPreflightRules(content);
     });
 
+    test('nova-propose asks for test strategy checklist', async () => {
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const propose = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-propose', 'SKILL.md'), 'utf-8');
+      expectTestStrategyChecklist(propose);
+      expect(propose).toContain('--test-strategy');
+    });
+
     test('creates all Nova skills in project agents skills', async () => {
       const adapter = new CodexAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
@@ -230,6 +255,14 @@ describe('Environment Adapters', () => {
       expectProjectContextContractInImplement(implement);
       expectRulesAndBestPracticesInVerify(verify);
       expectProjectContextContractInVerify(verify);
+    });
+
+    test('nova-verify runs selected UI fidelity checks from strategy and Figma traceability', async () => {
+      const adapter = new CodexAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const verify = await fs.readFile(path.join(testDir, '.agents', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
+      expectUiFidelityVerification(verify);
     });
 
     test('creates all Nova skills in user Codex skills', async () => {
@@ -458,6 +491,14 @@ describe('Environment Adapters', () => {
       expectLegacyPreflightRules(`${propose}\n${design}`);
     });
 
+    test('nova-verify runs selected UI fidelity checks from strategy and Figma traceability', async () => {
+      const adapter = new ClaudeCodeAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const verify = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
+      expectUiFidelityVerification(verify);
+    });
+
     test('design, implement, and verify skills enforce project rules and best practices', async () => {
       const adapter = new ClaudeCodeAdapter();
       await adapter.setup(testDir, { skillsDir: 'project' });
@@ -545,6 +586,14 @@ describe('Environment Adapters', () => {
       const design = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-design', 'SKILL.md'), 'utf-8');
       expectTestStrategyChecklist(propose);
       expectLegacyPreflightRules(`${propose}\n${design}`);
+    });
+
+    test('nova-verify runs selected UI fidelity checks from strategy and Figma traceability', async () => {
+      const adapter = new PiCodingAgentAdapter();
+      await adapter.setup(testDir, { skillsDir: 'project' });
+
+      const verify = await fs.readFile(path.join(testDir, '.claude', 'skills', 'nova-verify', 'SKILL.md'), 'utf-8');
+      expectUiFidelityVerification(verify);
     });
 
     test('design, implement, and verify skills enforce project rules and best practices', async () => {

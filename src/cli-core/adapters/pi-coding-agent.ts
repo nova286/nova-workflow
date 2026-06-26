@@ -92,7 +92,8 @@ sources, projectType, primary stack, and obvious risks. Do not write the formal
 \`.nova.yaml.projectContext\` yet; design generates or refreshes the Project
 Context Contract.
 
-Before generating the proposal, confirm the test strategy with:
+Before generating the proposal, you MUST confirm the test strategy with this
+Markdown checklist. Do not skip this confirmation:
 
 - [ ] 自动化 UI 测试
 - [ ] UI 还原度测试
@@ -118,9 +119,9 @@ Write \`docs/proposals/proposal.md\` with problem, solution, user stories, scope
 When a Figma link is present, include Figma traceability and cut-asset
 requirements so implementation can export and use suitable assets for the
 current project.
-Always include \`## Test Strategy\` with automatedUiTesting, uiFidelityTesting, and unitTesting, UI
-flows when selected, UI fidelity targets when selected, unit targets when selected, and rationale for omitted or
-blocked test types.
+Always include \`## Test Strategy\` with automatedUiTesting, uiFidelityTesting,
+unitTesting, \`uiFlows\` when selected, \`uiFidelityTargets\` when selected,
+\`unitTestTargets\` when selected, and rationale for omitted or blocked test types.
 Always include \`## Change Mode\` with changeMode, affected areas, and whether
 legacyPreflight is required.
 
@@ -274,7 +275,9 @@ description: Nova verify phase — run code review and security review
 Read .nova.yaml. Require phases.implement.status = done. Update phases.verify.status to in-progress with \`nova checkpoint phase verify --status in-progress\` when available.
 
 ## Step 2: Gather Context
-Load tasks, changed files, design document. Also read applicable project-local
+Load tasks, changed files, design document, \`phases.propose.testStrategy\` or
+\`artifacts.testStrategy\`, and Figma/design traceability from task-level
+\`figma\`, \`phases.propose.figma\`, or \`artifacts.figmaTraceability\`. Also read applicable project-local
 instruction files and the design document's \`Project Rules / Conventions\` and
 \`Project Type Best Practices\` sections. Treat \`.nova.yaml.projectContext\` as
 the Project Context Contract source of truth.
@@ -295,6 +298,32 @@ Review changed files for correctness, conventions, error handling, test coverage
 Run automated UI verification only when automatedUiTesting=true. Run UI fidelity
 design comparison only when uiFidelityTesting=true. Run unit tests only when
 unitTesting=true. Unselected test types are not failure conditions.
+
+If \`automatedUiTesting=true\`, read \`testStrategy.uiFlows\` and infer launch
+commands, entry points, route/screens, navigation paths, and assertions from
+local artifacts. Use Mobile MCP, the project E2E runner, simulator, or browser
+tooling to open the app, navigate the flow, capture screenshots/logs, and compare
+against the baseline/current-page expectations. Ask the user only when the path
+cannot be inferred.
+
+If \`uiFidelityTesting=true\`, read \`testStrategy.uiFidelityTargets\`,
+\`testStrategy.uiFlows\`, task-level \`figma\`, \`phases.propose.figma\`, and
+\`artifacts.figmaTraceability\`. For each target, resolve \`designRef\`,
+\`routeOrScreen\`, \`entryPoint\`, navigation steps, key states, and
+\`acceptanceThreshold\`. Use Figma MCP when configured to inspect the referenced
+design; otherwise use the recorded design spec or reference screenshot. Launch
+or open the implementation, navigate to each target route/screen by the recorded
+entry point and jump path, capture a fresh screenshot yourself, and compare that
+screenshot against Figma/designRef/reference screenshot for layout, spacing,
+typography, color, component states, content, responsive framing, and
+accessibility-visible state. Mark this stage BLOCKED only when the route/screen,
+design reference, or required tooling is missing and cannot be inferred; include
+a concrete blockedReason.
+
+If \`unitTesting=true\`, run the unit commands recorded in tasks, Project Context
+Contract, or the project test configuration and confirm selected
+\`unitTestTargets\` are covered.
+
 If changeMode=existing, verify implementation stayed within refactorPolicy and
 existing behavior regression evidence is present.
 
@@ -323,7 +352,8 @@ ${mcp?.mobile ? MOBILE_STEP : ''}
 Write docs/reports/verification-report.md with Project Context Contract
 \`projectRulesVerdict\`, \`bestPracticesVerdict\`, \`reviewIndependence\`,
 \`verificationCommands\`, every deviation, the stated rationale, and whether it
-was accepted.
+was accepted. When UI verification was selected, include target/flow,
+route/screen, designRef, screenshot path, verdict, and discrepancies.
 
 ## Step 6: Update State
 Run \`nova checkpoint artifacts --verification-report docs/reports/verification-report.md --project-rules-verdict PASS --best-practices-verdict PASS --review-independence '{"mode":"subagent","agent":"pi-reviewer"}' --verification-commands '<json-results-from-actual-project-commands>'\`, then \`nova validate\`. Only set phases.verify.status = done with \`nova checkpoint phase verify --status done\` when spec conformance, project rules conformance, project type best-practice conformance, required verification commands, code review, and security review all pass.

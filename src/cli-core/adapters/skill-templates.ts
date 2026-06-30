@@ -95,8 +95,8 @@ Always read it first.
    自动化 UI 测试用于和改版前/基线页面对比，适合逻辑修改时防止 UI 被改坏；如果选择它，先确定入口、跳转路径、关键步骤和成功断言；AI 能从代码/Figma/导航确定就自行确定，不能确定就问用户。
    UI 还原度测试用于和设计稿/Figma/参考图对比，适合视觉还原；如果选择它，先确定 designRef、routeOrScreen、关键状态、acceptanceThreshold，以及是否需要 Mobile MCP/Figma MCP。
    如果需求一次涉及多个页面/screen/route/tab/flow，先列出页面清单让用户确认范围；每个页面都要有自己的 routeOrScreen 和 designRef/Figma node/reference，不能用一个宽泛 UI 目标覆盖全部页面。
-6. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 changeMode、affectedAreas、testStrategy（必须包含 automatedUiTesting、uiFidelityTesting、unitTesting）
-7. 用 nova checkpoint artifacts --change-mode existing|incremental|new --test-strategy '<json>' 记录 proposal、specDelta、activeChange、changeMode 和 testStrategy
+6. 写入 .openspec/changes/<change-id>/proposal.md 和 specs，并记录 changeMode、affectedAreas、testStrategy（必须包含 automatedUiTesting、uiFidelityTesting、unitTesting）；如果有 Figma 链接，也记录 figmaTraceability（url、nodeIds、pageMode、routeOrScreen、entryPoint、assetRequirements）
+7. 用 nova checkpoint artifacts --change-mode existing|incremental|new --test-strategy '<json>' 记录 proposal、specDelta、activeChange、changeMode 和 testStrategy；如果有 Figma 链接，同时传 --figma-traceability '<json>'
 8. 运行 nova validate
 9. 用 nova checkpoint phase propose --status done 记录完成
 \`\`\`

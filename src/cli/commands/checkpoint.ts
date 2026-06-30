@@ -5,6 +5,7 @@ import {
   ComplianceEvidence,
   ComplianceVerdict,
   ComplianceVerdictStatus,
+  FigmaTraceability,
   LegacyPreflight,
   ProjectContextContract,
   ReviewIndependence,
@@ -135,6 +136,32 @@ function parseProjectContext(value?: string): ProjectContextContract | undefined
   return parseJsonObject<ProjectContextContract>(value, '--project-context');
 }
 
+function hasText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function validateStringArray(value: unknown, fieldName: string) {
+  if (!Array.isArray(value) || value.length === 0 || value.some(item => !hasText(item))) {
+    throw new Error(`--figma-traceability.${fieldName} must be a non-empty string array`);
+  }
+}
+
+function parseFigmaTraceability(value?: string): FigmaTraceability | undefined {
+  const traceability = parseJsonObject<FigmaTraceability>(value, '--figma-traceability');
+  if (!traceability) return undefined;
+
+  if (hasText(traceability.blockedReason)) return traceability;
+
+  for (const field of ['url', 'pageMode', 'routeOrScreen', 'entryPoint'] as const) {
+    if (!hasText(traceability[field])) {
+      throw new Error(`--figma-traceability.${field} must be a non-empty string`);
+    }
+  }
+  validateStringArray(traceability.nodeIds, 'nodeIds');
+  validateStringArray(traceability.assetRequirements, 'assetRequirements');
+  return traceability;
+}
+
 function parseComplianceVerdict(value: string | undefined, optionName: string): ComplianceVerdict | ComplianceVerdictStatus | undefined {
   if (!value) return undefined;
   if (value === 'PASS' || value === 'CHANGES_REQUESTED' || value === 'BLOCKED') {
@@ -228,6 +255,7 @@ export function registerCheckpointCommand(program: Command) {
     .option('--verification-report <path>', 'Verification report path')
     .option('--active-change <id>', 'Active OpenSpec-compatible change id')
     .option('--test-strategy <json>', 'JSON test strategy contract')
+    .option('--figma-traceability <json>', 'JSON Figma traceability contract')
     .option('--change-mode <mode>', 'Change mode: existing, incremental, or new')
     .option('--legacy-preflight <json>', 'JSON legacy preflight contract')
     .option('--project-context <json>', 'JSON project context contract')
@@ -243,6 +271,7 @@ export function registerCheckpointCommand(program: Command) {
       verificationReport?: string;
       activeChange?: string;
       testStrategy?: string;
+      figmaTraceability?: string;
       changeMode?: string;
       legacyPreflight?: string;
       projectContext?: string;
@@ -257,6 +286,7 @@ export function registerCheckpointCommand(program: Command) {
       await checkpointArtifacts({
         ...options,
         testStrategy: parsedTestStrategy?.testStrategy,
+        figmaTraceability: parseFigmaTraceability(options.figmaTraceability),
         changeMode: parseChangeMode(options.changeMode),
         legacyPreflight: parseLegacyPreflight(options.legacyPreflight),
         projectContext: parseProjectContext(options.projectContext),

@@ -5,6 +5,7 @@ import {
   ComplianceEvidence,
   ComplianceVerdict,
   ComplianceVerdictStatus,
+  FigmaTraceability,
   LegacyPreflight,
   ProjectContextContract,
   ReviewIndependence,
@@ -32,6 +33,7 @@ export interface ArtifactCheckpointInput {
   verificationReport?: string;
   activeChange?: string;
   testStrategy?: TestStrategy;
+  figmaTraceability?: FigmaTraceability;
   changeMode?: ChangeMode;
   legacyPreflight?: LegacyPreflight;
   projectContext?: ProjectContextContract;
@@ -127,6 +129,10 @@ export async function checkpointArtifacts(input: ArtifactCheckpointInput) {
       const normalizedTestStrategy = normalizeUnitTestTargetsForStrategy(input.testStrategy).normalized;
       state.artifacts.testStrategy = normalizedTestStrategy;
       state.phases.propose.testStrategy = normalizedTestStrategy;
+    }
+    if (input.figmaTraceability !== undefined) {
+      state.artifacts.figmaTraceability = input.figmaTraceability;
+      state.phases.propose.figma = input.figmaTraceability;
     }
     if (input.changeMode !== undefined) {
       state.changeMode = input.changeMode;

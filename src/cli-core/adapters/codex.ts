@@ -236,6 +236,9 @@ Include change mode and test strategy.
 
 ## Step 5: Update State
 Run \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --change-mode existing|incremental|new --test-strategy '<json>'\`.
+When a Figma link is present, also pass \`--figma-traceability '<json>'\` with
+\`url\`, \`nodeIds\`, \`pageMode\`, \`routeOrScreen\`, \`entryPoint\`, and
+\`assetRequirements\`.
 Then run \`nova validate\` and \`nova checkpoint phase propose --status done\`.
 `,
 

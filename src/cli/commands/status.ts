@@ -3,6 +3,27 @@ import { StateManager } from '../../cli-core/state';
 import { withErrorHandling } from '../error-handler';
 
 const PHASE_ORDER = ['propose', 'design', 'implement', 'verify', 'archive'] as const;
+type PhaseName = typeof PHASE_ORDER[number];
+
+interface StatusCommandOptions {
+  json?: boolean;
+}
+
+interface PhaseStatusSummary {
+  status: string;
+  duration?: string;
+  tasks?: {
+    done: number;
+    total: number;
+  };
+}
+
+interface ProjectStatusSummary {
+  project: string;
+  environment: string[];
+  phases: Record<PhaseName, PhaseStatusSummary>;
+  warnings: Array<{ phase: PhaseName; message: string }>;
+}
 
 const PHASE_LABEL: Record<string, string> = {
   propose: 'propose',
@@ -35,46 +56,77 @@ const STUCK_MESSAGE: Record<string, string> = {
   archive: 'Archive has been in progress. Run "nova archive --done" to finish or "--rollback" to reset.',
 };
 
-export const statusCommand = withErrorHandling(async () => {
-  const state = await StateManager.load();
-
-  ui.step(`Project: ${state.project}`);
-  ui.info(`Environment: ${state.environment.join(', ') || '(none)'}`);
-  ui.info('');
-
-  const warnings: string[] = [];
+function buildStatusSummary(state: any): ProjectStatusSummary {
+  const warnings: ProjectStatusSummary['warnings'] = [];
+  const phases = {} as Record<PhaseName, PhaseStatusSummary>;
 
   for (const phase of PHASE_ORDER) {
     const data = state.phases[phase] || {};
     const status: string = data.status || 'pending';
-    const icon = STATUS_ICON[status] || '⬜';
-    const label = PHASE_LABEL[phase] || phase;
-    const extra: string[] = [];
+    const summary: PhaseStatusSummary = { status };
 
-    // 耗时统计
     const duration = StateManager.getPhaseDuration(data);
-    if (duration) extra.push(duration);
+    if (duration) summary.duration = duration;
 
     if (phase === 'implement' && data.tasks) {
       const entries = Object.entries(data.tasks) as [string, any][];
-      const done = entries.filter(([, t]) => t.status === 'done').length;
-      extra.push(`tasks: ${done}/${entries.length} done`);
+      const done = entries.filter(([, task]) => task.status === 'done').length;
+      summary.tasks = { done, total: entries.length };
     }
 
-    ui.info(`  ${icon} ${label}: ${status}${extra.length ? ` (${extra.join(', ')})` : ''}`);
-
-    // 卡住检测
     if (status === 'in-progress' && data.startedAt) {
       const elapsed = Date.now() - new Date(data.startedAt).getTime();
       const threshold = STUCK_THRESHOLDS[phase] || 60 * 60 * 1000;
       if (elapsed > threshold) {
-        warnings.push(`${label}: ${STUCK_MESSAGE[phase]}`);
+        warnings.push({ phase, message: STUCK_MESSAGE[phase] });
       }
     }
+
+    phases[phase] = summary;
   }
 
-  if (warnings.length > 0) {
+  return {
+    project: state.project,
+    environment: Array.isArray(state.environment) ? state.environment : [],
+    phases,
+    warnings,
+  };
+}
+
+export const statusCommand = withErrorHandling(async (options: StatusCommandOptions = {}) => {
+  const state = await StateManager.load();
+  const summary = buildStatusSummary(state);
+
+  if (options.json) {
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
+
+  ui.step(`Project: ${summary.project}`);
+  ui.info(`Environment: ${summary.environment.join(', ') || '(none)'}`);
+  ui.info('');
+
+  for (const phase of PHASE_ORDER) {
+    const data = summary.phases[phase];
+    const status = data.status;
+    const icon = STATUS_ICON[status] || '⬜';
+    const label = PHASE_LABEL[phase] || phase;
+    const extra: string[] = [];
+
+    if (data.duration) extra.push(data.duration);
+
+    if (data.tasks) {
+      extra.push(`tasks: ${data.tasks.done}/${data.tasks.total} done`);
+    }
+
+    ui.info(`  ${icon} ${label}: ${status}${extra.length ? ` (${extra.join(', ')})` : ''}`);
+  }
+
+  if (summary.warnings.length > 0) {
     ui.warn('');
-    for (const w of warnings) ui.warn(w);
+    for (const warning of summary.warnings) {
+      const label = PHASE_LABEL[warning.phase] || warning.phase;
+      ui.warn(`${label}: ${warning.message}`);
+    }
   }
 });

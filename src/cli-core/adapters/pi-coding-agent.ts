@@ -126,7 +126,7 @@ Always include \`## Change Mode\` with changeMode, affected areas, and whether
 legacyPreflight is required.
 
 ## Step 5: Update State
-Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>' --change-mode existing|incremental|new\`, where \`<json>\` includes automatedUiTesting, uiFidelityTesting, and unitTesting and is written to \`phases.propose.testStrategy\`. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
+Update proposal artifacts with \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>' --change-mode existing|incremental|new\`, where \`<json>\` includes automatedUiTesting, uiFidelityTesting, and unitTesting and is written to \`phases.propose.testStrategy\`. When a Figma link is present, also pass \`--figma-traceability '<json>'\` with url, nodeIds, pageMode, routeOrScreen, entryPoint, and assetRequirements. Run \`nova validate\`, then \`nova checkpoint phase propose --status done\`.
 `,
 
   'nova-design.md': (mcp) => `---

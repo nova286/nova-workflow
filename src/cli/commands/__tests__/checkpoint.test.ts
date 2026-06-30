@@ -67,4 +67,32 @@ describe('checkpoint command', () => {
     expect(state.phases.propose.testStrategy.unitTestTargets).toEqual(['src/task.ts']);
     expect(state.phases.propose.testStrategy.uiFidelityTesting).toBe(false);
   });
+
+  test('records Figma traceability from JSON on checkpoint artifacts', async () => {
+    const program = new Command();
+    registerCheckpointCommand(program);
+    const figmaTraceability = {
+      url: 'https://www.figma.com/design/example?node-id=25406-81700',
+      nodeIds: ['25406:81700'],
+      pageMode: 'incremental',
+      routeOrScreen: 'SameoneVideoViewController',
+      entryPoint: 'Creation center entry',
+      assetRequirements: ['Export icons from Figma into Assets.xcassets'],
+    };
+
+    await program.parseAsync([
+      'node',
+      'nova',
+      'checkpoint',
+      'artifacts',
+      '--figma-traceability',
+      JSON.stringify(figmaTraceability),
+    ]);
+
+    expect(logSpy).toHaveBeenCalledWith('Checkpointed workflow artifacts.');
+
+    const state = yaml.parse(await fs.readFile('.nova.yaml', 'utf-8'));
+    expect(state.phases.propose.figma).toEqual(figmaTraceability);
+    expect(state.artifacts.figmaTraceability).toEqual(figmaTraceability);
+  });
 });

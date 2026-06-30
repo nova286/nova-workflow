@@ -34,6 +34,7 @@ program
 
 program
   .command('status')
+  .option('--json', 'Print structured JSON')
   .action(statusCommand);
 
 program

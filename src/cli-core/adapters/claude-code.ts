@@ -161,7 +161,9 @@ Set \`activeChange\`, \`artifacts.openspecChange\`, \`artifacts.proposal\`,
 \`artifacts.specDelta\`, \`phases.propose.proposal\`, \`phases.propose.changeMode\`, and
 \`phases.propose.testStrategy\`. Use \`nova checkpoint artifacts --proposal docs/proposals/proposal.md --spec-delta <spec-ref-or-path> --active-change <change-id> --test-strategy '<json>'\`,
 where \`<json>\` includes \`automatedUiTesting\`, \`uiFidelityTesting\`, and \`unitTesting\`; also pass
-\`--change-mode existing|incremental|new\`.
+\`--change-mode existing|incremental|new\`. When a Figma link is present, also pass
+\`--figma-traceability '<json>'\` with \`url\`, \`nodeIds\`, \`pageMode\`,
+\`routeOrScreen\`, \`entryPoint\`, and \`assetRequirements\`.
 Run \`nova validate\`, then mark completion with \`nova checkpoint phase propose --status done\`
 when validation passes.
 

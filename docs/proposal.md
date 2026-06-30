@@ -65,4 +65,5 @@ Record the selected strategy:
 
 <!-- Before marking propose done, record artifacts:
 nova checkpoint artifacts --proposal docs/proposals/<file>.md --spec-delta <spec-ref-or-path> --active-change <change-id> --change-mode existing|incremental|new --test-strategy '<json>'
+If this proposal includes a Figma URL, also pass --figma-traceability '<json>' with url, nodeIds, pageMode, routeOrScreen, entryPoint, and assetRequirements.
 -->

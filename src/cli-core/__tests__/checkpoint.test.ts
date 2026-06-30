@@ -142,6 +142,27 @@ describe('checkpoint', () => {
     expect(state.artifacts?.testStrategy).toEqual({ ...testStrategy, uiFidelityTesting: false });
   });
 
+  test('checkpointArtifacts records Figma traceability in phase and artifacts', async () => {
+    await writeState(baseState);
+    const figmaTraceability = {
+      url: 'https://www.figma.com/design/example?node-id=25406-81700',
+      nodeIds: ['25406:81700'],
+      pageMode: 'incremental',
+      routeOrScreen: 'SameoneVideoViewController',
+      entryPoint: 'Creation center entry',
+      assetRequirements: [
+        'Export icons from Figma into Assets.xcassets',
+        'Map colors to semantic UIColor names',
+      ],
+    };
+
+    await checkpointArtifacts({ figmaTraceability });
+
+    const state = await StateManager.load();
+    expect(state.phases.propose.figma).toEqual(figmaTraceability);
+    expect(state.artifacts?.figmaTraceability).toEqual(figmaTraceability);
+  });
+
   test('checkpointArtifacts normalizes legacy unitTargets to unitTestTargets', async () => {
     await writeState(baseState);
     await checkpointArtifacts({
